@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Parent Tracking Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#111827", // Dark slate/black for active states
+                        "background-light": "#F3F4F6", // Light gray background
+                        "background-dark": "#1F2937", // Dark mode background
+                        "sidebar-light": "#E5E7EB",
+                        "sidebar-dark": "#111827",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#374151",
+                        "accent-blue": "#DCE7FE",
+                        "accent-blue-dark": "#1E3A8A",
+                        "accent-orange": "#FEEBC8",
+                        "accent-orange-dark": "#7C2D12",
+                        "accent-red": "#FED7D7",
+                        "accent-red-dark": "#7F1D1D",
+                        "accent-green": "#C6F6D5",
+                        "accent-green-dark": "#064E3B",
+                        "accent-purple": "#E9D8FD",
+                        "accent-purple-dark": "#44337A",
+                        "accent-teal": "#B2F5EA",
+                        "accent-teal-dark": "#234E52",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                        '3xl': '2rem',
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-gray-200 dark:bg-gray-900 font-display text-gray-800 dark:text-gray-100 h-screen overflow-hidden flex items-center justify-center p-4">
+<div class="w-full max-w-[1600px] h-[95vh] bg-sidebar-light dark:bg-sidebar-dark rounded-3xl shadow-2xl flex overflow-hidden border border-white/20 relative">
+<aside class="w-64 flex-shrink-0 flex flex-col h-full overflow-y-auto custom-scrollbar p-6 bg-[#E8E8E6] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-colors duration-300">
+<div class="flex items-center justify-between mb-8">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
+<span class="material-icons-outlined text-xl">equalizer</span>
+</div>
+<button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500">
+<span class="material-icons-outlined text-xl">grid_view</span>
+</button>
+</div>
+<div class="mb-8">
+<h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-2">Main menu</h3>
+<nav class="space-y-1">
+<a class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<div class="flex items-center">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">home</span>
+                            Overview
+                        </div>
+<div class="flex items-center space-x-1">
+<span class="px-1.5 py-0.5 text-[10px] border border-gray-300 dark:border-gray-600 rounded text-gray-500">⌘</span>
+<span class="px-1.5 py-0.5 text-[10px] border border-gray-300 dark:border-gray-600 rounded text-gray-500">M</span>
+</div>
+</a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">description</span>
+                        Class Preparation
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">schedule</span>
+                        Attendance
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">edit_note</span>
+                        Exams
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">bookmark</span>
+                        Assignment management
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">watch_later</span>
+                        Schedule
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 shadow-sm rounded-lg group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-900 dark:text-white">people</span>
+                        Students
+                    </a>
+<a class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<div class="flex items-center">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">mail</span>
+                            Messages
+                        </div>
+<span class="bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+</a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">analytics</span>
+                        Analytics
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">pie_chart</span>
+                        Reports
+                    </a>
+</nav>
+</div>
+<div class="mb-auto">
+<h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 px-2">Settings and news</h3>
+<nav class="space-y-1">
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">auto_awesome</span>
+                        School News
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">business</span>
+                        School Activities
+                    </a>
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">campaign</span>
+                        What's New
+                    </a>
+</nav>
+</div>
+<div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+<a class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white/50 dark:hover:bg-gray-800 group transition-colors mb-4" href="#">
+<span class="material-icons-outlined text-[20px] mr-3 text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white">settings</span>
+                    Settings
+                </a>
+<h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-2">Account</h3>
+<div class="flex items-center px-2">
+<img alt="User Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-white dark:border-gray-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8FUEf9F633ZGYVde2Ju6YdaOL6ew4KSGHBpdQGOwgfzNGqU-k5czVUKLVnEngUESiTm3Ao6acBwNpiyfbvIZfltMyG8nCgMReE-N3WhUr1STuE5lPKAc5UwfBpZCvRGZXNa2vt3RXfZS6MkQW2q6HpZO1WDOa7jv13M6XYooyNiMfERhwP_xDycaHpeaV4hXWmCwoXHiQ8LFC3IxNpz9jGluAW0kcX_gUn3Bp4IvPIt_Sf7Kv3z7gzSY4VEq12zaPyE42tqyGWlM"/>
+<div class="ml-3">
+<p class="text-sm font-semibold text-gray-900 dark:text-white">Amirbaqian</p>
+<p class="text-xs text-gray-500 dark:text-gray-400">Teacher</p>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-800 rounded-l-[3rem] shadow-inner ml-[-1rem] z-10 relative">
+<header class="flex-shrink-0 px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+<div>
+<div class="flex items-center text-xs text-gray-400 mb-2 space-x-2">
+<span>Techerly</span>
+<span class="material-icons-outlined text-[10px]">chevron_right</span>
+<span>Students</span>
+<span class="material-icons-outlined text-[10px]">chevron_right</span>
+<span>Activity</span>
+<span class="material-icons-outlined text-[10px]">chevron_right</span>
+<div class="flex items-center text-gray-800 dark:text-gray-200 font-medium">
+<img alt="Student" class="w-5 h-5 rounded-full mr-1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGkkQY34CO2R8DZYsVlyveJexPCQ_q3o1Pwi84SpdlNpB2nzSZN1YFGaa4fC-xLkBewuu-SIRxO0GXSYdCxoNKpZMM2bR2KIF1cG2LtVCpgs6BTMK467dINgzBGj1nVfVoyywC_OVK1746giQGDFnFu7JUQtam1t0FjjLahLowz_e8nvgdBct6hh3gaREh0pJyUKq78vZHICTg1vr-y5aYuwUXj3Sj5W7XuQ7i3682gdwd-RFCDKzqJKIOFwZPqkDxCyHI2QAI6E0"/>
+                            Amirbaqian
+                            <span class="material-icons-outlined text-sm ml-1">expand_more</span>
+</div>
+</div>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Activity Calendar</h1>
+</div>
+<div class="flex items-center space-x-3">
+<button class="flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+<span class="material-icons-outlined text-sm mr-2">filter_list</span>
+                        Filter
+                        <span class="ml-2 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">1</span>
+</button>
+</div>
+</header>
+<div class="flex-shrink-0 px-8 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+<div class="flex items-center justify-between max-w-4xl">
+<button class="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+<span class="material-icons-outlined text-sm">chevron_left</span>
+</button>
+<div class="flex space-x-2 overflow-x-auto no-scrollbar">
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">Jan</button>
+<button class="px-6 py-1.5 text-sm font-medium text-white bg-black dark:bg-white dark:text-black rounded-full shadow-lg">Feb</button>
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">March</button>
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">April</button>
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">May</button>
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">June</button>
+<button class="px-6 py-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700">Jul</button>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar bg-white dark:bg-gray-800">
+<div class="flex group mb-6">
+<div class="w-12 pt-3 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">1</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+<div class="bg-accent-blue/30 dark:bg-accent-blue-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">assignment</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Assignment Sent</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-orange/50 dark:bg-accent-orange-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">event_busy</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Absent from class</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-1 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">2</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700">
+<span class="text-xs text-gray-400 dark:text-gray-500">No events.</span>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-3 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">3</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+<div class="bg-accent-red/50 dark:bg-accent-red-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">edit</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Assignment edited</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-teal/50 dark:bg-accent-teal-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">visibility</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Lesson Viewed</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-orange/50 dark:bg-accent-orange-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">event_busy</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Absent from class</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-1 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">4</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700">
+<span class="text-xs text-gray-400 dark:text-gray-500">Weekend</span>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-1 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">5</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700">
+<span class="text-xs text-gray-400 dark:text-gray-500">Weekend</span>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-3 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">6</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+<div class="bg-accent-purple/50 dark:bg-accent-purple-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">file_download</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">PDF / file downloaded</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-sky-100 dark:bg-sky-900/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">fingerprint</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Changed account Password</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-1 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">7</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700">
+<span class="text-xs text-gray-400 dark:text-gray-500">No events.</span>
+</div>
+</div>
+<div class="flex group mb-6">
+<div class="w-12 pt-1 flex-shrink-0 text-gray-500 dark:text-gray-400 text-sm font-medium">8</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700">
+<span class="text-xs text-gray-400 dark:text-gray-500">No events.</span>
+</div>
+</div>
+<div class="flex group mb-6 relative">
+<div class="absolute -left-4 top-2 w-1.5 h-1.5 rounded-full bg-black dark:bg-white hidden group-hover:block"></div>
+<div class="w-12 pt-3 flex-shrink-0 text-white text-sm font-medium flex justify-start">
+<span class="w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xs">9</span>
+</div>
+<div class="flex-1 pb-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap gap-4">
+<div class="bg-accent-blue/30 dark:bg-accent-blue-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">history_edu</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Exam viewed</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-green/50 dark:bg-accent-green-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">check_circle</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Present in class</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:00 am</p>
+</div>
+</div>
+<div class="bg-accent-purple/50 dark:bg-accent-purple-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">live_tv</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Joined live session</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-red/50 dark:bg-accent-red-dark/30 p-1.5 pr-4 rounded-xl flex items-center min-w-[200px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="bg-white dark:bg-gray-700 p-2 rounded-lg mr-3 shadow-sm">
+<span class="material-icons-outlined text-gray-700 dark:text-gray-200 text-lg">list_alt</span>
+</div>
+<div>
+<h4 class="text-xs font-semibold text-gray-800 dark:text-gray-100">Study plan</h4>
+<p class="text-[10px] text-gray-500 dark:text-gray-400">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="h-10"></div>
+</div>
+</main>
+</div>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }.custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(156, 163, 175, 0.5);
+            border-radius: 20px;
+        }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(107, 114, 128, 0.8);
+        }
+    </style>
+
+</body></html>

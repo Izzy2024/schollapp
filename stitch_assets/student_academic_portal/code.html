@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Student Academic Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#111827", // Using the dark shade for primary accents
+                        "background-light": "#F3F4F6",
+                        "background-dark": "#1F2937",
+                        "sidebar-light": "#EAEBEA", // Approximating the light gray/beige sidebar
+                        "sidebar-dark": "#111827",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#374151",
+                        "text-main-light": "#111827",
+                        "text-main-dark": "#F9FAFB",
+                        "text-muted-light": "#6B7280",
+                        "text-muted-dark": "#9CA3AF",
+                        // Pastel accents from the screenshot
+                        "accent-blue-light": "#E0E7FF",
+                        "accent-blue-dark": "#312E81",
+                        "accent-blue-text-light": "#3730A3",
+                        "accent-blue-text-dark": "#E0E7FF",
+                        "accent-orange-light": "#FFEDD5",
+                        "accent-orange-dark": "#7C2D12",
+                        "accent-orange-text-light": "#9A3412",
+                        "accent-orange-text-dark": "#FFEDD5",
+                        "accent-red-light": "#FEE2E2",
+                        "accent-red-dark": "#7F1D1D",
+                        "accent-red-text-light": "#991B1B",
+                        "accent-red-text-dark": "#FEE2E2",
+                        "accent-cyan-light": "#CFFAFE",
+                        "accent-cyan-dark": "#164E63",
+                        "accent-cyan-text-light": "#155E75",
+                        "accent-cyan-text-dark": "#CFFAFE",
+                        "accent-purple-light": "#F3E8FF",
+                        "accent-purple-dark": "#581C87",
+                        "accent-purple-text-light": "#6B21A8",
+                        "accent-purple-text-dark": "#F3E8FF",
+                        "accent-green-light": "#DCFCE7",
+                        "accent-green-dark": "#14532D",
+                        "accent-green-text-light": "#166534",
+                        "accent-green-text-dark": "#DCFCE7",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem", // Consistent rounded look
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                    },
+                },
+            },
+        };
+    </script>
+<style>::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-body antialiased min-h-screen flex items-center justify-center p-4">
+<div class="w-full max-w-[1600px] h-[95vh] bg-surface-light dark:bg-sidebar-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row relative ring-1 ring-black/5 dark:ring-white/10">
+<aside class="w-full md:w-72 flex-shrink-0 bg-sidebar-light dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full overflow-y-auto">
+<div class="p-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
+<span class="material-icons-outlined text-xl">equalizer</span>
+</div>
+</div>
+<button class="p-2 text-text-muted-light dark:text-text-muted-dark hover:bg-white/50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+<span class="material-icons-outlined">space_dashboard</span>
+</button>
+</div>
+<div class="flex-1 px-4 space-y-8 overflow-y-auto">
+<div>
+<h3 class="px-4 text-xs font-medium text-text-muted-light dark:text-gray-500 uppercase tracking-wider mb-2">Main menu</h3>
+<nav class="space-y-1">
+<a class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors group" href="#">
+<div class="flex items-center gap-3">
+<span class="material-icons-outlined text-[20px]">grid_view</span>
+<span>Overview</span>
+</div>
+<span class="hidden group-hover:block text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-500">⌘ M</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">assignment</span>
+<span>Class Preparation</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">schedule</span>
+<span>Attendance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">edit_note</span>
+<span>Exams</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">bookmark_border</span>
+<span>Assignment management</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">access_time</span>
+<span>Schedule</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-primary dark:text-white bg-white dark:bg-gray-800 rounded-xl shadow-sm ring-1 ring-black/5 dark:ring-white/10" href="#">
+<span class="material-icons-outlined text-[20px]">people_alt</span>
+<span>Students</span>
+</a>
+<a class="flex items-center justify-between px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<div class="flex items-center gap-3">
+<span class="material-icons-outlined text-[20px]">mail_outline</span>
+<span>Messages</span>
+</div>
+<span class="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-black dark:bg-white dark:text-black rounded-full">2</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">donut_large</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">article</span>
+<span>Reports</span>
+</a>
+</nav>
+</div>
+<div>
+<h3 class="px-4 text-xs font-medium text-text-muted-light dark:text-gray-500 uppercase tracking-wider mb-2">Settings and news</h3>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">campaign</span>
+<span>School News</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">local_activity</span>
+<span>School Activities</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors" href="#">
+<span class="material-icons-outlined text-[20px]">tips_and_updates</span>
+<span>What's New</span>
+</a>
+</nav>
+</div>
+<div>
+<a class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-muted-light dark:text-gray-300 rounded-xl hover:bg-white/50 dark:hover:bg-gray-800 transition-colors mb-4" href="#">
+<span class="material-icons-outlined text-[20px]">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</div>
+<div class="p-4 border-t border-gray-200 dark:border-gray-800 mt-auto">
+<div class="flex items-center gap-3 px-2">
+<img alt="Amirbaqian" class="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMpBkoFb6jUe_SJRvX43PSQFbXltJo_UGmPGSex7OX6OeXYHtO1nDLR0Dw1l-AKfUZbFgf8Hkz4DqpzvgvSJ84qcK8F9-VTLvTL96eJ0WOGGALvPaFsh2mnv_25gcB_B5h135E7RSxJmvGjQTmkRQWncyGt3kaDOIcPk9twJuyO5UFC9YTh21nph8je-XGjE89gAo2qF1mLo67M9cuXL64Vxz7_jFvn_af_w5G1lhQwoSCcFtbxRH2JpKbJ3ttJHStrXuL7nf-X8g"/>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-text-main-light dark:text-white">Amirbaqian</span>
+<span class="text-xs text-text-muted-light dark:text-gray-400">Teacher</span>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-surface-light dark:bg-surface-dark relative">
+<header class="h-16 flex items-center justify-between px-8 py-4 bg-surface-light dark:bg-surface-dark z-10">
+<nav class="flex items-center text-sm text-text-muted-light dark:text-gray-400">
+<span class="hover:text-primary dark:hover:text-white cursor-pointer transition-colors">Techerly</span>
+<span class="mx-2 text-gray-300 dark:text-gray-600">›</span>
+<span class="hover:text-primary dark:hover:text-white cursor-pointer transition-colors">Students</span>
+<span class="mx-2 text-gray-300 dark:text-gray-600">›</span>
+<span class="text-text-main-light dark:text-white font-medium">Activity</span>
+</nav>
+<div class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-colors">
+<img alt="User" class="w-6 h-6 rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrZ7Y61bP7_Dfr52cPam1Q0rTg4At1mdUY2eEAO0s6nNgQ3xr0Q3SIbyEgp1OTAXZfU6FBI4ufqmfTVwuviGg26MZX9r8U-UMAZXlx-kKryjeasoPuA9XTuY1ypOVOFVo2vWk0yx5OhAuAnpjcKCnTIFSpTWopcHIIuIwxcte33NeyIq1wEqx4OocewhbaFgQpjI7wP4EKrLuQpcvc5XeH9HiQyeyEbaDHrN5fXis-l1yUzEKunDmxi9DIzpVDK_RF3atw-34aBTs"/>
+<span class="text-sm font-medium text-text-main-light dark:text-white">Amirbaqian</span>
+<span class="material-icons-outlined text-sm text-gray-400">expand_more</span>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto px-8 pb-8 scroll-smooth">
+<div class="flex items-center justify-between mb-8 mt-2">
+<h1 class="text-2xl font-bold text-text-main-light dark:text-white">Activity Calendar</h1>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-main-light dark:text-white bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm">
+<span class="material-icons-outlined text-lg">tune</span>
+                            Filter
+                        </button>
+<button class="flex items-center justify-center w-8 h-8 text-white bg-black dark:bg-primary rounded-full text-xs font-bold">1</button>
+</div>
+</div>
+<div class="flex items-center justify-between mb-8 bg-white dark:bg-gray-800/50 p-2 rounded-2xl border border-transparent dark:border-gray-700">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+<span class="material-icons-outlined text-lg">chevron_left</span>
+</button>
+<div class="flex-1 flex justify-between px-4 overflow-x-auto gap-2 no-scrollbar">
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">Jan</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-white bg-black dark:bg-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/10 whitespace-nowrap">Feb</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">March</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">April</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">May</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">June</button>
+<button class="px-6 py-2 rounded-full text-sm font-medium text-text-muted-light dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">Jul</button>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors">
+<span class="material-icons-outlined text-lg">chevron_right</span>
+</button>
+</div>
+<div class="space-y-0 relative">
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-2 text-sm font-medium text-text-muted-light dark:text-gray-500">1</div>
+<div class="flex-1 flex gap-4 overflow-x-auto pb-2">
+<div class="bg-accent-blue-light dark:bg-accent-blue-dark/40 border border-transparent dark:border-accent-blue-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-blue-dark rounded-xl flex items-center justify-center text-accent-blue-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">check_circle</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-blue-text-light dark:text-accent-blue-text-dark">Assignment Sent</h4>
+<p class="text-xs text-accent-blue-text-light/70 dark:text-accent-blue-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-orange-light dark:bg-accent-orange-dark/40 border border-transparent dark:border-accent-orange-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-orange-dark rounded-xl flex items-center justify-center text-accent-orange-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">assignment_late</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-orange-text-light dark:text-accent-orange-text-dark">Absent from class</h4>
+<p class="text-xs text-accent-orange-text-light/70 dark:text-accent-orange-text-dark/70">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-1 text-sm font-medium text-text-muted-light dark:text-gray-500">2</div>
+<div class="flex-1 pt-1">
+<span class="text-sm text-gray-400 italic">No events.</span>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-2 text-sm font-medium text-text-muted-light dark:text-gray-500">3</div>
+<div class="flex-1 flex gap-4 overflow-x-auto pb-2">
+<div class="bg-accent-red-light dark:bg-accent-red-dark/40 border border-transparent dark:border-accent-red-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-red-dark rounded-xl flex items-center justify-center text-accent-red-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">edit</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-red-text-light dark:text-accent-red-text-dark">Assignment edited</h4>
+<p class="text-xs text-accent-red-text-light/70 dark:text-accent-red-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-cyan-light dark:bg-accent-cyan-dark/40 border border-transparent dark:border-accent-cyan-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-cyan-dark rounded-xl flex items-center justify-center text-accent-cyan-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">visibility</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-cyan-text-light dark:text-accent-cyan-text-dark">Lesson Viewed</h4>
+<p class="text-xs text-accent-cyan-text-light/70 dark:text-accent-cyan-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-orange-light dark:bg-accent-orange-dark/40 border border-transparent dark:border-accent-orange-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-orange-dark rounded-xl flex items-center justify-center text-accent-orange-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">assignment_late</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-orange-text-light dark:text-accent-orange-text-dark">Absent from class</h4>
+<p class="text-xs text-accent-orange-text-light/70 dark:text-accent-orange-text-dark/70">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-1 text-sm font-medium text-text-muted-light dark:text-gray-500">4</div>
+<div class="flex-1 pt-1">
+<span class="text-sm text-gray-400 font-medium">Weekend</span>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-1 text-sm font-medium text-text-muted-light dark:text-gray-500">5</div>
+<div class="flex-1 pt-1">
+<span class="text-sm text-gray-400 font-medium">Weekend</span>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-2 text-sm font-medium text-text-muted-light dark:text-gray-500">6</div>
+<div class="flex-1 flex gap-4 overflow-x-auto pb-2">
+<div class="bg-accent-purple-light dark:bg-accent-purple-dark/40 border border-transparent dark:border-accent-purple-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-purple-dark rounded-xl flex items-center justify-center text-accent-purple-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">download</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-purple-text-light dark:text-accent-purple-text-dark">PDF / file downloaded</h4>
+<p class="text-xs text-accent-purple-text-light/70 dark:text-accent-purple-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-cyan-light dark:bg-accent-cyan-dark/40 border border-transparent dark:border-accent-cyan-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-cyan-dark rounded-xl flex items-center justify-center text-accent-cyan-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">fingerprint</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-cyan-text-light dark:text-accent-cyan-text-dark">Changed account Password</h4>
+<p class="text-xs text-accent-cyan-text-light/70 dark:text-accent-cyan-text-dark/70">6:45 am</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-1 text-sm font-medium text-text-muted-light dark:text-gray-500">7</div>
+<div class="flex-1 pt-1">
+<span class="text-sm text-gray-400 italic">No events.</span>
+</div>
+</div>
+<div class="flex group border-b border-gray-100 dark:border-gray-800 py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-1 text-sm font-medium text-text-muted-light dark:text-gray-500">8</div>
+<div class="flex-1 pt-1">
+<span class="text-sm text-gray-400 italic">No events.</span>
+</div>
+</div>
+<div class="flex group py-6 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors -mx-4 px-4 rounded-xl">
+<div class="w-12 pt-2 text-sm flex flex-col items-start gap-1">
+<span class="w-7 h-7 bg-black dark:bg-white text-white dark:text-black rounded-full flex items-center justify-center font-bold text-xs">9</span>
+</div>
+<div class="flex-1 flex gap-4 overflow-x-auto pb-2">
+<div class="bg-accent-blue-light dark:bg-accent-blue-dark/40 border border-transparent dark:border-accent-blue-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-blue-dark rounded-xl flex items-center justify-center text-accent-blue-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">draw</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-blue-text-light dark:text-accent-blue-text-dark">Exam viewed</h4>
+<p class="text-xs text-accent-blue-text-light/70 dark:text-accent-blue-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-green-light dark:bg-accent-green-dark/40 border border-transparent dark:border-accent-green-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-green-dark rounded-xl flex items-center justify-center text-accent-green-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">check_circle_outline</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-green-text-light dark:text-accent-green-text-dark">Present in class</h4>
+<p class="text-xs text-accent-green-text-light/70 dark:text-accent-green-text-dark/70">6:00 am</p>
+</div>
+</div>
+<div class="bg-accent-purple-light dark:bg-accent-purple-dark/40 border border-transparent dark:border-accent-purple-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-purple-dark rounded-xl flex items-center justify-center text-accent-purple-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">computer</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-purple-text-light dark:text-accent-purple-text-dark">Joined live session</h4>
+<p class="text-xs text-accent-purple-text-light/70 dark:text-accent-purple-text-dark/70">6:45 am</p>
+</div>
+</div>
+<div class="bg-accent-red-light dark:bg-accent-red-dark/40 border border-transparent dark:border-accent-red-dark p-3 rounded-2xl flex items-center gap-3 min-w-[240px] hover:shadow-md transition-shadow cursor-pointer">
+<div class="w-10 h-10 bg-white dark:bg-accent-red-dark rounded-xl flex items-center justify-center text-accent-red-text-light dark:text-white shadow-sm">
+<span class="material-icons-outlined text-[20px]">flag</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-accent-red-text-light dark:text-accent-red-text-dark">Study plan</h4>
+<p class="text-xs text-accent-red-text-light/70 dark:text-accent-red-text-dark/70">6:00 am</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

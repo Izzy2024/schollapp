@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Director Analytics Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#111827", // Dark gray/black from the reference sidebar logo background
+                        secondary: "#6366f1", // Indigo for accents
+                        "background-light": "#F3F4F6",
+                        "background-dark": "#111827",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1F2937",
+                        "border-light": "#E5E7EB",
+                        "border-dark": "#374151",
+                        "sidebar-light": "#F0F0F0", // Creating that soft gray sidebar look
+                        "sidebar-dark": "#18181b",
+                        "text-secondary-light": "#6B7280",
+                        "text-secondary-dark": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem", // 12px for smooth corners
+                        'xl': "1rem",
+                        '2xl': "1.5rem",
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                    }
+                },
+            },
+        };
+    </script>
+<style>::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="bg-gray-200 dark:bg-black font-body text-gray-900 dark:text-gray-100 h-screen overflow-hidden flex items-center justify-center p-4 selection:bg-indigo-100 selection:text-indigo-900">
+<div class="w-full max-w-[1600px] h-[95vh] bg-sidebar-light dark:bg-sidebar-dark rounded-3xl shadow-2xl flex overflow-hidden border border-white/50 dark:border-white/10 relative">
+<aside class="w-72 flex flex-col flex-shrink-0 h-full overflow-y-auto pt-8 pb-6 px-6 relative z-10">
+<div class="flex items-center justify-between mb-10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-xl">school</span>
+</div>
+<span class="font-bold text-lg tracking-tight text-gray-800 dark:text-white">Techerly</span>
+</div>
+<button class="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-gray-500 dark:text-gray-400">
+<span class="material-symbols-outlined text-xl">left_panel_close</span>
+</button>
+</div>
+<div class="space-y-1 mb-8">
+<h3 class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-3 px-3">Director Console</h3>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-white dark:bg-white/10 text-gray-900 dark:text-white rounded-xl shadow-sm font-medium group transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Overview
+                    <div class="ml-auto flex gap-1">
+<span class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 rounded">⌘</span>
+<span class="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 border border-gray-200 dark:border-gray-600 px-1.5 py-0.5 rounded">O</span>
+</div>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+                    Academic Perf.
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">groups</span>
+                    Enrollment
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">attach_money</span>
+                    Financials
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                    Resource Mgmt
+                </a>
+</div>
+<div class="space-y-1 mb-8">
+<h3 class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider mb-3 px-3">Strategic Reports</h3>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">verified</span>
+                    Accreditation Status
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors font-medium" href="#">
+<span class="material-symbols-outlined">psychology</span>
+                    Staff Performance
+                </a>
+</div>
+<div class="mt-auto">
+<div class="p-3 bg-white dark:bg-surface-dark rounded-2xl shadow-sm border border-border-light dark:border-border-dark flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+<img alt="Director Profile" class="w-10 h-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9q5MEKVtjq_vxg9VAQJOQb8V2V1yYVuweipJijGwDSm-qRlmzUHly-RyO84sN2JFbXU-wgbRXfUG1Uv4f8WRAjoTmd3H024qQDsrHexo6mbD71L_6ieM5_qAnSMdGoNBWl35O88bBGEoJtf2kK4cpnXL7hmSaLn4gYnI6oSUZBfVaGO9cPVnvMIYtLknqWQ-3LJ-VxsgD3_CvwDmQo_PT9lDQ365NhH2YjlsM0oh8Zuust17OZcfJgYqcWxBYCIhfzUN8D2ZmLY0"/>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-gray-900 dark:text-white truncate">Dr. A. Richardson</p>
+<p class="text-xs text-gray-500 dark:text-gray-400 truncate">Director of Education</p>
+</div>
+<span class="material-symbols-outlined text-gray-400 text-lg">expand_more</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 bg-surface-light dark:bg-surface-dark m-3 rounded-2xl shadow-inner overflow-hidden flex flex-col relative border border-white/60 dark:border-white/5">
+<header class="h-16 border-b border-border-light dark:border-border-dark flex items-center justify-between px-8 bg-white/80 dark:bg-surface-dark/90 backdrop-blur-md sticky top-0 z-20">
+<div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+<span class="hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer">Director Hub</span>
+<span class="material-symbols-outlined text-base">chevron_right</span>
+<span class="font-medium text-gray-900 dark:text-white">Analytics Overview</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input class="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary w-64 text-gray-900 dark:text-white placeholder-gray-500" placeholder="Search data points..." type="text"/>
+</div>
+<button class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-gray-800"></span>
+</button>
+<button class="flex items-center gap-2 px-3 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200 dark:shadow-none">
+<span class="material-symbols-outlined text-lg">download</span>
+                        Export Report
+                    </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8 space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-white dark:bg-gray-800/50 rounded-2xl p-5 border border-border-light dark:border-border-dark shadow-soft">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
+<span class="material-symbols-outlined">school</span>
+</div>
+<span class="text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span> +2.4%
+                            </span>
+</div>
+<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Avg. GPA</h3>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">3.42</p>
+<p class="text-xs text-gray-400 mt-2">Vs. previous semester</p>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-2xl p-5 border border-border-light dark:border-border-dark shadow-soft">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<span class="text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_down</span> -0.5%
+                            </span>
+</div>
+<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Attendance Rate</h3>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">94.8%</p>
+<p class="text-xs text-gray-400 mt-2">Daily average</p>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-2xl p-5 border border-border-light dark:border-border-dark shadow-soft">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg">
+<span class="material-symbols-outlined">person_add</span>
+</div>
+<span class="text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span> +12
+                            </span>
+</div>
+<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">New Enrollments</h3>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">1,284</p>
+<p class="text-xs text-gray-400 mt-2">Current academic year</p>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-2xl p-5 border border-border-light dark:border-border-dark shadow-soft">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg">
+<span class="material-symbols-outlined">attach_money</span>
+</div>
+<span class="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                                On Track
+                            </span>
+</div>
+<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Budget Utilized</h3>
+<p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">42%</p>
+<p class="text-xs text-gray-400 mt-2">$2.4M Remaining</p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-96">
+<div class="lg:col-span-2 bg-white dark:bg-gray-800/50 rounded-2xl p-6 border border-border-light dark:border-border-dark shadow-soft flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Grade Distribution by Department</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400">Comparative analysis across sciences and humanities</p>
+</div>
+<select class="bg-gray-50 dark:bg-gray-700 border-none text-sm text-gray-700 dark:text-gray-300 rounded-lg p-2 pr-8 focus:ring-0 cursor-pointer">
+<option>Mid-Term Exam</option>
+<option>Final Exam</option>
+<option>Overall Assessment</option>
+</select>
+</div>
+<div class="flex-1 w-full relative">
+<canvas id="gradeChart"></canvas>
+</div>
+</div>
+<div class="lg:col-span-1 bg-white dark:bg-gray-800/50 rounded-2xl p-6 border border-border-light dark:border-border-dark shadow-soft flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Attendance Trends</h3>
+<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="flex-1 w-full relative">
+<canvas id="attendanceChart"></canvas>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-white dark:bg-gray-800/50 rounded-2xl border border-border-light dark:border-border-dark shadow-soft overflow-hidden">
+<div class="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+<div>
+<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Strategic Reports</h3>
+<p class="text-sm text-gray-500 dark:text-gray-400">Latest updates on institutional goals</p>
+</div>
+<a class="text-sm font-medium text-secondary hover:text-indigo-700 dark:hover:text-indigo-300" href="#">View All</a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400 font-medium">
+<tr>
+<th class="px-6 py-4">Report Name</th>
+<th class="px-6 py-4">Department</th>
+<th class="px-6 py-4">Status</th>
+<th class="px-6 py-4 text-right">Date</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-light dark:divide-gray-700">
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-lg">
+<span class="material-symbols-outlined text-sm">description</span>
+</div>
+<span class="font-medium text-gray-900 dark:text-white">Q3 Curriculum Review</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">Academic Affairs</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-right">Oct 24, 2023</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+<span class="material-symbols-outlined text-sm">construction</span>
+</div>
+<span class="font-medium text-gray-900 dark:text-white">Campus Renovation Phase 2</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">Facilities</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
+<span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                                In Progress
+                                            </span>
+</td>
+<td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-right">Oct 22, 2023</td>
+</tr>
+<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 rounded-lg">
+<span class="material-symbols-outlined text-sm">group_add</span>
+</div>
+<span class="font-medium text-gray-900 dark:text-white">2024 Recruitment Plan</span>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">Human Resources</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+<span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                                                Pending Review
+                                            </span>
+</td>
+<td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-right">Oct 20, 2023</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="bg-white dark:bg-gray-800/50 rounded-2xl p-6 border border-border-light dark:border-border-dark shadow-soft flex flex-col">
+<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">Resource Management</h3>
+<div class="space-y-6">
+<div class="group">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Teacher Allocation</span>
+<span class="text-sm font-bold text-gray-900 dark:text-white">92%</span>
+</div>
+<div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 92%"></div>
+</div>
+<p class="text-xs text-gray-400 mt-1.5">4 vacancies remaining in Science Dept.</p>
+</div>
+<div class="group">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Classroom Capacity</span>
+<span class="text-sm font-bold text-gray-900 dark:text-white">78%</span>
+</div>
+<div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-teal-500 h-2 rounded-full" style="width: 78%"></div>
+</div>
+<p class="text-xs text-gray-400 mt-1.5">Optimized for current enrollment</p>
+</div>
+<div class="group">
+<div class="flex justify-between items-center mb-2">
+<span class="text-sm font-medium text-gray-700 dark:text-gray-300">IT Equipment</span>
+<span class="text-sm font-bold text-gray-900 dark:text-white">65%</span>
+</div>
+<div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+<div class="bg-orange-500 h-2 rounded-full" style="width: 65%"></div>
+</div>
+<p class="text-xs text-gray-400 mt-1.5">Scheduled maintenance next week</p>
+</div>
+</div>
+<div class="mt-auto pt-6">
+<button class="w-full py-2.5 border border-border-light dark:border-gray-600 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
+                                Open Resource Dashboard
+                                <span class="material-symbols-outlined text-base">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Check for dark mode to adjust chart colors
+        const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+        const textColor = isDarkMode ? '#9CA3AF' : '#6B7280';
+        // Grade Distribution Chart
+        const ctxGrade = document.getElementById('gradeChart').getContext('2d');
+        new Chart(ctxGrade, {
+            type: 'bar',
+            data: {
+                labels: ['Science', 'Math', 'History', 'English', 'Arts', 'PE'],
+                datasets: [
+                    {
+                        label: 'A Grade',
+                        data: [65, 59, 80, 81, 56, 90],
+                        backgroundColor: '#6366f1', // Primary Indigo
+                        borderRadius: 4,
+                    },
+                    {
+                        label: 'B Grade',
+                        data: [28, 48, 40, 19, 86, 27],
+                        backgroundColor: '#c7d2fe', // Light Indigo
+                        borderRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: { 
+                            boxWidth: 10,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            color: textColor 
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: textColor }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor }
+                    }
+                }
+            }
+        });
+        // Attendance Trend Chart
+        const ctxAttendance = document.getElementById('attendanceChart').getContext('2d');
+        // Gradient for line chart
+        const gradient = ctxAttendance.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); // Green tint
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+        new Chart(ctxAttendance, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+                datasets: [{
+                    label: 'Attendance %',
+                    data: [92, 94, 93, 98, 95],
+                    borderColor: '#10b981', // Emerald Green
+                    backgroundColor: gradient,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        min: 80,
+                        max: 100,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { stepSize: 5, color: textColor }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: textColor }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body></html>

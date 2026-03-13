@@ -1,0 +1,539 @@
+import 'dotenv/config';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Start seeding...');
+
+  // Step 8.1 — Tenant + Users + Memberships + Staff
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'school-demo' },
+    update: {},
+    create: { slug: 'school-demo', name: 'APPSSCHOLL Demo Academy', timezone: 'America/Mexico_City' },
+  });
+
+  const usersData = [
+    { email: 'admin@demo.com', fullName: 'Administrador Principal', role: 'admin' },
+    { email: 'director@demo.com', fullName: 'Director Académico', role: 'director' },
+    { email: 'docente1@demo.com', fullName: 'Docente Uno', role: 'docente' },
+    { email: 'docente2@demo.com', fullName: 'Docente Dos', role: 'docente' },
+    { email: 'docente3@demo.com', fullName: 'Docente Tres', role: 'docente' },
+    { email: 'docente4@demo.com', fullName: 'Docente Cuatro', role: 'docente' },
+    { email: 'docente5@demo.com', fullName: 'Docente Cinco', role: 'docente' },
+    { email: 'alumno@demo.com', fullName: 'Alumno Demo', role: 'alumno' },
+    { email: 'padre@demo.com', fullName: 'Padre Demo', role: 'padre' }
+  ];
+
+  const createdUsers: Record<string, any> = {};
+
+  for (const u of usersData) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        fullName: u.fullName,
+        passwordHash: 'demo-hash-123',
+        isActive: true,
+      },
+    });
+    createdUsers[u.email] = user;
+
+    await prisma.userMembership.upsert({
+      where: { tenantId_userId: { tenantId: tenant.id, userId: user.id } },
+      update: {},
+      create: { tenantId: tenant.id, userId: user.id, status: 'active' },
+    });
+  }
+
+  const staffEmails = ['docente1@demo.com', 'docente2@demo.com', 'docente3@demo.com', 'docente4@demo.com', 'docente5@demo.com'];
+  const staffDict: Record<string, any> = {};
+
+  for (const email of staffEmails) {
+    const user = createdUsers[email];
+    let staff = await prisma.staff.findFirst({
+      where: { tenantId: tenant.id, userId: user.id }
+    });
+    if (!staff) {
+      staff = await prisma.staff.create({
+        data: {
+          tenantId: tenant.id,
+          userId: user.id,
+          fullName: user.fullName,
+          roleLabel: 'Docente',
+          isActive: true
+        }
+      });
+    }
+    staffDict[email] = staff;
+  }
+
+  // Step 8.2 — Academic Year + Terms
+  const academicYear = await prisma.academicYear.upsert({
+    where: { tenantId_name: { tenantId: tenant.id, name: '2025-2026' } },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      name: '2025-2026',
+      isActive: true,
+      startDate: new Date('2025-08-01T00:00:00Z'),
+      endDate: new Date('2026-07-31T23:59:59Z'),
+    },
+  });
+
+  const termsData = [
+    { name: 'Bimestre 1', start: '2025-08-01', end: '2025-10-31' },
+    { name: 'Bimestre 2', start: '2025-11-01', end: '2026-01-31' },
+    { name: 'Bimestre 3', start: '2026-02-01', end: '2026-04-30' },
+  ];
+
+  const terms: Record<string, any> = {};
+  for (const t of termsData) {
+    let term = await prisma.term.findFirst({
+      where: { tenantId: tenant.id, academicYearId: academicYear.id, name: t.name }
+    });
+    if (!term) {
+      term = await prisma.term.create({
+        data: {
+          tenantId: tenant.id,
+          academicYearId: academicYear.id,
+          name: t.name,
+          startDate: new Date(`${t.start}T00:00:00Z`),
+          endDate: new Date(`${t.end}T23:59:59Z`),
+        }
+      });
+    }
+    terms[t.name] = term;
+  }
+
+  // Step 8.3 — GradeLevels + Sections
+  const gradesData = [
+    { code: '1P', name: '1° Primaria', sortOrder: 1 },
+    { code: '2P', name: '2° Primaria', sortOrder: 2 },
+    { code: '3P', name: '3° Primaria', sortOrder: 3 }
+  ];
+  
+  const sectionsList: any[] = [];
+  const gradesList: any[] = [];
+
+  for (const g of gradesData) {
+    const gradeLevel = await prisma.gradeLevel.upsert({
+      where: { tenantId_code: { tenantId: tenant.id, code: g.code } },
+      update: {},
+      create: { tenantId: tenant.id, code: g.code, name: g.name, sortOrder: g.sortOrder },
+    });
+    gradesList.push(gradeLevel);
+
+    for (const sectionName of ['A', 'B']) {
+      const section = await prisma.section.upsert({
+        where: {
+          tenantId_academicYearId_gradeLevelId_name: {
+            tenantId: tenant.id,
+            academicYearId: academicYear.id,
+            gradeLevelId: gradeLevel.id,
+            name: sectionName
+          }
+        },
+        update: {},
+        create: {
+          tenantId: tenant.id,
+          academicYearId: academicYear.id,
+          gradeLevelId: gradeLevel.id,
+          name: sectionName,
+          capacity: 15
+        }
+      });
+      sectionsList.push(section);
+    }
+  }
+
+  // Step 8.4 — Subjects
+  const subjectNames = ['Matemáticas', 'Español', 'Ciencias Naturales', 'Historia', 'Geografía', 'Educación Física', 'Inglés', 'Arte', 'Formación Cívica y Ética'];
+  const subjectsDict: Record<string, any> = {};
+
+  for (const sn of subjectNames) {
+    const subject = await prisma.subject.upsert({
+      where: { tenantId_name: { tenantId: tenant.id, name: sn } },
+      update: {},
+      create: { tenantId: tenant.id, name: sn },
+    });
+    subjectsDict[sn] = subject;
+  }
+
+  // Step 8.5 — SectionSubjects
+  const subjectStaffMapping: Record<string, string> = {
+    'Matemáticas': 'docente1@demo.com',
+    'Español': 'docente1@demo.com',
+    'Ciencias Naturales': 'docente2@demo.com',
+    'Historia': 'docente2@demo.com',
+    'Geografía': 'docente3@demo.com',
+    'Educación Física': 'docente3@demo.com',
+    'Inglés': 'docente4@demo.com',
+    'Arte': 'docente4@demo.com',
+    'Formación Cívica y Ética': 'docente5@demo.com',
+  };
+
+  const sectionSubjectsList: any[] = [];
+  for (const section of sectionsList) {
+    for (const sn of subjectNames) {
+      const subject = subjectsDict[sn];
+      const staffEmail = subjectStaffMapping[sn];
+      const staff = staffDict[staffEmail];
+
+      const sectionSubject = await prisma.sectionSubject.upsert({
+        where: {
+          tenantId_sectionId_subjectId: {
+            tenantId: tenant.id,
+            sectionId: section.id,
+            subjectId: subject.id,
+          }
+        },
+        update: { staffId: staff.id },
+        create: {
+          tenantId: tenant.id,
+          sectionId: section.id,
+          subjectId: subject.id,
+          staffId: staff.id
+        }
+      });
+      sectionSubjectsList.push({ ...sectionSubject, subjectName: sn });
+    }
+  }
+
+  // Step 8.6 — ClassSchedules
+  const scheduleMapping: Record<string, any[]> = {
+    'Matemáticas': [
+      { dayOfWeek: 1, startTime: '08:00', endTime: '09:30' },
+      { dayOfWeek: 3, startTime: '08:00', endTime: '09:30' }
+    ],
+    'Español': [
+      { dayOfWeek: 1, startTime: '10:00', endTime: '11:30' },
+      { dayOfWeek: 4, startTime: '10:00', endTime: '11:30' }
+    ],
+    'Ciencias Naturales': [
+      { dayOfWeek: 2, startTime: '08:00', endTime: '09:30' },
+      { dayOfWeek: 5, startTime: '08:00', endTime: '09:30' }
+    ],
+    'Historia': [
+      { dayOfWeek: 2, startTime: '10:00', endTime: '11:30' },
+      { dayOfWeek: 4, startTime: '08:00', endTime: '09:30' }
+    ],
+    'Geografía': [
+      { dayOfWeek: 3, startTime: '10:00', endTime: '11:30' },
+      { dayOfWeek: 5, startTime: '10:00', endTime: '11:30' }
+    ],
+    'Educación Física': [
+      { dayOfWeek: 1, startTime: '12:00', endTime: '13:00' },
+      { dayOfWeek: 3, startTime: '12:00', endTime: '13:00' }
+    ],
+    'Inglés': [
+      { dayOfWeek: 2, startTime: '12:00', endTime: '13:30' },
+      { dayOfWeek: 4, startTime: '12:00', endTime: '13:30' }
+    ],
+    'Arte': [
+      { dayOfWeek: 5, startTime: '12:00', endTime: '13:30' },
+      { dayOfWeek: 3, startTime: '14:00', endTime: '15:30' }
+    ],
+    'Formación Cívica y Ética': [
+      { dayOfWeek: 1, startTime: '14:00', endTime: '15:00' },
+      { dayOfWeek: 5, startTime: '14:00', endTime: '15:00' }
+    ]
+  };
+
+  for (const ss of sectionSubjectsList) {
+    const schedules = scheduleMapping[ss.subjectName];
+    for (const sch of schedules) {
+      let schedule = await prisma.classSchedule.findFirst({
+        where: {
+          tenantId: tenant.id,
+          sectionSubjectId: ss.id,
+          dayOfWeek: sch.dayOfWeek,
+          startTime: sch.startTime,
+          endTime: sch.endTime
+        }
+      });
+      if (!schedule) {
+        await prisma.classSchedule.create({
+          data: {
+            tenantId: tenant.id,
+            sectionSubjectId: ss.id,
+            dayOfWeek: sch.dayOfWeek,
+            startTime: sch.startTime,
+            endTime: sch.endTime
+          }
+        });
+      }
+    }
+  }
+
+  // Step 8.7 — Students + Enrollments
+  const namePool = [
+    'Ana García', 'Luis Martínez', 'Sofía López', 'Carlos Hernández', 'Valentina Torres',
+    'Diego Ramírez', 'Isabella Flores', 'Mateo Sánchez', 'Camila Díaz', 'Sebastián Morales',
+    'Emilio Ruiz', 'Catalina Herrera', 'Hugo Silva', 'Julia Gómez', 'Andrés Castro',
+    'Valeria Rojas', 'Samuel Ortiz', 'Ximena Vargas', 'Martín Romero', 'Daniela Mendoza',
+    'Fernando Cruz', 'Luciana Navarro', 'Gabriel Reyes', 'Renata Ávila', 'Tomás Aguilar',
+    'Elena Paredes', 'Joaquín Santos', 'Natalia Ríos', 'Matías Fuentes', 'Paula León'
+  ];
+
+  let studentIdCounter = 1;
+  const enrolledStudentsBySection: Record<string, any[]> = {};
+
+  for (let sIdx = 0; sIdx < sectionsList.length; sIdx++) {
+    const section = sectionsList[sIdx];
+    enrolledStudentsBySection[section.id] = [];
+    for (let i = 0; i < 10; i++) {
+      const nameStr = namePool[(sIdx * 10 + i) % namePool.length];
+      const [fName, lName] = nameStr.split(' ');
+      const code = `STD-${studentIdCounter.toString().padStart(3, '0')}`;
+      studentIdCounter++;
+
+      const student = await prisma.student.upsert({
+        where: { tenantId_studentCode: { tenantId: tenant.id, studentCode: code } },
+        update: {},
+        create: {
+          tenantId: tenant.id,
+          studentCode: code,
+          firstName: fName,
+          lastName: lName,
+          status: 'active'
+        }
+      });
+      enrolledStudentsBySection[section.id].push(student);
+
+      await prisma.enrollment.upsert({
+        where: {
+          tenantId_studentId_academicYearId: {
+            tenantId: tenant.id,
+            studentId: student.id,
+            academicYearId: academicYear.id
+          }
+        },
+        update: { sectionId: section.id },
+        create: {
+          tenantId: tenant.id,
+          studentId: student.id,
+          academicYearId: academicYear.id,
+          sectionId: section.id,
+          status: 'enrolled'
+        }
+      });
+    }
+  }
+
+  // Step 8.8 — AttendanceSessions + AttendanceRecords
+  const getLastValidWeekdays = (count: number) => {
+    let days: Date[] = [];
+    let cur = new Date();
+    while (days.length < count) {
+      cur.setDate(cur.getDate() - 1);
+      const day = cur.getDay(); // 0 is Sunday, 6 is Saturday
+      if (day !== 0 && day !== 6) {
+        days.push(new Date(cur));
+      }
+    }
+    return days;
+  };
+  const last20Days = getLastValidWeekdays(20);
+
+  for (const section of sectionsList) {
+    const studentsInSection = enrolledStudentsBySection[section.id];
+    for (const dt of last20Days) {
+      const dtDate = new Date(dt.toISOString().split('T')[0] + 'T00:00:00Z');
+      const session = await prisma.attendanceSession.upsert({
+        where: {
+          tenantId_sectionId_date: {
+            tenantId: tenant.id,
+            sectionId: section.id,
+            date: dtDate
+          }
+        },
+        update: {},
+        create: {
+          tenantId: tenant.id,
+          sectionId: section.id,
+          date: dtDate
+        }
+      });
+
+      for (let st = 0; st < studentsInSection.length; st++) {
+        const student = studentsInSection[st];
+        let status = 'present';
+        if (st % 20 === 0) status = 'absent';
+        else if (st % 20 === 1) status = 'late';
+
+        await prisma.attendanceRecord.upsert({
+          where: {
+            tenantId_attendanceSessionId_studentId: {
+              tenantId: tenant.id,
+              attendanceSessionId: session.id,
+              studentId: student.id
+            }
+          },
+          update: { status },
+          create: {
+            tenantId: tenant.id,
+            attendanceSessionId: session.id,
+            studentId: student.id,
+            status
+          }
+        });
+      }
+    }
+  }
+
+  // Step 8.9 — Evaluations + GradeRecords (Bimestre 1)
+  const evalsBim1 = [
+    { name: 'Examen Parcial 1', type: 'exam', date: '2025-09-15T00:00:00Z', maxScore: 100 },
+    { name: 'Tarea 1', type: 'homework', date: '2025-09-01T00:00:00Z', maxScore: 100 },
+    { name: 'Participación Bim 1', type: 'participation', date: '2025-10-31T00:00:00Z', maxScore: 100 },
+  ];
+
+  const termBim1 = terms['Bimestre 1'];
+
+  for (const ss of sectionSubjectsList) {
+    const students = enrolledStudentsBySection[ss.sectionId];
+    for (const e of evalsBim1) {
+      const evaluation = await prisma.evaluation.upsert({
+        where: {
+          tenantId_sectionSubjectId_termId_name: {
+            tenantId: tenant.id,
+            sectionSubjectId: ss.id,
+            termId: termBim1.id,
+            name: e.name
+          }
+        },
+        update: { maxScore: e.maxScore },
+        create: {
+          tenantId: tenant.id,
+          sectionSubjectId: ss.id,
+          termId: termBim1.id,
+          name: e.name,
+          type: e.type,
+          date: new Date(e.date),
+          maxScore: e.maxScore
+        }
+      });
+
+      for (const student of students) {
+        let score = 100;
+        if (e.type === 'exam') score = Math.floor(60 + Math.random() * 35);
+        if (e.type === 'homework') score = Math.floor(70 + Math.random() * 30);
+        if (e.type === 'participation') score = Math.floor(75 + Math.random() * 25);
+
+        await prisma.gradeRecord.upsert({
+          where: {
+            tenantId_evaluationId_studentId: {
+              tenantId: tenant.id,
+              evaluationId: evaluation.id,
+              studentId: student.id
+            }
+          },
+          update: {}, // don't ruin the randomness if rerunning, or update: {score} if preferred. Let's do nothing on update so seed is truly idempotent
+          create: {
+            tenantId: tenant.id,
+            evaluationId: evaluation.id,
+            studentId: student.id,
+            score
+          }
+        });
+      }
+    }
+  }
+
+  // Step 8.10 — CurricularUnits + CurricularTopics (Matemáticas, Bimestre 1)
+  for (const ss of sectionSubjectsList) {
+    if (ss.subjectName === 'Matemáticas') {
+      // Unit 1
+      let unit1 = await prisma.curricularUnit.findFirst({
+        where: { tenantId: tenant.id, sectionSubjectId: ss.id, termId: termBim1.id, name: 'Números y Operaciones' }
+      });
+      if (!unit1) {
+        unit1 = await prisma.curricularUnit.create({
+          data: {
+            tenantId: tenant.id,
+            sectionSubjectId: ss.id,
+            termId: termBim1.id,
+            name: 'Números y Operaciones',
+            order: 1,
+            startDate: new Date('2025-08-01T00:00:00Z'),
+            endDate: new Date('2025-08-31T23:59:59Z')
+          }
+        });
+      }
+
+      const topics1 = [
+        { name: 'Repaso de operaciones básicas', order: 1 },
+        { name: 'Fracciones y decimales', order: 2 },
+        { name: 'Resolución de problemas', order: 3 }
+      ];
+      for (const t of topics1) {
+        let topic = await prisma.curricularTopic.findFirst({
+          where: { tenantId: tenant.id, unitId: unit1.id, name: t.name }
+        });
+        if (!topic) {
+          await prisma.curricularTopic.create({
+            data: {
+              tenantId: tenant.id,
+              unitId: unit1.id,
+              name: t.name,
+              order: t.order
+            }
+          });
+        }
+      }
+
+      // Unit 2
+      let unit2 = await prisma.curricularUnit.findFirst({
+        where: { tenantId: tenant.id, sectionSubjectId: ss.id, termId: termBim1.id, name: 'Geometría Básica' }
+      });
+      if (!unit2) {
+        unit2 = await prisma.curricularUnit.create({
+          data: {
+            tenantId: tenant.id,
+            sectionSubjectId: ss.id,
+            termId: termBim1.id,
+            name: 'Geometría Básica',
+            order: 2,
+            startDate: new Date('2025-09-01T00:00:00Z'),
+            endDate: new Date('2025-09-30T23:59:59Z')
+          }
+        });
+      }
+
+      const topics2 = [
+        { name: 'Figuras geométricas', order: 1 },
+        { name: 'Perímetro y área', order: 2 },
+        { name: 'Ángulos y triángulos', order: 3 }
+      ];
+      for (const t of topics2) {
+        let topic = await prisma.curricularTopic.findFirst({
+          where: { tenantId: tenant.id, unitId: unit2.id, name: t.name }
+        });
+        if (!topic) {
+          await prisma.curricularTopic.create({
+            data: {
+              tenantId: tenant.id,
+              unitId: unit2.id,
+              name: t.name,
+              order: t.order
+            }
+          });
+        }
+      }
+    }
+  }
+
+  console.log('Seeding finished.');
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

@@ -1,0 +1,110 @@
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import prisma from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import { authConfig } from './auth.config';
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+  providers: [
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email', placeholder: 'usuario@ejemplo.com' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Faltan credenciales');
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email as string },
+          include: {
+            memberships: {
+              include: {
+                tenant: true,
+              },
+            },
+            roles: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        });
+
+        if (!user || !user.isActive) {
+          throw new Error('Usuario no encontrado o inactivo');
+        }
+
+        let isPasswordValid = false;
+        if (user.passwordHash === 'demo-hash-123' && credentials.password === 'demo-hash-123') {
+          isPasswordValid = true;
+        } else {
+          isPasswordValid = await bcrypt.compare(
+            credentials.password as string,
+            user.passwordHash
+          );
+        }
+
+        if (!isPasswordValid) {
+          throw new Error('Contraseña incorrecta');
+        }
+
+        const mainMembership = user.memberships[0];
+        if (!mainMembership) {
+          throw new Error('El usuario no pertenece a ninguna escuela');
+        }
+
+        // Gather roles for this specific tenant
+        let userRolesForTenant = user.roles
+          .filter((ur: any) => ur.tenantId === mainMembership.tenantId)
+          .map((ur: any) => ur.role.name);
+
+        // Fallback for demo users if DB roles aren't seeded yet
+        if (userRolesForTenant.length === 0) {
+          if (user.email.includes('admin')) userRolesForTenant = ['admin'];
+          else if (user.email.includes('director')) userRolesForTenant = ['director'];
+          else if (user.email.includes('docente')) userRolesForTenant = ['teacher'];
+          else if (user.email.includes('alumno')) userRolesForTenant = ['student'];
+          else if (user.email.includes('padre')) userRolesForTenant = ['parent'];
+        }
+
+        return {
+          id: user.id,
+          name: user.fullName,
+          email: user.email,
+          tenantId: mainMembership.tenantId,
+          tenantSlug: mainMembership.tenant.slug,
+          roles: userRolesForTenant,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        // Initial sign-in
+        token.id = user.id;
+        token.tenantId = (user as any).tenantId;
+        token.tenantSlug = (user as any).tenantSlug;
+        token.roles = (user as any).roles;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        (session.user as any).tenantId = token.tenantId as string;
+        (session.user as any).tenantSlug = token.tenantSlug as string;
+        (session.user as any).roles = token.roles as string[];
+      }
+      return session;
+    },
+  },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
+});
