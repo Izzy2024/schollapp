@@ -17,7 +17,7 @@ Permitir a las escuelas operar su ciclo diario completo: inscripciones, asistenc
 - [x] **S01: Ajustes de UI y Mantenimiento de Docentes** `risk:low` `depends:[M001]`
   > After this: Logout funcional, demo auto-login, perfil global `/profile` y CRUD de Staff en `/admin/staff`.
 
-- [ ] **S02: Inscripciones y Matrícula** `risk:high` `depends:[S01]`
+- [x] **S02: Inscripciones y Matrícula** `risk:high` `depends:[S01]`
   > After this: El control escolar puede inscribir y reinscribir alumnos a grupos con validación de cupo y trazabilidad.
 
 - [ ] **S03: Control de Asistencia** `risk:medium` `depends:[S02]`

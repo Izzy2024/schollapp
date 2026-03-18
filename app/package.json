@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test src/actions/__tests__/enrollment.actions.test.ts src/app/admin/enrollment/__tests__/enrollment-page.test.tsx"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.0",
@@ -36,6 +37,7 @@
     "eslint-config-next": "16.1.6",
     "prisma": "^6.19.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.20.6"
   }
 }
