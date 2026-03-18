@@ -4,6 +4,76 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+const ALLOWED_ATTENDANCE_STATUSES = new Set(['present', 'absent', 'late', 'excused'] as const);
+type AllowedAttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+
+type AttendanceWriteContext = {
+  userId: string;
+  role?: string | null;
+  staffId?: string | null;
+  tenantId: string;
+};
+
+function normalizeDate(dateIso: string) {
+  const date = new Date(dateIso);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('INVALID_ATTENDANCE_DATE');
+  }
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function sanitizeStatus(status: string): AllowedAttendanceStatus {
+  if (ALLOWED_ATTENDANCE_STATUSES.has(status as AllowedAttendanceStatus)) {
+    return status as AllowedAttendanceStatus;
+  }
+  throw new Error('INVALID_ATTENDANCE_STATUS');
+}
+
+function sanitizeRecords(records: { studentId: string; status: string; note?: string }[]) {
+  return records.map((record) => ({
+    studentId: record.studentId,
+    status: sanitizeStatus(record.status),
+    note: record.note,
+  }));
+}
+
+async function getAttendanceWriteContext(tenantSlug?: string): Promise<AttendanceWriteContext> {
+  const authSession = await auth();
+  if (!authSession?.user) throw new Error('Unauthorized');
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: authSession.user.tenantSlug ?? tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  return {
+    userId: authSession.user.id,
+    role: authSession.user.role,
+    staffId: authSession.user.staffId,
+    tenantId: tenant.id,
+  };
+}
+
+function assertRoleCanWriteAttendance(role?: string | null) {
+  const normalized = role ?? null;
+  if (normalized === 'admin' || normalized === 'teacher') {
+    return;
+  }
+  throw new Error('UNAUTHORIZED_SCOPE');
+}
+
+function assertTeacherOwnership(role: string | null | undefined, staffId: string | null | undefined, expectedStaffId?: string | null) {
+  if (role !== 'teacher') return;
+  if (!staffId || !expectedStaffId || staffId !== expectedStaffId) {
+    throw new Error('UNAUTHORIZED_SCOPE');
+  }
+}
+
+function assertTenantScope(resourceTenantId?: string | null, tenantId?: string) {
+  if (!resourceTenantId || !tenantId || resourceTenantId !== tenantId) {
+    throw new Error('TENANT_SCOPE_VIOLATION');
+  }
+}
+
 // ─── Teacher-facing actions (by sectionSubjectId) ─────────────────────────────
 
 export async function getAttendanceSession(sectionSubjectId: string, dateIso: string, tenantSlug?: string) {
@@ -27,8 +97,7 @@ export async function getAttendanceSession(sectionSubjectId: string, dateIso: st
 
   if (!ss) throw new Error('Clase no encontrada');
 
-  const date = new Date(dateIso);
-  date.setHours(0, 0, 0, 0);
+  const date = normalizeDate(dateIso);
 
   const session = await prisma.attendanceSession.findFirst({
     where: { sectionId: ss.sectionId, date },
@@ -64,53 +133,50 @@ export async function saveAttendanceSession(
   records: { studentId: string; status: string; note?: string }[],
   tenantSlug?: string
 ) {
-  const authSession = await auth();
-  if (!authSession?.user) throw new Error('Unauthorized');
-  tenantSlug = authSession.user.tenantSlug;
-
   if (!sectionSubjectId?.trim()) throw new Error('sectionSubjectId requerido');
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const context = await getAttendanceWriteContext(tenantSlug);
+  assertRoleCanWriteAttendance(context.role);
 
-  const ss = await prisma.sectionSubject.findUnique({
-    where: { id: sectionSubjectId }
-  });
-
+  const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
   if (!ss) throw new Error('Clase no encontrada');
 
-  const date = new Date(dateIso);
-  date.setHours(0, 0, 0, 0);
+  assertTenantScope(ss.tenantId, context.tenantId);
+  assertTeacherOwnership(context.role, context.staffId, ss.staffId);
+
+  const date = normalizeDate(dateIso);
+  const normalizedRecords = sanitizeRecords(records);
 
   return await prisma.$transaction(async (tx) => {
     const session = await tx.attendanceSession.upsert({
       where: {
         tenantId_sectionId_date: {
-          tenantId: tenant.id,
+          tenantId: context.tenantId,
           sectionId: ss.sectionId,
           date
         }
       },
-      update: {},
+      update: { takenById: context.userId },
       create: {
-        tenantId: tenant.id,
+        tenantId: context.tenantId,
         sectionId: ss.sectionId,
-        date
+        date,
+        takenById: context.userId
       }
     });
 
-    for (const r of records) {
+    for (const r of normalizedRecords) {
       await tx.attendanceRecord.upsert({
         where: {
           tenantId_attendanceSessionId_studentId: {
-            tenantId: tenant.id,
+            tenantId: context.tenantId,
             attendanceSessionId: session.id,
             studentId: r.studentId
           }
         },
         update: { status: r.status, note: r.note },
         create: {
-          tenantId: tenant.id,
+          tenantId: context.tenantId,
           attendanceSessionId: session.id,
           studentId: r.studentId,
           status: r.status,
@@ -121,11 +187,22 @@ export async function saveAttendanceSession(
 
     await tx.activityEvent.create({
       data: {
-        tenantId: tenant.id,
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
         action: 'taken',
         entityType: 'attendance',
         entityId: session.id,
-        metadata: JSON.stringify({ sectionSubjectId, dateIso })
+        metadata: JSON.stringify({
+          mode: 'section-subject',
+          sectionSubjectId,
+          sectionId: ss.sectionId,
+          dateIso,
+          recordCount: normalizedRecords.length,
+          statuses: normalizedRecords.reduce<Record<string, number>>((acc, item) => {
+            acc[item.status] = (acc[item.status] ?? 0) + 1;
+            return acc;
+          }, {})
+        })
       }
     });
 
@@ -185,8 +262,7 @@ export async function getAttendanceBySectionDate(
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const date = new Date(dateIso);
-  date.setHours(0, 0, 0, 0);
+  const date = normalizeDate(dateIso);
 
   const enrollments = await prisma.enrollment.findMany({
     where: { sectionId, status: 'enrolled', tenantId: tenant.id },
@@ -222,35 +298,35 @@ export async function saveAttendanceBySectionDate(
   records: { studentId: string; status: string; note?: string }[],
   tenantSlug?: string
 ) {
-  const authSession = await auth();
-  if (!authSession?.user) throw new Error('Unauthorized');
-  tenantSlug = authSession.user.tenantSlug;
+  const context = await getAttendanceWriteContext(tenantSlug);
+  assertRoleCanWriteAttendance(context.role);
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const section = await prisma.section.findUnique({ where: { id: sectionId }, select: { id: true, tenantId: true } });
+  if (!section) throw new Error('SECTION_NOT_FOUND');
+  assertTenantScope(section.tenantId, context.tenantId);
 
-  const date = new Date(dateIso);
-  date.setHours(0, 0, 0, 0);
+  const date = normalizeDate(dateIso);
+  const normalizedRecords = sanitizeRecords(records);
 
   return await prisma.$transaction(async (tx) => {
     const session = await tx.attendanceSession.upsert({
-      where: { tenantId_sectionId_date: { tenantId: tenant.id, sectionId, date } },
-      update: {},
-      create: { tenantId: tenant.id, sectionId, date }
+      where: { tenantId_sectionId_date: { tenantId: context.tenantId, sectionId, date } },
+      update: { takenById: context.userId },
+      create: { tenantId: context.tenantId, sectionId, date, takenById: context.userId }
     });
 
-    for (const r of records) {
+    for (const r of normalizedRecords) {
       await tx.attendanceRecord.upsert({
         where: {
           tenantId_attendanceSessionId_studentId: {
-            tenantId: tenant.id,
+            tenantId: context.tenantId,
             attendanceSessionId: session.id,
             studentId: r.studentId
           }
         },
         update: { status: r.status, note: r.note },
         create: {
-          tenantId: tenant.id,
+          tenantId: context.tenantId,
           attendanceSessionId: session.id,
           studentId: r.studentId,
           status: r.status,
@@ -261,11 +337,21 @@ export async function saveAttendanceBySectionDate(
 
     await tx.activityEvent.create({
       data: {
-        tenantId: tenant.id,
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
         action: 'taken',
         entityType: 'attendance',
         entityId: session.id,
-        metadata: JSON.stringify({ sectionId, dateIso, recordCount: records.length })
+        metadata: JSON.stringify({
+          mode: 'section',
+          sectionId,
+          dateIso,
+          recordCount: normalizedRecords.length,
+          statuses: normalizedRecords.reduce<Record<string, number>>((acc, item) => {
+            acc[item.status] = (acc[item.status] ?? 0) + 1;
+            return acc;
+          }, {})
+        })
       }
     });
 
@@ -296,6 +382,7 @@ export async function getStudentAttendanceSummary(studentId: string, tenantSlug?
 
   // Group by month
   const byMonth: Record<string, { month: string; present: number; absent: number; late: number; excused: number; total: number }> = {};
+  const bySection: Record<string, { present: number; absent: number; late: number; excused: number; total: number }> = {};
 
   for (const r of rawRecords) {
     const d = r.attendanceSession.date;
@@ -311,6 +398,16 @@ export async function getStudentAttendanceSummary(studentId: string, tenantSlug?
     else if (r.status === 'absent') byMonth[key].absent++;
     else if (r.status === 'late') byMonth[key].late++;
     else if (r.status === 'excused') byMonth[key].excused++;
+
+    const sectionKey = r.attendanceSession.sectionId;
+    if (!bySection[sectionKey]) {
+      bySection[sectionKey] = { present: 0, absent: 0, late: 0, excused: 0, total: 0 };
+    }
+    bySection[sectionKey].total++;
+    if (r.status === 'present') bySection[sectionKey].present++;
+    else if (r.status === 'absent') bySection[sectionKey].absent++;
+    else if (r.status === 'late') bySection[sectionKey].late++;
+    else if (r.status === 'excused') bySection[sectionKey].excused++;
   }
 
   const totalPresent = rawRecords.filter(r => r.status === 'present').length;
@@ -326,6 +423,7 @@ export async function getStudentAttendanceSummary(studentId: string, tenantSlug?
       status: r.status,
       note: r.note,
     })),
-    byMonth: Object.values(byMonth)
+    byMonth: Object.values(byMonth),
+    bySection,
   };
 }

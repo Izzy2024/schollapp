@@ -45,6 +45,31 @@ const STATUS_CONFIG = {
 
 type StatusKey = keyof typeof STATUS_CONFIG;
 
+type SaveStatus = 'idle' | 'success' | 'error';
+
+const ERROR_MESSAGES: Record<string, string> = {
+  UNAUTHORIZED_SCOPE: 'No tienes permisos para registrar asistencia en este grupo.',
+  TENANT_SCOPE_VIOLATION: 'No tienes permisos para operar asistencia fuera de tu institución.',
+  INVALID_ATTENDANCE_STATUS: 'Se detectó un estado de asistencia inválido. Revisa y vuelve a intentar.',
+  INVALID_ATTENDANCE_DATE: 'La fecha de asistencia no es válida.',
+  SECTION_NOT_FOUND: 'La sección seleccionada ya no existe o no está disponible.',
+};
+
+function parseErrorCode(err: unknown): string | null {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  const stableCode = msg.match(/\b(UNAUTHORIZED_SCOPE|TENANT_SCOPE_VIOLATION|INVALID_ATTENDANCE_STATUS|INVALID_ATTENDANCE_DATE|SECTION_NOT_FOUND)\b/);
+  return stableCode?.[1] ?? null;
+}
+
+function resolveErrorMessage(err: unknown, fallback: string) {
+  const code = parseErrorCode(err);
+  if (code && ERROR_MESSAGES[code]) {
+    return { code, text: ERROR_MESSAGES[code] };
+  }
+  const raw = err instanceof Error ? err.message : '';
+  return { code: null, text: raw || fallback };
+}
+
 // Produce today's date in local timezone as YYYY-MM-DD
 function todayIso() {
   const d = new Date();
@@ -60,6 +85,8 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
   // Load sections once
   useEffect(() => {
@@ -68,7 +95,12 @@ export default function AttendancePage() {
         setSections(data);
         if (data.length > 0) setSelectedSectionId(data[0].id);
       })
-      .catch((e) => message.error(e.message));
+      .catch((e) => {
+        const resolved = resolveErrorMessage(e, 'Error cargando secciones de asistencia');
+        setSaveStatus('error');
+        setSaveFeedback(resolved.text);
+        message.error(resolved.text);
+      });
   }, []);
 
   // Load records when section or date changes
@@ -79,10 +111,14 @@ export default function AttendancePage() {
     try {
       const data = await getAttendanceBySectionDate(selectedSectionId, date);
       setSessionId(data.sessionId);
-      // Default uninitialized statuses to "present"
       setRecords(data.records.map(r => ({ ...r, status: r.status ?? 'present' })));
-    } catch (e: any) {
-      message.error(e.message || 'Error cargando asistencia');
+      setSaveStatus('idle');
+      setSaveFeedback(null);
+    } catch (e: unknown) {
+      const resolved = resolveErrorMessage(e, 'Error cargando asistencia');
+      setSaveStatus('error');
+      setSaveFeedback(resolved.text);
+      message.error(resolved.text);
     } finally {
       setLoading(false);
     }
@@ -93,32 +129,43 @@ export default function AttendancePage() {
   const updateStatus = (studentId: string, status: StatusKey) => {
     setRecords(prev => prev.map(r => r.studentId === studentId ? { ...r, status } : r));
     setDirty(true);
+    setSaveStatus('idle');
+    setSaveFeedback(null);
   };
 
   const markAll = (status: StatusKey) => {
     setRecords(prev => prev.map(r => ({ ...r, status })));
     setDirty(true);
+    setSaveStatus('idle');
+    setSaveFeedback(null);
   };
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveStatus('idle');
+    setSaveFeedback(null);
     try {
       await saveAttendanceBySectionDate(
         selectedSectionId,
         date,
         records.map(r => ({ studentId: r.studentId, status: r.status ?? 'present' }))
       );
+      const successText = 'Asistencia guardada correctamente.';
+      setSaveStatus('success');
+      setSaveFeedback(successText);
       message.success('¡Asistencia guardada exitosamente!');
       setDirty(false);
-      loadRecords();
-    } catch (e: any) {
-      message.error(e.message || 'Error al guardar asistencia');
+      await loadRecords();
+    } catch (e: unknown) {
+      const resolved = resolveErrorMessage(e, 'Error al guardar asistencia');
+      setSaveStatus('error');
+      setSaveFeedback(resolved.text);
+      message.error(resolved.text);
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
   const summary = useMemo(() => {
     const counts = { present: 0, absent: 0, late: 0, excused: 0 };
     for (const r of records) {
@@ -130,7 +177,6 @@ export default function AttendancePage() {
 
   const selectedSection = sections.find(s => s.id === selectedSectionId);
 
-  // Group sections by grade
   const sectionsByGrade = useMemo(() => {
     const map = new Map<string, Section[]>();
     for (const s of sections) {
@@ -153,7 +199,6 @@ export default function AttendancePage() {
       menuGroups={menuGroups}
       breadcrumbs={['Admin', 'Asistencia']}
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Control de Asistencia</h1>
@@ -175,11 +220,18 @@ export default function AttendancePage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+      {saveFeedback && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${
+          saveStatus === 'success'
+            ? 'border-green-200 bg-green-50 text-green-700'
+            : 'border-red-200 bg-red-50 text-red-700'
+        }`}>
+          {saveFeedback}
+        </div>
+      )}
 
-        {/* ── Left: Section Selector ─────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
         <div className="space-y-4">
-          {/* Date Picker */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Fecha del pase de lista
@@ -193,7 +245,6 @@ export default function AttendancePage() {
             />
           </div>
 
-          {/* Section list */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
               <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Grupo / Sección</span>
@@ -216,7 +267,7 @@ export default function AttendancePage() {
                     >
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-base opacity-70">groups</span>
-                        <span className="font-medium">Sección "{s.name}"</span>
+                        <span className="font-medium">Sección &quot;{s.name}&quot;</span>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                         selectedSectionId === s.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
@@ -231,9 +282,7 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        {/* ── Right: Attendance List ─────────────────────────────────────── */}
         <div className="flex flex-col gap-4">
-          {/* Stats bar */}
           {selectedSection && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
@@ -255,7 +304,6 @@ export default function AttendancePage() {
                   <div className="text-xs text-gray-400">Asistencia</div>
                 </div>
               </div>
-              {/* Mini bar */}
               <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden flex">
                 {records.length > 0 && (
                   <>
@@ -276,7 +324,6 @@ export default function AttendancePage() {
             </div>
           )}
 
-          {/* Mark all row */}
           {records.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-3 flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-gray-600">Marcar todos:</span>
@@ -292,7 +339,6 @@ export default function AttendancePage() {
             </div>
           )}
 
-          {/* Student list */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {loading ? (
               <div className="py-16 text-center text-gray-400">
@@ -349,7 +395,6 @@ export default function AttendancePage() {
             )}
           </div>
 
-          {/* Save button bottom (always visible in the list area) */}
           {records.length > 0 && (
             <div className="flex justify-end">
               <button

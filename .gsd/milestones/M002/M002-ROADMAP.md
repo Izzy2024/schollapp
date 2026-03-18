@@ -20,7 +20,7 @@ Permitir a las escuelas operar su ciclo diario completo: inscripciones, asistenc
 - [x] **S02: Inscripciones y Matrícula** `risk:high` `depends:[S01]`
   > After this: El control escolar puede inscribir y reinscribir alumnos a grupos con validación de cupo y trazabilidad.
 
-- [ ] **S03: Control de Asistencia** `risk:medium` `depends:[S02]`
+- [x] **S03: Control de Asistencia** `risk:medium` `depends:[S02]`
   > After this: Un profesor/admin puede pasar lista por fecha y grupo; el sistema guarda presencias/ausencias/retardos y genera reportes básicos.
 
 - [ ] **S04: Comunicados Internos** `risk:low` `depends:[S01]`
