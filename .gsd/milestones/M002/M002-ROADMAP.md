@@ -26,7 +26,7 @@ Permitir a las escuelas operar su ciclo diario completo: inscripciones, asistenc
 - [x] **S04: Comunicados Internos** `risk:low` `depends:[S01]`
   > After this: El director puede redactar y publicar comunicados dirigidos a toda la escuela, un grado o un grupo.
 
-- [ ] **S05: Bitácora Global y Dashboard (Overview)** `risk:medium` `depends:[S02, S03, S04]`
+- [x] **S05: Bitácora Global y Dashboard (Overview)** `risk:medium` `depends:[S02, S03, S04]`
   > After this: Existe un activity feed centralizado y el dashboard de Overview muestra métricas en tiempo real (matrícula, asistencia hoy, pendientes).
 
 ---

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/actions/__tests__/enrollment.actions.test.ts src/app/admin/enrollment/__tests__/enrollment-page.test.tsx"
+    "test": "tsx --test"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.0",

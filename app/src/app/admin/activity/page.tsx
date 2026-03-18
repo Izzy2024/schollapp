@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getRecentActivities } from '@/actions/activity';
+import { getActivityFilterOptions } from '@/lib/activity-taxonomy';
 import { message } from 'antd';
 
 const menuGroups = [
@@ -33,17 +34,12 @@ const menuGroups = [
 
 type ActivityResult = Awaited<ReturnType<typeof getRecentActivities>>;
 
-const FILTERS = [
-  { id: 'ALL', label: 'Actividad Global', icon: 'public' },
-  { id: 'Enrollment', label: 'Inscripciones', icon: 'how_to_reg' },
-  { id: 'Announcement', label: 'Comunicados', icon: 'campaign' },
-  { id: 'AttendanceSession', label: 'Asistencia', icon: 'rule' },
-];
+const FILTERS = getActivityFilterOptions();
 
 export default function ActivityLogPage() {
   const [data, setData] = useState<ActivityResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('ALL');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [page, setPage] = useState(1);
 
   const fetchActivities = useCallback(async (filter: string, p: number) => {
@@ -129,7 +125,7 @@ export default function ActivityLogPage() {
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center text-sm">
           <span className="text-gray-500">
             Mostrando <b>{data?.activities.length || 0}</b> eventos 
-            {activeFilter !== 'ALL' && <span> de tipo <b>{activeFilter}</b></span>}
+            {activeFilter !== 'all' && <span> de tipo <b>{FILTERS.find((f) => f.id === activeFilter)?.label ?? activeFilter}</b></span>}
           </span>
           {loading && page === 1 && (
             <span className="text-indigo-600 flex items-center gap-2">
@@ -168,17 +164,22 @@ export default function ActivityLogPage() {
                         <span className="font-semibold text-gray-700">Ref:</span> {act.entityType} #{act.entityId.slice(0,8)}...
                       </p>
                       {act.metadata && (
-                         <div className="mt-2 text-xs text-gray-600">
-                           {typeof act.metadata === 'object' ? (
-                             <ul className="list-disc list-inside">
-                               {Object.entries(act.metadata).map(([key, value]) => (
-                                 <li key={key}><span className="font-medium">{key}:</span> {String(value)}</li>
-                               ))}
-                             </ul>
-                           ) : (
-                             act.metadata
-                           )}
-                         </div>
+                        <div className="mt-2 text-xs text-gray-600">
+                          {typeof act.metadata === 'object' && '_fallback' in act.metadata ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-1 text-amber-800">
+                              <span className="material-symbols-outlined text-[14px]">warning</span>
+                              Metadata no disponible ({String((act.metadata as any)._errorCode ?? 'UNKNOWN')})
+                            </span>
+                          ) : typeof act.metadata === 'object' ? (
+                            <ul className="list-disc list-inside">
+                              {Object.entries(act.metadata).map(([key, value]) => (
+                                <li key={key}><span className="font-medium">{key}:</span> {String(value)}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            act.metadata
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

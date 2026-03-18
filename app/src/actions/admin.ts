@@ -3,45 +3,55 @@
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { getTestPrisma } from '@/lib/test-seams';
 
 export async function getAdminDashboardStats(tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const tenant = await prisma.tenant.findUnique({
+  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+
+  const tenant = await db.tenant.findUnique({
     where: { slug: tenantSlug },
   });
-  
+
   if (!tenant) throw new Error('Tenant not found');
 
-  const studentsCount = await prisma.student.count({
+  const studentsCount = await db.student.count({
     where: { tenantId: tenant.id, status: 'active' },
   });
 
-  const teachersCount = await prisma.staff.count({
+  const teachersCount = await db.staff.count({
     where: { tenantId: tenant.id, isActive: true },
   });
 
-  const activeYear = await prisma.academicYear.findFirst({
+  const activeYear = await db.academicYear.findFirst({
     where: { tenantId: tenant.id, isActive: true }
   });
 
   const sectionsCount = activeYear 
-    ? await prisma.section.count({ where: { tenantId: tenant.id, academicYearId: activeYear.id } })
+    ? await db.section.count({ where: { tenantId: tenant.id, academicYearId: activeYear.id } })
     : 0;
 
-  const pendingRequestsCount = await prisma.classRequest.count({
+  const pendingRequestsCount = await db.classRequest.count({
     where: { tenantId: tenant.id, status: 'pending' },
   });
 
-  // Today's attendance
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+  const pendingBreakdown = {
+    classRequests: pendingRequestsCount,
+    scheduleRequests: 0,
+    announcementsToPublish: 0,
+    role: (session.user as any).role ?? 'ADMIN',
+    scopeTenantId: tenant.id,
+  };
 
-  const totalRecordsToday = await prisma.attendanceRecord.count({
+  // Today's attendance (UTC daily window)
+  const now = new Date();
+  const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+
+  const totalRecordsToday = await db.attendanceRecord.count({
     where: {
       tenantId: tenant.id,
       attendanceSession: {
@@ -50,7 +60,7 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     }
   });
 
-  const presentRecordsToday = await prisma.attendanceRecord.count({
+  const presentRecordsToday = await db.attendanceRecord.count({
     where: {
       tenantId: tenant.id,
       status: 'present',
@@ -64,7 +74,7 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     ? Math.round((presentRecordsToday / totalRecordsToday) * 100) 
     : null;
 
-  const recentActivitiesRaw = await prisma.activityEvent.findMany({
+  const recentActivitiesRaw = await db.activityEvent.findMany({
     where: { tenantId: tenant.id },
     orderBy: { occurredAt: 'desc' },
     take: 10,
@@ -96,6 +106,7 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     sectionsCount,
     pendingRequestsCount,
     attendanceTodayPct,
+    pendingBreakdown,
     recentActivities,
   };
 }

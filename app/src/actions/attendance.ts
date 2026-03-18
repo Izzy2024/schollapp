@@ -189,7 +189,7 @@ export async function saveAttendanceSession(
       data: {
         tenantId: context.tenantId,
         actorUserId: context.userId,
-        action: 'taken',
+        action: 'attendance.taken',
         entityType: 'attendance',
         entityId: session.id,
         metadata: JSON.stringify({
@@ -339,7 +339,7 @@ export async function saveAttendanceBySectionDate(
       data: {
         tenantId: context.tenantId,
         actorUserId: context.userId,
-        action: 'taken',
+        action: 'attendance.taken',
         entityType: 'attendance',
         entityId: session.id,
         metadata: JSON.stringify({

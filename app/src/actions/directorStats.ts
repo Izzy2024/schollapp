@@ -3,33 +3,36 @@
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { getTestPrisma } from '@/lib/test-seams';
 
 export async function getEnrollmentStats(tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const tenant = await prisma.tenant.findUnique({
+  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+
+  const tenant = await db.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
 
-  const activeYear = await prisma.academicYear.findFirst({
+  const activeYear = await db.academicYear.findFirst({
     where: { tenantId: tenant.id, isActive: true },
   });
   if (!activeYear) throw new Error('No active academic year found');
 
-  const totalEnrolled = await prisma.enrollment.count({
+  const totalEnrolled = await db.enrollment.count({
     where: { tenantId: tenant.id, academicYearId: activeYear.id, status: 'enrolled' }
   });
 
-  const enrolledIdsResult = await prisma.enrollment.findMany({
+  const enrolledIdsResult = await db.enrollment.findMany({
     where: { tenantId: tenant.id, academicYearId: activeYear.id, status: 'enrolled' },
     select: { studentId: true }
   });
   const enrolledIds = enrolledIdsResult.map(e => e.studentId);
 
-  const studentsWithoutEnrollment = await prisma.student.count({
+  const studentsWithoutEnrollment = await db.student.count({
     where: {
       tenantId: tenant.id,
       status: 'active',
@@ -37,7 +40,7 @@ export async function getEnrollmentStats(tenantSlug?: string) {
     }
   });
 
-  const sectionsData = await prisma.section.findMany({
+  const sectionsData = await db.section.findMany({
     where: { tenantId: tenant.id, academicYearId: activeYear.id },
     include: {
       gradeLevel: true,

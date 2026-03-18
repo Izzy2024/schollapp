@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
   ...authConfig,
   providers: [
     CredentialsProvider({
@@ -108,3 +108,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
 });
+
+// Test override seam: some contract tests run under tsx where node:test mock.module is not available.
+// They can set globalThis.__TEST_SESSION__ to bypass NextAuth internals.
+import { getTestSession } from '@/lib/test-seams';
+
+export async function auth() {
+  const testSession = getTestSession();
+  if (testSession) return testSession as any;
+  return nextAuthAuth();
+}
+

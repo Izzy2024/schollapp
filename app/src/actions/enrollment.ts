@@ -81,7 +81,7 @@ async function createActivityEvent(params: {
     data: {
       tenantId: params.tenantId,
       actorUserId: params.actorUserId,
-      entityType: 'Enrollment',
+      entityType: 'enrollment',
       entityId: params.entityId,
       action: params.action,
       metadata: JSON.stringify({
