@@ -11,13 +11,13 @@
 
 ## Tasks
 
-- [ ] **T01: API / Server Actions para Estudiantes y Tutores**
+- [x] **T01: API / Server Actions para Estudiantes y Tutores**
   Crear y/o actualizar `actions/students.ts` y `actions/guardians.ts` para dar soporte al CRUD con multi-tenant seguro.
 
-- [ ] **T02: UI de Listado y Creación Rápida de Alumnos**
+- [x] **T02: UI de Listado y Creación Rápida de Alumnos**
   Adaptar la pantalla `/admin/students` para tener el listado y un modal que permita la creación rápida de alumnos.
 
-- [ ] **T03: Pantalla de Expediente del Alumno (Tabs y Tutores)**
+- [x] **T03: Pantalla de Expediente del Alumno (Tabs y Tutores)**
   Crear la ruta `[studentId]/page.tsx` para mostrar un dashboard individual del alumno, y añadir una sección donde se le puedan vincular Tutores (Guardians).
 
 ## Files Likely Touched

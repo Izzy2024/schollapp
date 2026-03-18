@@ -11,13 +11,13 @@
 
 ## Tasks
 
-- [ ] **T01: Configuración de Autenticación (NextAuth/Auth.js)**
+- [x] **T01: Configuración de Autenticación (NextAuth/Auth.js)**
   Instalar y configurar Auth.js (o equivalente manual con JWT/cookies) conectado a SQLite/Prisma usando credenciales.
   
-- [ ] **T02: Página de Login y Middleware**
+- [x] **T02: Página de Login y Middleware**
   Crear la interfaz de inicio de sesión y el middleware para proteger las rutas `/admin`, `/teacher`, `/director`, etc.
   
-- [ ] **T03: Refactorización de Multi-Tenant (Eliminar hardcodes)**
+- [x] **T03: Refactorización de Multi-Tenant (Eliminar hardcodes)**
   Actualizar layouts y server actions principales para leer el `tenantSlug` o `tenantId` de la sesión en vez del string hardcodeado `'school-demo'`.
 
 ## Files Likely Touched

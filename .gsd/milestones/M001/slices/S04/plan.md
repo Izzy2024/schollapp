@@ -11,10 +11,10 @@
 
 ## Tasks
 
-- [ ] **T01: API de Subida y Manejo de Adjuntos (Backend)**
+- [x] **T01: API de Subida y Manejo de Adjuntos (Backend)**
   Crear Server Actions o API Routes para manejar subida, listado y borrado de archivos atados al modelo `Attachment` de Prisma. Configurar carpeta `/public/uploads` o similar para MVP.
 
-- [ ] **T02: UI de Gestión de Materiales en Planificador**
+- [x] **T02: UI de Gestión de Materiales en Planificador**
   Actualizar `app/src/app/teacher/planning/PlanningClient.tsx` o modales relacionados para mostrar los archivos vinculados a un `CurricularTopic` y permitir subirlos/borrarlos usando el backend de T01.
 
 ## Files Likely Touched

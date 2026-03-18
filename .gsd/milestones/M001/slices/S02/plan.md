@@ -11,13 +11,13 @@
 
 ## Tasks
 
-- [ ] **T01: API / Server Actions para Ciclos y Grados**
+- [x] **T01: API / Server Actions para Ciclos y Grados**
   Crear los Server Actions con soporte Multi-Tenant (usando `auth()`) para el CRUD de `AcademicYear` y `GradeLevel`.
   
-- [ ] **T02: UI de Configuración de Ciclos y Grados**
+- [x] **T02: UI de Configuración de Ciclos y Grados**
   Crear la página `/admin/academic-setup` (o equivalente) que consuma los actions de T01.
   
-- [ ] **T03: API y UI para Grupos (Sections)**
+- [x] **T03: API y UI para Grupos (Sections)**
   Crear las acciones y la UI (ya sea en la misma pantalla o una dedicada) para gestionar los Grupos (`Section`) cruzando Ciclo + Grado.
 
 ## Files Likely Touched
