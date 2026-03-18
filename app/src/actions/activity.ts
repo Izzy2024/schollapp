@@ -62,14 +62,14 @@ export async function getRecentActivities(
         if (actionStr.includes('student_unenrolled') || actionStr === 'deleted' || actionStr === 'unenrolled') text = 'Dio de baja a un alumno';
       }
       
-      // 2. Announcment Events
+      // 2. Announcement Events (legacy + namespaced)
       if (type.includes('announcement')) {
         icon = 'campaign';
         iconColor = 'text-amber-600';
         iconBg = 'bg-amber-50';
-        if (actionStr.includes('created')) text = 'Creó un nuevo comunicado';
-        if (actionStr.includes('published') || actionStr === 'publish') text = 'Publicó un comunicado';
-        if (actionStr.includes('deleted')) text = 'Eliminó un comunicado';
+        if (actionStr === 'announcement.created' || actionStr.includes('created')) text = 'Creó un nuevo comunicado';
+        if (actionStr === 'announcement.published' || actionStr.includes('published') || actionStr === 'publish') text = 'Publicó un comunicado';
+        if (actionStr === 'announcement.deleted' || actionStr.includes('deleted')) text = 'Eliminó un comunicado';
       }
 
       // 3. User / Staff Events

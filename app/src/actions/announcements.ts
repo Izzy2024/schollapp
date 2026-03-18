@@ -2,9 +2,22 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type AnnouncementTargetInput = {
+  targetType: 'all' | 'grade' | 'section';
+  targetId?: string;
+};
+
+type AnnouncementWriteContext = {
+  tenantId: string;
+  tenantSlug: string;
+  actorUserId: string;
+  role?: string | null;
+};
 
 export type AnnouncementRow = {
   id: string;
@@ -16,6 +29,84 @@ export type AnnouncementRow = {
   targetCount: number;
   targets: { targetType: string; targetId: string | null }[];
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+async function getAnnouncementWriteContext(tenantSlug?: string): Promise<AnnouncementWriteContext> {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
+  const resolvedTenantSlug = session.user.tenantSlug ?? tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: resolvedTenantSlug } });
+  if (!tenant || !resolvedTenantSlug) throw new Error('Tenant not found');
+
+  return {
+    tenantId: tenant.id,
+    tenantSlug: resolvedTenantSlug,
+    actorUserId: session.user.id,
+    role: session.user.role,
+  };
+}
+
+function assertAnnouncementWriteAccess(role?: string | null) {
+  if (role === 'admin' || role === 'director') return;
+  throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
+
+async function assertValidAnnouncementTarget(tenantId: string, target: AnnouncementTargetInput) {
+  const targetId = target.targetId?.trim() || undefined;
+
+  if (target.targetType === 'all') {
+    if (targetId) throw stableError(STABLE_ERROR.INVALID_TARGET);
+    return { targetType: 'all' as const, targetId: null as string | null };
+  }
+
+  if (!targetId) {
+    throw stableError(STABLE_ERROR.INVALID_TARGET);
+  }
+
+  if (target.targetType === 'grade') {
+    const grade = await prisma.gradeLevel.findFirst({ where: { id: targetId } });
+    if (!grade) throw stableError(STABLE_ERROR.INVALID_TARGET);
+    if (grade.tenantId !== tenantId) throw stableError(STABLE_ERROR.TARGET_SCOPE_VIOLATION);
+    return { targetType: 'grade' as const, targetId };
+  }
+
+  if (target.targetType === 'section') {
+    const section = await prisma.section.findFirst({ where: { id: targetId } });
+    if (!section) throw stableError(STABLE_ERROR.INVALID_TARGET);
+    if (section.tenantId !== tenantId) throw stableError(STABLE_ERROR.TARGET_SCOPE_VIOLATION);
+    return { targetType: 'section' as const, targetId };
+  }
+
+  throw stableError(STABLE_ERROR.INVALID_TARGET);
+}
+
+async function createAnnouncementEvent(params: {
+  tenantId: string;
+  actorUserId: string;
+  announcementId: string;
+  action: 'announcement.created' | 'announcement.published' | 'announcement.deleted';
+  targetType: 'all' | 'grade' | 'section';
+  targetId: string | null;
+  publishedNow: boolean;
+}) {
+  await prisma.activityEvent.create({
+    data: {
+      tenantId: params.tenantId,
+      actorUserId: params.actorUserId,
+      action: params.action,
+      entityType: 'announcement',
+      entityId: params.announcementId,
+      metadata: JSON.stringify({
+        targetType: params.targetType,
+        targetId: params.targetId,
+        publishedNow: params.publishedNow,
+        actorUserId: params.actorUserId,
+      }),
+    },
+  });
+}
 
 // ─── Read ─────────────────────────────────────────────────────────────────────
 
@@ -37,7 +128,7 @@ export async function getAnnouncements(tenantSlug?: string): Promise<Announcemen
       orderBy: { createdAt: 'desc' },
     });
 
-    return rows.map(r => ({
+    return rows.map((r) => ({
       id: r.id,
       title: r.title,
       body: r.body,
@@ -45,7 +136,7 @@ export async function getAnnouncements(tenantSlug?: string): Promise<Announcemen
       createdAt: r.createdAt.toISOString(),
       createdByName: r.createdBy?.fullName ?? null,
       targetCount: r.targets.length,
-      targets: r.targets.map(t => ({ targetType: t.targetType, targetId: t.targetId })),
+      targets: r.targets.map((t) => ({ targetType: t.targetType, targetId: t.targetId })),
     }));
   } catch (error: any) {
     console.error('🔥 [getAnnouncements] Error:', error);
@@ -65,66 +156,78 @@ export async function createAnnouncement(
   },
   tenantSlug?: string
 ) {
-  try {
-    const session = await auth();
-    if (!session?.user) throw new Error('Unauthorized');
-    tenantSlug = session.user.tenantSlug;
+  const context = await getAnnouncementWriteContext(tenantSlug);
+  assertAnnouncementWriteAccess(context.role);
 
-    if (!data.title?.trim()) return { error: 'El título es requerido' };
-    if (!data.body?.trim()) return { error: 'El cuerpo del comunicado es requerido' };
+  if (!data.title?.trim()) return { error: 'El título es requerido' };
+  if (!data.body?.trim()) return { error: 'El cuerpo del comunicado es requerido' };
 
-    const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-    if (!tenant) throw new Error('Tenant not found');
+  const target = await assertValidAnnouncementTarget(context.tenantId, {
+    targetType: data.targetType,
+    targetId: data.targetId,
+  });
 
-    const announcement = await prisma.announcement.create({
-      data: {
-        tenantId: tenant.id,
-        title: data.title.trim(),
-        body: data.body.trim(),
-        createdById: session.user.id,
-        publishedAt: data.publishNow ? new Date() : null,
-        targets: {
-          create: [{
-            tenantId: tenant.id,
-            targetType: data.targetType,
-            targetId: data.targetId || null,
-          }]
-        }
-      }
-    });
+  const announcement = await prisma.announcement.create({
+    data: {
+      tenantId: context.tenantId,
+      title: data.title.trim(),
+      body: data.body.trim(),
+      createdById: context.actorUserId,
+      publishedAt: data.publishNow ? new Date() : null,
+      targets: {
+        create: [
+          {
+            tenantId: context.tenantId,
+            targetType: target.targetType,
+            targetId: target.targetId,
+          },
+        ],
+      },
+    },
+  });
 
-    await prisma.activityEvent.create({
-      data: {
-        tenantId: tenant.id,
-        actorUserId: session.user.id,
-        action: 'created',
-        entityType: 'announcement',
-        entityId: announcement.id,
-        metadata: JSON.stringify({ title: data.title }),
-      }
-    });
+  await createAnnouncementEvent({
+    tenantId: context.tenantId,
+    actorUserId: context.actorUserId,
+    announcementId: announcement.id,
+    action: 'announcement.created',
+    targetType: target.targetType,
+    targetId: target.targetId,
+    publishedNow: Boolean(data.publishNow),
+  });
 
-    revalidatePath('/admin/announcements');
-    return { success: true, id: announcement.id };
-  } catch (error: any) {
-    console.error('🔥 [createAnnouncement] Error:', error);
-    return { error: `Database error: ${error.message}` };
-  }
+  revalidatePath('/admin/announcements');
+  return { success: true, id: announcement.id };
 }
 
 // ─── Publish ──────────────────────────────────────────────────────────────────
 
 export async function publishAnnouncement(id: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+  const context = await getAnnouncementWriteContext(tenantSlug);
+  assertAnnouncementWriteAccess(context.role);
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const existing = await prisma.announcement.findFirst({
+    where: { id, tenantId: context.tenantId },
+    include: { targets: { select: { targetType: true, targetId: true } } },
+  });
+
+  if (!existing) throw stableError(STABLE_ERROR.ANNOUNCEMENT_NOT_FOUND);
 
   await prisma.announcement.updateMany({
-    where: { id, tenantId: tenant.id },
+    where: { id, tenantId: context.tenantId },
     data: { publishedAt: new Date() },
+  });
+
+  const firstTarget = existing.targets[0] ?? { targetType: 'all', targetId: null };
+
+  await createAnnouncementEvent({
+    tenantId: context.tenantId,
+    actorUserId: context.actorUserId,
+    announcementId: id,
+    action: 'announcement.published',
+    targetType: (firstTarget.targetType as 'all' | 'grade' | 'section') ?? 'all',
+    targetId: firstTarget.targetId,
+    publishedNow: true,
   });
 
   revalidatePath('/admin/announcements');
@@ -134,15 +237,30 @@ export async function publishAnnouncement(id: string, tenantSlug?: string) {
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 export async function deleteAnnouncement(id: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+  const context = await getAnnouncementWriteContext(tenantSlug);
+  assertAnnouncementWriteAccess(context.role);
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const existing = await prisma.announcement.findFirst({
+    where: { id, tenantId: context.tenantId },
+    include: { targets: { select: { targetType: true, targetId: true } } },
+  });
+
+  if (!existing) throw stableError(STABLE_ERROR.ANNOUNCEMENT_NOT_FOUND);
 
   await prisma.announcement.deleteMany({
-    where: { id, tenantId: tenant.id },
+    where: { id, tenantId: context.tenantId },
+  });
+
+  const firstTarget = existing.targets[0] ?? { targetType: 'all', targetId: null };
+
+  await createAnnouncementEvent({
+    tenantId: context.tenantId,
+    actorUserId: context.actorUserId,
+    announcementId: id,
+    action: 'announcement.deleted',
+    targetType: (firstTarget.targetType as 'all' | 'grade' | 'section') ?? 'all',
+    targetId: firstTarget.targetId,
+    publishedNow: existing.publishedAt != null,
   });
 
   revalidatePath('/admin/announcements');

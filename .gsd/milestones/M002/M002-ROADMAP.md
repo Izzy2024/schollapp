@@ -23,7 +23,7 @@ Permitir a las escuelas operar su ciclo diario completo: inscripciones, asistenc
 - [x] **S03: Control de Asistencia** `risk:medium` `depends:[S02]`
   > After this: Un profesor/admin puede pasar lista por fecha y grupo; el sistema guarda presencias/ausencias/retardos y genera reportes básicos.
 
-- [ ] **S04: Comunicados Internos** `risk:low` `depends:[S01]`
+- [x] **S04: Comunicados Internos** `risk:low` `depends:[S01]`
   > After this: El director puede redactar y publicar comunicados dirigidos a toda la escuela, un grado o un grupo.
 
 - [ ] **S05: Bitácora Global y Dashboard (Overview)** `risk:medium` `depends:[S02, S03, S04]`

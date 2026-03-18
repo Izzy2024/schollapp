@@ -24,7 +24,7 @@ const menuGroups = [
       { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
       { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
       { key: 'attendance', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: 'announcements', icon: 'campaign', label: 'Comunicados', href: '/admin/announcements' },
+      { key: 'announcements', icon: 'campaign', label: 'Comunicados', href: '/director/announcements' },
       { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
     ],
   },
