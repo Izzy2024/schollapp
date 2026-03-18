@@ -49,6 +49,9 @@ model Tenant {
   classRequests       ClassRequest[]
   classSchedules      ClassSchedule[]
   scheduleRequests    ScheduleRequest[]
+
+  financeConcepts FinanceConcept[]
+  financeCharges  FinanceCharge[]
 }
 
 model User {
@@ -254,6 +257,7 @@ model Student {
   enrollments       Enrollment[]
   attendanceRecords AttendanceRecord[]
   gradeRecords      GradeRecord[]
+  financeCharges    FinanceCharge[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
@@ -574,4 +578,59 @@ model ScheduleRequest {
 
   @@index([tenantId, status, createdAt])
   @@index([tenantId, sectionSubjectId])
+}
+
+// -----------------------------------------------------------------------------
+// 9) Finance (Ledger mínimo)
+// -----------------------------------------------------------------------------
+
+enum FinanceConceptKind {
+  monthly
+  one_time
+}
+
+enum FinanceChargeStatus {
+  pending
+  paid
+  void
+}
+
+model FinanceConcept {
+  id          String             @id @default(uuid())
+  tenantId    String
+  name        String
+  kind        FinanceConceptKind
+  amountCents Int
+  currency    String             @default("MXN")
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charges FinanceCharge[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
+}
+
+model FinanceCharge {
+  id          String              @id @default(uuid())
+  tenantId    String
+  studentId   String
+  conceptId   String
+  amountCents Int
+  currency    String              @default("MXN")
+  status      FinanceChargeStatus @default(pending)
+  dueDate     DateTime?
+  periodKey   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  concept FinanceConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, studentId, conceptId, periodKey])
+  @@index([tenantId, studentId])
+  @@index([tenantId, periodKey])
 }

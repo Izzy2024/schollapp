@@ -12,7 +12,7 @@ export default async function DirectorActivityPage({ searchParams }: DirectorAct
   const selectedFilterRaw = Array.isArray(resolvedParams.type) ? resolvedParams.type[0] : resolvedParams.type;
   const selectedFilter = normalizeActivityFilter(selectedFilterRaw);
 
-  const activityFeed = await getDirectorRecentActivities(undefined, selectedFilter, 1, 50);
+  const activityFeed = await getDirectorRecentActivities(undefined, selectedFilter ?? undefined, 1, 50);
   const filterOptions = getActivityFilterOptions();
 
   return (
@@ -26,11 +26,11 @@ export default async function DirectorActivityPage({ searchParams }: DirectorAct
         <h2 className="mb-3 text-sm font-medium text-gray-700">Filtros</h2>
         <div className="flex flex-wrap gap-2">
           {filterOptions.map((option) => {
-            const isActive = option.value === selectedFilter;
+            const isActive = option.id === (selectedFilter ?? 'all');
             return (
               <Link
-                key={option.value}
-                href={option.value === 'all' ? '/director/activity' : `/director/activity?type=${option.value}`}
+                key={option.id}
+                href={option.id === 'all' ? '/director/activity' : `/director/activity?type=${option.id}`}
                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
                   isActive
                     ? 'border-blue-600 bg-blue-50 text-blue-700'

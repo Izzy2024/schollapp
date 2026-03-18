@@ -50,7 +50,7 @@ This milestone is complete only when all are true:
 
 ## Slices
 
-- [ ] **S01: Ledger mínimo (Conceptos + Cargos idempotentes) con UI Admin** `risk:high` `depends:[]`
+- [x] **S01: Ledger mínimo (Conceptos + Cargos idempotentes) con UI Admin** `risk:high` `depends:[]`
   > After this: Un Admin/Director puede crear conceptos (mensual/único) y generar/ver cargos reales en una pantalla admin, sin duplicados por periodo al reintentar.
 
 - [ ] **S02: Registro manual de pagos + Estado de cuenta Parent (real, no mock)** `risk:high` `depends:[S01]`

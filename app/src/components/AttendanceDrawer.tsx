@@ -111,7 +111,7 @@ export default function AttendanceDrawer({
       const payload = records.map((record) => ({
         studentId: record.studentId,
         status: sanitizeStatus(record.status),
-        note: record.note ?? null,
+        note: record.note ?? undefined,
       }));
       const res = await saveAttendanceSession(sectionSubjectId, date, payload);
       if (res.success) {

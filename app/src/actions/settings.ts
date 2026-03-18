@@ -19,8 +19,10 @@ export async function getTenantProfile(tenantSlug?: string) {
     id: tenant.id,
     name: tenant.name,
     slug: tenant.slug,
-    domain: tenant.domain || '',
-    logoUrl: tenant.logoUrl || ''
+    // NOTE: schema currently doesn't include `domain`/`logoUrl`.
+    // Keep them for forward-compat but default to empty.
+    domain: '',
+    logoUrl: ''
   };
 }
 
@@ -43,8 +45,7 @@ export async function updateTenantProfile(
     where: { id: tenantId },
     data: {
       name: data.name,
-      domain: data.domain || null,
-      logoUrl: data.logoUrl || null,
+      // domain/logoUrl not in current schema
     }
   });
 
@@ -131,7 +132,7 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
       entityType: 'IMPORT',
       entityId: 'csv-students',
       action: 'students_imported',
-      metadata: { successCount, errorCount, totalLines: lines.length - 1 }
+      metadata: JSON.stringify({ successCount, errorCount, totalLines: lines.length - 1 })
     }
   });
 
