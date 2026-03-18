@@ -59,7 +59,7 @@
 
 ## Tasks
 
-- [ ] **T01: Crear pruebas de contrato (rojas) para pagos + estado de cuenta (seams, sin mock.module)** `est:45m`
+- [x] **T01: Crear pruebas de contrato (rojas) para pagos + estado de cuenta (seams, sin mock.module)** `est:45m`
   - Why: Fijar el contrato crítico de scope/RBAC + aritmética de saldo antes de tocar UI/DB; evita regresiones y guía implementación.
   - Files: `app/src/actions/finance/__tests__/payments-and-statement.actions.test.ts`, `app/src/lib/errors.ts`
   - Do: Escribir tests que (1) crean tenant+usuarios+students+charges en prisma de test, (2) ejercitan `recordManual` y `getForParent`, (3) validan errores estables por scope y amount.
