@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { logOut } from '@/actions/authActions';
 
 interface NavItem {
@@ -38,6 +38,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <div className="h-screen overflow-hidden flex items-center justify-center p-3 bg-gray-200">
@@ -126,7 +127,11 @@ export default function DashboardLayout({
                 Mi Perfil
               </Link>
               <button 
-                onClick={() => logOut()}
+                onClick={async () => {
+                  await logOut();
+                  router.push('/login');
+                  router.refresh();
+                }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
               >
                 <span className="material-symbols-outlined text-lg">logout</span>

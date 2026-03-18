@@ -15,6 +15,14 @@ export async function getCurricularPlan(sectionSubjectId: string, termId: string
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
+  if (!ss || ss.staffId !== teacher.id) throw new Error('Unauthorized');
+
   const units = await prisma.curricularUnit.findMany({
     where: {
       tenantId: tenant.id,
@@ -58,6 +66,14 @@ export async function createUnit(
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
+  if (!ss || ss.staffId !== teacher.id) throw new Error('Unauthorized');
+
   const maxOrderUnit = await prisma.curricularUnit.findFirst({
     where: { tenantId: tenant.id, sectionSubjectId, termId },
     orderBy: { order: 'desc' }
@@ -91,7 +107,19 @@ export async function updateUnit(
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const updateData: any = {};
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const unit = await prisma.curricularUnit.findUnique({ where: { id: unitId }, include: { sectionSubject: true } });
+  if (!unit || unit.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
+
+  const updateData: Record<string, any> = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.startDateIso !== undefined) updateData.startDate = new Date(data.startDateIso);
@@ -111,6 +139,18 @@ export async function deleteUnit(unitId: string, tenantSlug?: string) {
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const unit = await prisma.curricularUnit.findUnique({ where: { id: unitId }, include: { sectionSubject: true } });
+  if (!unit || unit.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
+
   await prisma.curricularUnit.delete({
     where: { id: unitId }
   });
@@ -129,8 +169,17 @@ export async function createTopic(
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
   if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const unit = await prisma.curricularUnit.findUnique({ where: { id: unitId }, include: { sectionSubject: true } });
+  if (!unit || unit.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
 
   const maxOrderTopic = await prisma.curricularTopic.findFirst({
     where: { tenantId: tenant.id, unitId },
@@ -159,6 +208,18 @@ export async function deleteTopic(topicId: string, tenantSlug?: string) {
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const topic = await prisma.curricularTopic.findUnique({ where: { id: topicId }, include: { unit: { include: { sectionSubject: true } } } });
+  if (!topic || topic.unit.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
+
   await prisma.curricularTopic.delete({
     where: { id: topicId }
   });
@@ -171,8 +232,17 @@ export async function reorderUnit(unitId: string, direction: 'up' | 'down', tena
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const unit = await prisma.curricularUnit.findUnique({ where: { id: unitId } });
-  if (!unit) throw new Error('Unidad no encontrada');
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const unit = await prisma.curricularUnit.findUnique({ where: { id: unitId }, include: { sectionSubject: true } });
+  if (!unit || unit.sectionSubject.staffId !== teacher.id) throw new Error('Unidad no encontrada o no autorizada');
 
   const targetOrder = unit.order + (direction === 'up' ? -1 : 1);
 

@@ -1,30 +1,73 @@
 // auth.config.ts for Edge compatibility
 import type { NextAuthConfig } from 'next-auth';
+import { extractRoles, isServerActionRequest, resolveFallbackPath, resolveHomePath } from '@/lib/auth-guards.mjs';
 
 export const authConfig = {
   pages: {
     signIn: '/login',
   },
   callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
+    jwt({ token, user }) {
+      if (user) {
+        const signedInUser = user as {
+          id?: string;
+          tenantId?: string;
+          tenantSlug?: string;
+          roles?: string[];
+        };
+
+        if (signedInUser.id) token.id = signedInUser.id;
+        if (signedInUser.tenantId) token.tenantId = signedInUser.tenantId;
+        if (signedInUser.tenantSlug) token.tenantSlug = signedInUser.tenantSlug;
+        if (Array.isArray(signedInUser.roles)) token.roles = signedInUser.roles;
+      }
+
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        const userWithClaims = session.user as {
+          id?: string;
+          tenantId?: string;
+          tenantSlug?: string;
+          roles?: string[];
+        };
+
+        userWithClaims.id = typeof token.id === 'string' ? token.id : '';
+        userWithClaims.tenantId = typeof token.tenantId === 'string' ? token.tenantId : '';
+        userWithClaims.tenantSlug = typeof token.tenantSlug === 'string' ? token.tenantSlug : '';
+        userWithClaims.roles = Array.isArray(token.roles)
+          ? token.roles.map((role) => String(role))
+          : [];
+      }
+
+      return session;
+    },
+    authorized({ auth, request }) {
+      const { nextUrl } = request;
       const isLoggedIn = !!auth?.user;
       const isPublicRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname === '/';
       const isApiRoute = nextUrl.pathname.startsWith('/api');
+      const isServerAction = isServerActionRequest(request);
 
       if (isApiRoute) return true; // Let API routes handle their own auth
+      if (isServerAction) return true; // Never block/redirect server actions
 
       if (isLoggedIn) {
-        if (nextUrl.pathname.startsWith('/login') || nextUrl.pathname === '/') {
-          // Redirect to appropriate dashboard based on role
-          const userObj = auth.user as any;
-          const roles = userObj?.roles || [];
-          if (roles.includes('director')) return Response.redirect(new URL('/director', nextUrl));
-          if (roles.includes('teacher')) return Response.redirect(new URL('/teacher', nextUrl));
-          if (roles.includes('student')) return Response.redirect(new URL('/student', nextUrl));
-          if (roles.includes('parent')) return Response.redirect(new URL('/parent', nextUrl));
-          // Default to admin if they have admin role, or if they have no recognized role (fallback)
-          return Response.redirect(new URL('/admin', nextUrl));
+        const roles = extractRoles(auth?.user);
+
+        // Redirect from login/index to dashboard
+        if (isPublicRoute) {
+          return Response.redirect(new URL(resolveHomePath(roles), nextUrl));
         }
+
+        // Strict Path RBAC
+        const path = nextUrl.pathname;
+        const fallbackPath = resolveFallbackPath(path, roles);
+        if (fallbackPath) {
+          return Response.redirect(new URL(fallbackPath, nextUrl));
+        }
+
         return true;
       }
       

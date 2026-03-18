@@ -12,6 +12,7 @@ const baseMenuGroups = [
       { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
       { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
       { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
+      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
       { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
       { key: 'schedule-requests', icon: 'schedule_send', label: 'Solicitudes de Horario', href: '/admin/schedule-requests' },
       { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },

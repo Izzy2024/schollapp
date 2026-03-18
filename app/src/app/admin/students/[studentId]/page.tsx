@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getStudentById } from '@/actions/students';
 import { createGuardianAndLink, removeGuardianLink } from '@/actions/guardians';
+import { getStudentAttendanceSummary } from '@/actions/attendance';
 import { message } from 'antd';
 
 // Match the updated admin menu groups
@@ -15,6 +16,7 @@ const menuGroups = [
       { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
       { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
       { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
+      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
       { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
       { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
       { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
@@ -36,7 +38,9 @@ export default function StudentRecordPage() {
   const router = useRouter();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments' | 'attendance'>('overview');
+  const [attSummary, setAttSummary] = useState<any>(null);
+  const [attLoading, setAttLoading] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [guardianForm, setGuardianForm] = useState({ fullName: '', relationship: '', email: '', phone: '', isPrimary: false });
@@ -153,6 +157,21 @@ export default function StudentRecordPage() {
         >
           Inscripciones
         </button>
+        <button 
+          onClick={() => {
+            setActiveTab('attendance');
+            if (!attSummary && student) {
+              setAttLoading(true);
+              getStudentAttendanceSummary(student.id)
+                .then(d => setAttSummary(d))
+                .catch(e => message.error(e.message))
+                .finally(() => setAttLoading(false));
+            }
+          }}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'attendance' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+        >
+          Asistencia
+        </button>
       </div>
 
       {activeTab === 'overview' && (
@@ -247,39 +266,190 @@ export default function StudentRecordPage() {
 
       {activeTab === 'enrollments' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Historial Académico</h3>
-          
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-900">Historial de Inscripciones</h3>
+            {student.enrollments.filter((e: any) => e.status === 'enrolled').length === 0 && (
+              <a
+                href="/admin/enrollment"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">how_to_reg</span>
+                Inscribir Alumno
+              </a>
+            )}
+          </div>
+
           {student.enrollments.length === 0 ? (
-            <div className="p-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl text-gray-500">
-              No hay inscripciones registradas.
+            <div className="p-10 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+              <span className="material-symbols-outlined text-4xl text-gray-300 mb-3 block">school</span>
+              <p className="text-gray-500 mb-4">Este alumno no tiene inscripciones registradas.</p>
+              <a
+                href="/admin/enrollment"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">person_add</span>
+                Ir a Inscribir
+              </a>
             </div>
           ) : (
-            <div className="space-y-4">
-              {student.enrollments.map((e: any) => (
-                <div key={e.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl bg-gray-50/50">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold">
-                      {e.academicYear.name.split('-')[0].slice(-2)}
+            <div className="space-y-3">
+              {student.enrollments.map((e: any, idx: number) => {
+                const isActive = e.status === 'enrolled';
+                const statusLabel =
+                  e.status === 'enrolled' ? 'Inscrito' :
+                  e.status === 'withdrawn' ? 'Baja' :
+                  e.status === 'pre_enrolled' ? 'Pre-inscrito' :
+                  e.status === 'graduated' ? 'Egresado' : e.status;
+                const statusClass =
+                  e.status === 'enrolled' ? 'bg-green-100 text-green-800' :
+                  e.status === 'withdrawn' ? 'bg-red-100 text-red-700' :
+                  e.status === 'pre_enrolled' ? 'bg-yellow-100 text-yellow-800' :
+                  e.status === 'graduated' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-600';
+
+                return (
+                  <div
+                    key={e.id}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      isActive
+                        ? 'border-indigo-200 bg-indigo-50/40 shadow-sm'
+                        : 'border-gray-100 bg-gray-50/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm ${
+                        isActive ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {e.academicYear.name.split('-')[0].slice(-2)}/
+                        {e.academicYear.name.split('-')[1]?.slice(-2) || ''}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 text-sm">
+                            {e.section.gradeLevel.name} — Sección &quot;{e.section.name}&quot;
+                          </h4>
+                          {isActive && idx === 0 && (
+                            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase rounded tracking-wide">
+                              Activo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Ciclo {e.academicYear.name} &bull; Inscrito el{' '}
+                          {new Date(e.enrolledAt).toLocaleDateString('es-MX', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">
-                        {e.section.gradeLevel.name} - Grupo {e.section.name}
-                      </h4>
-                      <p className="text-sm text-gray-500">Ciclo {e.academicYear.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                      e.status === 'enrolled' ? 'bg-green-100 text-green-800' :
-                      e.status === 'withdrawn' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-200 text-gray-800'
-                    }`}>
-                      {e.status.toUpperCase()}
+                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusClass}`}>
+                      {statusLabel}
                     </span>
-                    <p className="text-xs text-gray-400 mt-2">Registrado: {new Date(e.enrolledAt).toLocaleDateString()}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'attendance' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-900">Historial de Asistencia</h3>
+            <a
+              href="/admin/attendance"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">schedule</span>
+              Ir al módulo
+            </a>
+          </div>
+
+          {attLoading ? (
+            <div className="py-12 text-center text-gray-400">
+              <span className="material-symbols-outlined text-4xl text-gray-200 block mb-3 animate-spin">progress_activity</span>
+              Cargando historial...
+            </div>
+          ) : !attSummary || attSummary.totalDays === 0 ? (
+            <div className="py-10 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+              <span className="material-symbols-outlined text-4xl text-gray-300 mb-3 block">event_busy</span>
+              <p className="text-gray-500">No hay registros de asistencia para este alumno.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Overall stat */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-green-50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-green-700">{attSummary.overallPct}%</div>
+                  <div className="text-xs text-green-600 mt-1">Asistencia general</div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-gray-700">{attSummary.totalDays}</div>
+                  <div className="text-xs text-gray-500 mt-1">Días registrados</div>
+                </div>
+                <div className="p-4 bg-green-50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-green-600">{attSummary.totalPresent}</div>
+                  <div className="text-xs text-green-500 mt-1">Presencias</div>
+                </div>
+                <div className="p-4 bg-red-50 rounded-xl text-center">
+                  <div className="text-2xl font-bold text-red-600">{attSummary.totalAbsent}</div>
+                  <div className="text-xs text-red-400 mt-1">Faltas</div>
+                </div>
+              </div>
+
+              {/* Monthly breakdown */}
+              {attSummary.byMonth.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Por mes</h4>
+                  <div className="space-y-2">
+                    {attSummary.byMonth.map((m: any) => {
+                      const pct = m.total > 0 ? Math.round(((m.present + m.late) / m.total) * 100) : 0;
+                      return (
+                        <div key={m.month} className="flex items-center gap-3">
+                          <div className="w-28 text-xs text-gray-500 capitalize">{m.month}</div>
+                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                pct >= 80 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-400' : 'bg-red-400'
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="text-xs font-bold text-gray-700 w-8 text-right">{pct}%</div>
+                          <div className="text-xs text-gray-400 w-20 text-right">
+                            P:{m.present} F:{m.absent} R:{m.late}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Recent records (last 30) */}
+              {attSummary.recentRecords.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Últimos registros</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {attSummary.recentRecords.map((r: any, i: number) => (
+                      <div
+                        key={i}
+                        title={new Date(r.date).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' })}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          r.status === 'present' ? 'bg-green-100 text-green-700' :
+                          r.status === 'absent'  ? 'bg-red-100   text-red-600'   :
+                          r.status === 'late'    ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-blue-100 text-blue-600'
+                        }`}
+                      >
+                        {r.status === 'present' ? 'P' : r.status === 'absent' ? 'F' : r.status === 'late' ? 'R' : 'J'}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Pasa el cursor sobre cada casilla para ver la fecha.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -9,7 +9,8 @@ export async function getTeacherWeeklySchedule(tenantSlug?: string) {
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  const tenantSlugSession = session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug || tenantSlugSession } });
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
@@ -17,12 +18,9 @@ export async function getTeacherWeeklySchedule(tenantSlug?: string) {
       tenantId: tenant.id,
       OR: [
         { user: { email: 'docente1@demo.com' } },
-        { email: 'docente1@demo.com' }
+        { userId: session.user.id }
       ]
     }
-  }) ?? await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    orderBy: { createdAt: 'asc' }
   });
 
   if (!teacher) return [];

@@ -1,13 +1,23 @@
 'use client';
 
-import React, { useActionState, useState } from 'react';
+import React, { useActionState, useEffect, useState } from 'react';
 import { authenticate } from '@/actions/authActions';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
   );
+
+  useEffect(() => {
+    if (typeof errorMessage === 'string' && errorMessage.startsWith('REDIRECT:')) {
+      const targetPath = errorMessage.slice('REDIRECT:'.length);
+      router.replace(targetPath);
+      router.refresh();
+    }
+  }, [errorMessage, router]);
 
   const [email, setEmail] = useState('admin@demo.com');
   const [password, setPassword] = useState('demo-hash-123');
@@ -68,7 +78,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {errorMessage && (
+            {errorMessage && !errorMessage.startsWith('REDIRECT:') && (
               <div className="text-sm text-red-500 font-medium text-center">
                 {errorMessage}
               </div>

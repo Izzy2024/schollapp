@@ -15,6 +15,17 @@ export async function getGradebookData(sectionSubjectId: string, termId: string,
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  const teacher = await prisma.staff.findFirst({
+    where: {
+      tenantId: tenant.id,
+      OR: [
+        { user: { email: 'docente1@demo.com' } },
+        { userId: session.user.id }
+      ]
+    }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
   const ss = await prisma.sectionSubject.findUnique({
     where: { id: sectionSubjectId },
     include: {
@@ -32,6 +43,7 @@ export async function getGradebookData(sectionSubjectId: string, termId: string,
   });
 
   if (!ss) throw new Error('Clase no encontrada');
+  if (ss.staffId !== teacher.id) throw new Error('Unauthorized');
 
   const evaluations = ss.evaluations.map(e => ({
     id: e.id,
@@ -117,6 +129,14 @@ export async function createEvaluation(
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
+  if (!ss || ss.staffId !== teacher.id) throw new Error('Unauthorized');
+
   await prisma.evaluation.create({
     data: {
       tenantId: tenant.id,
@@ -140,6 +160,17 @@ export async function saveGradeRecord(evaluationId: string, studentId: string, s
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+
+  const teacher = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+  });
+  if (!teacher) throw new Error('Teacher profile not found');
+
+  const ev = await prisma.evaluation.findUnique({ 
+    where: { id: evaluationId },
+    include: { sectionSubject: true }
+  });
+  if (!ev || ev.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
 
   await prisma.gradeRecord.upsert({
     where: {

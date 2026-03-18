@@ -9,8 +9,9 @@ export async function getTeacherDashboardData(tenantSlug?: string) {
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
+  const tenantSlugSession = session.user.tenantSlug;
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
+    where: { slug: tenantSlug || tenantSlugSession },
   });
   
   if (!tenant) throw new Error('Tenant not found');
@@ -37,14 +38,10 @@ export async function getTeacherDashboardData(tenantSlug?: string) {
       tenantId: tenant.id,
       OR: [
         { user: { email: 'docente1@demo.com' } },
-        { email: 'docente1@demo.com' }
+        { userId: session.user.id }
       ]
     },
     include: teacherInclude,
-  }) ?? await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    include: teacherInclude,
-    orderBy: { createdAt: 'asc' }
   });
 
   if (!teacher) {
@@ -141,8 +138,9 @@ export async function getTeacherClassesOptions(tenantSlug?: string) {
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
 
+  const tenantSlugSession = session.user.tenantSlug;
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
+    where: { slug: tenantSlug || tenantSlugSession },
   });
   if (!tenant) throw new Error('Tenant not found');
 
@@ -151,7 +149,7 @@ export async function getTeacherClassesOptions(tenantSlug?: string) {
       tenantId: tenant.id,
       OR: [
         { user: { email: 'docente1@demo.com' } },
-        { email: 'docente1@demo.com' }
+        { userId: session.user.id }
       ]
     },
     include: {
@@ -159,14 +157,6 @@ export async function getTeacherClassesOptions(tenantSlug?: string) {
         include: { subject: true, section: { include: { gradeLevel: true } } }
       }
     }
-  }) ?? await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    include: {
-      sectionSubjects: {
-        include: { subject: true, section: { include: { gradeLevel: true } } }
-      }
-    },
-    orderBy: { createdAt: 'asc' }
   });
 
   let terms = await prisma.term.findMany({
