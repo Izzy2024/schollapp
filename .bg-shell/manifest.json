@@ -1,14 +1,1 @@
-[
-  {
-    "id": "0bbfd05e",
-    "label": "app-dev",
-    "command": "cd app && npm run dev",
-    "cwd": "/Users/admin/Documents/Paginas web/APPSSCHOLL",
-    "startedAt": 1773863326626,
-    "processType": "server",
-    "group": null,
-    "readyPattern": null,
-    "readyPort": 3000,
-    "pid": 38790
-  }
-]
+[]
