@@ -45,8 +45,26 @@ export async function generateForPeriod(input: { periodKey: string; conceptId: s
 
   for (const row of data) {
     try {
-      await prisma.financeCharge.create({ data: row });
+      const created = await prisma.financeCharge.create({ data: row });
       createdCount++;
+
+      await prisma.activityEvent.create({
+        data: {
+          tenantId: ctx.tenantId,
+          actorUserId: ctx.actorUserId,
+          entityType: 'finance',
+          entityId: created.id,
+          action: 'finance.charge.created',
+          metadata: JSON.stringify({
+            chargeId: created.id,
+            conceptId: created.conceptId,
+            studentId: created.studentId,
+            periodKey: created.periodKey,
+            amountCents: created.amountCents,
+            currency: created.currency,
+          }),
+        },
+      });
     } catch (e: any) {
       // Prisma unique constraint violation
       if (e?.code === 'P2002') {

@@ -63,6 +63,23 @@ export async function recordManual(input: RecordManualPaymentInput) {
       },
     });
 
+    await tx.activityEvent.create({
+      data: {
+        tenantId: ctx.tenantId,
+        actorUserId: ctx.actorUserId,
+        entityType: 'finance',
+        entityId: created.id,
+        action: 'finance.payment.recorded',
+        metadata: JSON.stringify({
+          paymentId: created.id,
+          studentId: created.studentId,
+          amountCents: created.amountCents,
+          currency: created.currency,
+          chargeId: created.chargeId,
+        }),
+      },
+    });
+
     // Optional: update charge status deterministically (MVP: paid iff sum(payments) >= amountCents)
     const agg = await tx.financePayment.aggregate({
       where: { tenantId: ctx.tenantId, chargeId: charge.id },

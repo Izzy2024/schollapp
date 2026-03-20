@@ -89,6 +89,18 @@ export async function getRecentActivities(
           if (actionStr.includes('taken') || actionStr.includes('created')) text = 'Pasó lista asistencia';
         }
 
+        if (normalizedEntity === 'finance') {
+          icon = 'paid';
+          iconColor = 'text-emerald-700';
+          iconBg = 'bg-emerald-50';
+
+          if (actionStr === 'finance.concept.created') text = 'Creó un concepto de cobro';
+          else if (actionStr === 'finance.concept.updated') text = 'Actualizó un concepto de cobro';
+          else if (actionStr === 'finance.charge.created') text = 'Generó un cargo';
+          else if (actionStr === 'finance.payment.recorded') text = 'Registró un pago';
+          else text = `Acción de finanzas: ${act.action}`;
+        }
+
         return {
           id: act.id,
           actorName: act.actorUser?.fullName || 'Sistema',
