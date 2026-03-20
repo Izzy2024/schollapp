@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, Select, Table, Tag, message } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
 import * as financeCharge from '@/actions/finance/charges';
-import { formatErrorForMessage, getStableErrorCode } from './stableErrorUi';
+import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 import RecordPaymentModal from './RecordPaymentModal';
 
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
@@ -20,6 +20,8 @@ export default function ChargesTab() {
   const [generating, setGenerating] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [charges, setCharges] = useState<Charge[]>([]);
+  const [stableError, setStableError] = useState<StableErrorDisplay | null>(null);
+  const [lastGenerateInfo, setLastGenerateInfo] = useState<string | null>(null);
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordChargeId, setRecordChargeId] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function ChargesTab() {
         form.setFieldValue('conceptId', rows[0].id);
       }
     } catch (err) {
-      message.error(formatErrorForMessage(err));
+      setStableError(toStableErrorDisplay(err));
     } finally {
       setConceptsLoading(false);
     }
@@ -50,9 +52,7 @@ export default function ChargesTab() {
       const rows = await financeCharge.listByPeriod({ periodKey: v.periodKey, conceptId: v.conceptId || undefined });
       setCharges(rows);
     } catch (err) {
-      const code = getStableErrorCode(err);
-      if (code) message.error(code);
-      else message.error(formatErrorForMessage(err));
+      setStableError(toStableErrorDisplay(err));
     } finally {
       setTableLoading(false);
     }
@@ -108,11 +108,14 @@ export default function ChargesTab() {
   );
 
   const onGenerate = async () => {
+    setStableError(null);
+    setLastGenerateInfo(null);
+
     const values = await form.validateFields();
 
     // Light client validation (server is source of truth)
     if (!PERIOD_RE.test(values.periodKey)) {
-      message.error('Formato inválido. Usa YYYY-MM');
+      setStableError(toStableErrorDisplay(new Error('Formato inválido. Usa YYYY-MM')));
       return;
     }
 
@@ -122,12 +125,17 @@ export default function ChargesTab() {
         periodKey: values.periodKey,
         conceptId: values.conceptId,
       });
-      message.success(`Generación lista. created=${result.createdCount} skipped=${result.skippedCount}`);
+
+      // Must-have: idempotency should be visible but not an error.
+      if (result.createdCount === 0) {
+        setLastGenerateInfo(`Idempotente: 0 creados (skipped=${result.skippedCount})`);
+      } else {
+        setLastGenerateInfo(`Generación lista: creados=${result.createdCount} (skipped=${result.skippedCount})`);
+      }
+
       await refreshCharges(values);
     } catch (err) {
-      const code = getStableErrorCode(err);
-      if (code) message.error(code);
-      else message.error(formatErrorForMessage(err));
+      setStableError(toStableErrorDisplay(err));
     } finally {
       setGenerating(false);
     }
@@ -135,6 +143,11 @@ export default function ChargesTab() {
 
   return (
     <div className="space-y-6">
+      <StableErrorUi error={stableError} />
+      {lastGenerateInfo ? (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">{lastGenerateInfo}</div>
+      ) : null}
+
       <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
         <Form
           form={form}

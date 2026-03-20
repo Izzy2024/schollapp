@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Button, DatePicker, Form, Input, InputNumber, Modal, Select, message } from 'antd';
 import dayjs from 'dayjs';
 import * as financePayments from '@/actions/finance/payments';
-import { formatErrorForMessage, getStableErrorCode } from './stableErrorUi';
+import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 
 export type RecordPaymentModalProps = {
   open: boolean;
@@ -22,9 +22,13 @@ const METHODS = [
 
 export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded }: RecordPaymentModalProps) {
   const [form] = Form.useForm();
+  const [saving, setSaving] = React.useState(false);
+  const [stableError, setStableError] = React.useState<StableErrorDisplay | null>(null);
 
   useEffect(() => {
     if (open) {
+      setStableError(null);
+      setSaving(false);
       form.setFieldsValue({
         amount: undefined,
         paidAt: dayjs(),
@@ -37,6 +41,9 @@ export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded
 
   const onSubmit = async () => {
     if (!chargeId) return;
+
+    setStableError(null);
+    setSaving(true);
 
     const values = await form.validateFields();
 
@@ -56,9 +63,10 @@ export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded
       onClose();
       await onRecorded?.();
     } catch (err) {
-      const code = getStableErrorCode(err);
-      if (code) message.error(code);
-      else message.error(formatErrorForMessage(err));
+      // Must-have: visible stable error; do not close modal.
+      setStableError(toStableErrorDisplay(err));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -70,6 +78,8 @@ export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded
       footer={null}
       destroyOnClose
     >
+      <StableErrorUi error={stableError} className="mb-3" />
+
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item
           name="amount"
@@ -101,8 +111,10 @@ export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded
         </Form.Item>
 
         <div className="flex justify-end gap-2">
-          <Button onClick={onClose}>Cancelar</Button>
-          <Button type="primary" htmlType="submit">
+          <Button onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="primary" htmlType="submit" loading={saving}>
             Registrar
           </Button>
         </div>

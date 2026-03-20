@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Form, Input, InputNumber, Select, Table, message } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
-import { formatErrorForMessage, getStableErrorCode } from './stableErrorUi';
+import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
 
@@ -12,6 +12,7 @@ export default function ConceptsTab() {
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [stableError, setStableError] = useState<StableErrorDisplay | null>(null);
 
   const load = async () => {
     setTableLoading(true);
@@ -19,7 +20,7 @@ export default function ConceptsTab() {
       const rows = await financeConcept.list();
       setConcepts(rows);
     } catch (err) {
-      message.error(formatErrorForMessage(err));
+      setStableError(toStableErrorDisplay(err));
     } finally {
       setTableLoading(false);
     }
@@ -56,6 +57,7 @@ export default function ConceptsTab() {
 
   const onFinish = async (values: any) => {
     setLoading(true);
+    setStableError(null);
     try {
       await financeConcept.create({
         name: values.name,
@@ -67,10 +69,7 @@ export default function ConceptsTab() {
       form.resetFields(['name']);
       await load();
     } catch (err) {
-      // Must-have: show stable error code if present
-      const code = getStableErrorCode(err);
-      if (code) message.error(code);
-      else message.error(formatErrorForMessage(err));
+      setStableError(toStableErrorDisplay(err));
     } finally {
       setLoading(false);
     }
@@ -78,6 +77,8 @@ export default function ConceptsTab() {
 
   return (
     <div className="space-y-6">
+      <StableErrorUi error={stableError} />
+
       <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
         <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ kind: 'monthly', currency: 'MXN' }}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

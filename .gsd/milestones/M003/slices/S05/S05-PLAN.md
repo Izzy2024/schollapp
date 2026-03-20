@@ -51,7 +51,7 @@
   - Verify: `pnpm -C app test` (debe fallar inicialmente hasta que T02/T03 corrijan la propagación si aplica)
   - Done when: El test existe, está registrado en el runner y pasa al final del slice.
 
-- [ ] **T02: Endurecer UI Admin finanzas para mostrar errores estables en tabs/modales (sin blanks)** `est:1h`
+- [x] **T02: Endurecer UI Admin finanzas para mostrar errores estables en tabs/modales (sin blanks)** `est:1h`
   - Why: S05 exige visibilidad de fallos en UI Admin; hoy puede haber rutas donde el error queda sólo en consola o se pierde el code.
   - Files: `app/src/app/admin/finances/page.tsx`, `app/src/app/admin/finances/components/ConceptsTab.tsx`, `app/src/app/admin/finances/components/ChargesTab.tsx`, `app/src/app/admin/finances/components/RecordPaymentModal.tsx`, `app/src/app/admin/finances/components/stableErrorUi.ts`
   - Do: Confirmar que cada acción async (crear concepto, generar cargos, registrar pago) captura `StableError` y renderiza `stableErrorUi` con `code` y mensaje; evitar estados de loading infinitos; agregar fallback `UNKNOWN_ERROR` visible.
