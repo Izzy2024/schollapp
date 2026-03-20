@@ -73,7 +73,7 @@
   - Verify: `pnpm -C app prisma migrate dev` (o comando equivalente del repo) y `pnpm -C app test -- payments-and-statement.actions.test.ts` (aún rojo, pero ya compila el schema)
   - Done when: Prisma genera cliente/migración sin errores y tipos incluyen `FinancePayment`.
 
-- [ ] **T03: Implementar server actions: recordManual + getForParent (tenant-scope, RBAC, determinismo)** `est:1h`
+- [x] **T03: Implementar server actions: recordManual + getForParent (tenant-scope, RBAC, determinismo)** `est:1h`
   - Why: Cerrar el backend para registrar pagos y producir el statement real consumible por UI y tests.
   - Files: `app/src/actions/finance/payments.ts`, `app/src/actions/finance/statements.ts`, `app/src/actions/finance/_shared.ts`
   - Do: Implementar `recordManual` usando `getTenantIdFromSession()` + `assertFinanceWriteAccess()`; validar amount > 0; lookup charge por `{id, tenantId}`; crear payment en transacción; computar paid/partial si aplica (opcional). Implementar `getForParent` resolviendo students del parent (por relación existente), listando charges/payments por tenant+students, y devolviendo totales deterministas.
