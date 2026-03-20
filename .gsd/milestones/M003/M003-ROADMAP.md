@@ -53,7 +53,7 @@ This milestone is complete only when all are true:
 - [x] **S01: Ledger mínimo (Conceptos + Cargos idempotentes) con UI Admin** `risk:high` `depends:[]`
   > After this: Un Admin/Director puede crear conceptos (mensual/único) y generar/ver cargos reales en una pantalla admin, sin duplicados por periodo al reintentar.
 
-- [ ] **S02: Registro manual de pagos + Estado de cuenta Parent (real, no mock)** `risk:high` `depends:[S01]`
+- [x] **S02: Registro manual de pagos + Estado de cuenta Parent (real, no mock)** `risk:high` `depends:[S01]`
   > After this: Un Admin/Director registra un pago manual y un Parent ve en `/parent/finances` el saldo e historial (cargos/pagos) calculado desde DB.
 
 - [ ] **S03: Observabilidad financiera (ActivityEvent) + superficie de auditoría** `risk:medium` `depends:[S01,S02]`
