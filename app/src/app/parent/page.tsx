@@ -115,19 +115,36 @@ export default function ParentDashboard() {
             <div className="text-center mb-6">
               <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Pendiente</span>
               <p className="text-3xl font-bold text-blue-600 mt-2">
-                $ {data?.financial?.balanceDue?.toLocaleString('es-MX', { minimumFractionDigits: 2 }) || '0.00'}
+                {typeof data?.financial?.balanceDueCents === 'number'
+                  ? new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(data.financial.balanceDueCents / 100)
+                  : new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(0)}
               </p>
-              <span className="text-xs text-red-500 font-medium">{data?.financial?.dueDate || 'Al corriente'}</span>
+              <span className="text-xs text-red-500 font-medium">{data?.financial?.balanceDueCents ? 'Pendiente' : 'Al corriente'}</span>
             </div>
             <div className="border-t border-gray-100 pt-4">
               <h5 className="font-semibold text-gray-700 text-sm mb-3">Próximos Cargos</h5>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {data?.financial?.upcomingCharges?.map((charge: any) => (
-                <div key={charge.id} className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-500">{charge.concept}</span>
-                  <span className="font-medium text-gray-900">$ {charge.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                </div>
-              ))}
+              {/* MVP: upcoming charges list is shown in /parent/finances */}
+              {data?.financial?.upcomingCharges?.length ? (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data.financial.upcomingCharges.map((charge: any) => (
+                  <div key={charge.id} className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500">{charge.concept}</span>
+                    <span className="font-medium text-gray-900">$ {charge.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Ver detalle en “Pagos y Finanzas”.</p>
+              )}
             </div>
           </div>
 
