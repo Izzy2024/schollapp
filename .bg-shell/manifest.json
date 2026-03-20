@@ -1,14 +1,1 @@
-[
-  {
-    "id": "741e32fd",
-    "label": "next-dev",
-    "command": "cd \"app\" && pnpm dev",
-    "cwd": "/Users/admin/Documents/Paginas web/APPSSCHOLL",
-    "startedAt": 1774041886938,
-    "processType": "server",
-    "group": "s05",
-    "readyPattern": null,
-    "readyPort": 3000,
-    "pid": 89899
-  }
-]
+[]
