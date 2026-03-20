@@ -13,10 +13,32 @@ export type FinanceStatementItemDTO = {
   chargeId?: string;
 };
 
+export type FinanceStatementChargeDTO = {
+  id: string;
+  conceptId: string;
+  conceptName: string;
+  amountCents: number;
+  currency: string;
+  createdAt: Date;
+  dueDate: Date | null;
+  periodKey: string | null;
+  status: string;
+};
+
+export type FinanceStatementPaymentDTO = {
+  id: string;
+  chargeId: string;
+  amountCents: number;
+  currency: string;
+  paidAt: Date;
+  method: string;
+  note: string | null;
+};
+
 export type FinanceStatementStudentDTO = {
   studentId: string;
-  charges: Array<{ id: string; amountCents: number; currency: string; createdAt: Date; dueDate: Date | null; periodKey: string | null; status: string }>;
-  payments: Array<{ id: string; chargeId: string; amountCents: number; currency: string; paidAt: Date; method: string }>;
+  charges: FinanceStatementChargeDTO[];
+  payments: FinanceStatementPaymentDTO[];
   items: FinanceStatementItemDTO[];
   totals: {
     chargesCents: number;
@@ -45,7 +67,7 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
   const roles = ctx.user.roles ?? [];
   if (role !== 'parent' && !roles.includes('parent')) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 
-  const guardianId = (ctx.user as any).guardianId as string | undefined;
+  const guardianId = ('guardianId' in ctx.user ? (ctx.user.guardianId as string | undefined) : undefined) ?? undefined;
   if (!guardianId) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   // Resolve visible students (tenant-scoped) for this guardian.
@@ -62,12 +84,23 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
   const [charges, payments] = await Promise.all([
     prisma.financeCharge.findMany({
       where: { tenantId: ctx.tenantId, studentId: { in: studentIds } },
-      select: { id: true, studentId: true, amountCents: true, currency: true, createdAt: true, dueDate: true, periodKey: true, status: true },
+      select: {
+        id: true,
+        studentId: true,
+        conceptId: true,
+        concept: { select: { name: true } },
+        amountCents: true,
+        currency: true,
+        createdAt: true,
+        dueDate: true,
+        periodKey: true,
+        status: true,
+      },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     }),
     prisma.financePayment.findMany({
       where: { tenantId: ctx.tenantId, studentId: { in: studentIds } },
-      select: { id: true, studentId: true, chargeId: true, amountCents: true, currency: true, paidAt: true, method: true },
+      select: { id: true, studentId: true, chargeId: true, amountCents: true, currency: true, paidAt: true, method: true, note: true },
       orderBy: [{ paidAt: 'asc' }, { id: 'asc' }],
     }),
   ]);
@@ -129,8 +162,26 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
 
     students.push({
       studentId,
-      charges: sCharges.map((c) => ({ ...c, dueDate: c.dueDate ?? null, periodKey: c.periodKey ?? null } as any)),
-      payments: sPayments.map((p) => p as any),
+      charges: sCharges.map((c) => ({
+        id: c.id,
+        conceptId: c.conceptId,
+        conceptName: c.concept.name,
+        amountCents: c.amountCents,
+        currency: c.currency,
+        createdAt: c.createdAt,
+        dueDate: c.dueDate ?? null,
+        periodKey: c.periodKey ?? null,
+        status: c.status,
+      })),
+      payments: sPayments.map((p) => ({
+        id: p.id,
+        chargeId: p.chargeId,
+        amountCents: p.amountCents,
+        currency: p.currency,
+        paidAt: p.paidAt,
+        method: p.method,
+        note: p.note ?? null,
+      })),
       items,
       totals: { chargesCents, paymentsCents, balanceDueCents },
     });

@@ -22,7 +22,7 @@ export async function getRecentActivities(
 
   const currentTenantSlug = tenantSlug || session.user.tenantSlug;
 
-  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+  const db: typeof prisma = getTestPrisma<typeof prisma>() ?? prisma;
 
   const tenant = await db.tenant.findUnique({
     where: { slug: currentTenantSlug },
@@ -30,7 +30,7 @@ export async function getRecentActivities(
   if (!tenant) throw new Error('Tenant not found');
 
   const canonicalFilter = normalizeActivityFilter(filterEntityType);
-  const whereClause: any = {
+  const whereClause = {
     tenantId: tenant.id,
     ...buildActivityFilterWhere(canonicalFilter),
   };

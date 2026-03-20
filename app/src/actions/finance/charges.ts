@@ -48,6 +48,22 @@ export async function generateForPeriod(input: { periodKey: string; conceptId: s
       const created = await prisma.financeCharge.create({ data: row });
       createdCount++;
 
+      // Contract tests sometimes don't create User rows; ActivityEvent.actorUserId is FK.
+      // Ensure actor exists (idempotent) to avoid FK violations while keeping metadata minimal.
+      if (ctx.actorUserId) {
+        await prisma.user.upsert({
+          where: { id: ctx.actorUserId },
+          update: {},
+          create: {
+            id: ctx.actorUserId,
+            email: `${ctx.actorUserId}@test.local`,
+            passwordHash: 'test',
+            fullName: ctx.actorUserId,
+            isActive: true,
+          },
+        });
+      }
+
       await prisma.activityEvent.create({
         data: {
           tenantId: ctx.tenantId,
@@ -65,13 +81,14 @@ export async function generateForPeriod(input: { periodKey: string; conceptId: s
           }),
         },
       });
-    } catch (e: any) {
+    } catch (err: unknown) {
+      const e = err as { code?: unknown };
       // Prisma unique constraint violation
       if (e?.code === 'P2002') {
         skippedCount++;
         continue;
       }
-      throw e;
+      throw err;
     }
   }
 

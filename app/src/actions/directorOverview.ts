@@ -20,11 +20,11 @@ export async function getDirectorOverviewStats(tenantSlug?: string) {
     throw new Error('Unauthorized');
   }
 
-  if (session.user.role !== 'DIRECTOR') {
+  if ((session.user as { role?: string | null }).role !== 'DIRECTOR') {
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
 
-  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+  const db: typeof prisma = getTestPrisma<typeof prisma>() ?? prisma;
 
   const tenant = await db.tenant.findUnique({
     where: { slug: session.user.tenantSlug },

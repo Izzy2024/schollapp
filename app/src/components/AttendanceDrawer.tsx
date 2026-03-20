@@ -70,12 +70,15 @@ export default function AttendanceDrawer({
 
     getAttendanceSession(sectionSubjectId, date)
       .then((res) => {
-        const initRecords: AttendanceRecord[] = res.records.map((r: any) => ({
-          studentId: r.studentId,
-          studentName: r.studentName,
-          status: sanitizeStatus(r.status),
-          note: r.note ?? null,
-        }));
+        const initRecords: AttendanceRecord[] = (res.records as unknown[]).map((raw) => {
+          const r = raw as { studentId: string; studentName: string; status: string | null; note: string | null };
+          return {
+            studentId: r.studentId,
+            studentName: r.studentName,
+            status: sanitizeStatus(r.status ?? undefined),
+            note: r.note ?? null,
+          };
+        });
         setRecords(initRecords);
       })
       .catch((err) => {
@@ -86,8 +89,6 @@ export default function AttendanceDrawer({
       })
       .finally(() => setLoading(false));
   }, [isOpen, sectionSubjectId, date]);
-
-  if (!isOpen) return null;
 
   const markAll = (status: AttendanceStatus) => {
     setRecords((prev) => prev.map((r) => ({ ...r, status })));
@@ -133,11 +134,16 @@ export default function AttendanceDrawer({
   };
 
   const summary = useMemo(() => {
-    return records.reduce((acc, r) => {
-      acc[r.status] = (acc[r.status] || 0) + 1;
-      return acc;
-    }, {} as Record<AttendanceStatus, number>);
+    return records.reduce(
+      (acc, r) => {
+        acc[r.status] = (acc[r.status] || 0) + 1;
+        return acc;
+      },
+      { present: 0, absent: 0, late: 0, excused: 0 } satisfies Record<AttendanceStatus, number>
+    );
   }, [records]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">

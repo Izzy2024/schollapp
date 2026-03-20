@@ -16,7 +16,7 @@ export async function getDirectorRecentActivities(
     throw new Error('Unauthorized');
   }
 
-  if (session.user.role !== 'DIRECTOR') {
+  if ((session.user as { role?: string | null }).role !== 'DIRECTOR') {
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
 

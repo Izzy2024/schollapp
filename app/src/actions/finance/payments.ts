@@ -91,7 +91,7 @@ export async function recordManual(input: RecordManualPaymentInput) {
 
     await tx.financeCharge.update({
       where: { id: charge.id },
-      data: { status: nextStatus as any },
+      data: { status: nextStatus },
     });
 
     return created;

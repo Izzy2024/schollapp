@@ -48,8 +48,9 @@ export default async function ParentFinancesPage() {
 
   try {
     data = await getForParent();
-  } catch (err: any) {
-    const code = err?.code ?? err?.cause?.code ?? err?.message;
+  } catch (err: unknown) {
+    const e = err as { code?: unknown; cause?: { code?: unknown }; message?: unknown };
+    const code = e?.code ?? e?.cause?.code ?? e?.message;
     errorCode = typeof code === 'string' ? code : 'UNKNOWN_ERROR';
   }
 

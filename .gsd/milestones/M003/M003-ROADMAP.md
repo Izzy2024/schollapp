@@ -59,7 +59,7 @@ This milestone is complete only when all are true:
 - [x] **S03: Observabilidad financiera (ActivityEvent) + superficie de auditoría** `risk:medium` `depends:[S01,S02]`
   > After this: Cada creación de cargo y registro de pago aparece en el Activity Feed como `finance.*` con metadata mínima, facilitando diagnóstico post-lanzamiento.
 
-- [ ] **S04: Estabilización (lint/types/build) + suite de verificación sin mock.module** `risk:medium` `depends:[S01,S02,S03]`
+- [x] **S04: Estabilización (lint/types/build) + suite de verificación sin mock.module** `risk:medium` `depends:[S01,S02,S03]`
   > After this: El repo tiene una suite de tests confiable (sin `mock.module`) que cubre finanzas + un mínimo de RBAC/scope, y `lint/test/build` pasan como gate.
 
 - [ ] **S05: Slice de integración final “Lanzamiento” (happy path + failure visibility)** `risk:low` `depends:[S01,S02,S03,S04]`

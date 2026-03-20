@@ -25,7 +25,7 @@ export async function getTenantIdFromSession(): Promise<{ tenantId: string; tena
     tenantId: tenant.id,
     tenantSlug,
     actorUserId: session.user.id,
-    user: session.user as any,
+    user: session.user as FinanceSessionUser,
   };
 }
 

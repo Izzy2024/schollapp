@@ -47,8 +47,8 @@ async function getAttendanceWriteContext(tenantSlug?: string): Promise<Attendanc
 
   return {
     userId: authSession.user.id,
-    role: authSession.user.role,
-    staffId: authSession.user.staffId,
+    role: (authSession.user as { role?: string | null }).role,
+    staffId: (authSession.user as { staffId?: string | null }).staffId,
     tenantId: tenant.id,
   };
 }

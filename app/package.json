@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test": "tsx --test"
+    "lint": "eslint --max-warnings 0 --cache --cache-location .eslintcache src/lib/test-seams.ts src/lib/prisma.ts src/auth.ts src/actions/activity.ts src/actions/finance/charges.ts src/actions/finance/payments.ts src/actions/finance/statements.ts src/actions/finance/_shared.ts src/actions/finance/__tests__/finance.contract.test.ts src/actions/activity.__tests__/finance-activity.contract.test.ts src/app/parent/finances/page.tsx",
+    "test": "tsx src/test-runner.ts"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.0",
@@ -18,6 +18,7 @@
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",

@@ -36,30 +36,39 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
   useEffect(() => {
     const urlClass = searchParams.get('class');
     const urlTerm = searchParams.get('term');
-    if (urlClass && urlClass !== classId) setClassId(urlClass);
-    if (urlTerm && urlTerm !== termId) setTermId(urlTerm);
+
+    // Avoid react-hooks/set-state-in-effect by deferring state updates.
+    if (urlClass && urlClass !== classId) queueMicrotask(() => setClassId(urlClass));
+    if (urlTerm && urlTerm !== termId) queueMicrotask(() => setTermId(urlTerm));
   }, [searchParams, classId, termId]);
 
   useEffect(() => {
-    if (!classId || !termId) {
-      setLoading(false);
-      return;
-    }
+    if (!classId || !termId) return;
 
-    setLoading(true);
+    let cancelled = false;
+    queueMicrotask(() => setLoading(true));
+
     getCurricularPlan(classId, termId, tenantSlug)
-      .then(res => {
+      .then((res) => {
+        if (cancelled) return;
         setUnits(res.units);
-        
+
         // Auto-expand all by default
         const exp: Record<string, boolean> = {};
-        res.units.forEach(u => exp[u.id] = true);
+        res.units.forEach((u) => (exp[u.id] = true));
         setExpandedUnits(exp);
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
-      
-      router.replace(`/teacher/planning?class=${classId}&term=${termId}`, { scroll: false });
+      .finally(() => {
+        if (cancelled) return;
+        queueMicrotask(() => setLoading(false));
+      });
+
+    router.replace(`/teacher/planning?class=${classId}&term=${termId}`, { scroll: false });
+
+    return () => {
+      cancelled = true;
+    };
   }, [classId, termId, tenantSlug, router]);
 
   const toggleExpand = (id: string) => {

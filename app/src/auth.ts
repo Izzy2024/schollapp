@@ -59,8 +59,8 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
 
         // Gather roles for this specific tenant
         let userRolesForTenant = user.roles
-          .filter((ur: any) => ur.tenantId === mainMembership.tenantId)
-          .map((ur: any) => ur.role.name);
+          .filter(ur => ur.tenantId === mainMembership.tenantId)
+          .map(ur => ur.role.name);
 
         // Fallback for demo users if DB roles aren't seeded yet
         if (userRolesForTenant.length === 0) {
@@ -87,18 +87,24 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
       if (user) {
         // Initial sign-in
         token.id = user.id;
-        token.tenantId = (user as any).tenantId;
-        token.tenantSlug = (user as any).tenantSlug;
-        token.roles = (user as any).roles;
+        const u = user as { tenantId: string; tenantSlug: string; roles: string[] };
+        token.tenantId = u.tenantId;
+        token.tenantSlug = u.tenantSlug;
+        token.roles = u.roles;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        (session.user as any).tenantId = token.tenantId as string;
-        (session.user as any).tenantSlug = token.tenantSlug as string;
-        (session.user as any).roles = token.roles as string[];
+        const su = session.user as typeof session.user & {
+          tenantId?: string;
+          tenantSlug?: string;
+          roles?: string[];
+        };
+        su.tenantId = token.tenantId as string;
+        su.tenantSlug = token.tenantSlug as string;
+        su.roles = token.roles as string[];
       }
       return session;
     },
@@ -115,7 +121,7 @@ import { getTestSession } from '@/lib/test-seams';
 
 export async function auth() {
   const testSession = getTestSession();
-  if (testSession) return testSession as any;
+  if (testSession) return testSession;
   return nextAuthAuth();
 }
 

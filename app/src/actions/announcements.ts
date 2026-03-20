@@ -44,7 +44,7 @@ async function getAnnouncementWriteContext(tenantSlug?: string): Promise<Announc
     tenantId: tenant.id,
     tenantSlug: resolvedTenantSlug,
     actorUserId: session.user.id,
-    role: session.user.role,
+    role: (session.user as { role?: string | null }).role,
   };
 }
 
