@@ -1,8 +1,6 @@
-'use client';
-
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { getForParent, type FinanceStatementDTO } from '@/actions/finance/statements';
+import { getForParent } from '@/actions/finance/statements';
 
 const menuGroups = [
   {
@@ -44,39 +42,18 @@ function formatDate(value: string | Date): string {
   }).format(d);
 }
 
-export default function ParentFinancesPage() {
-  const [data, setData] = useState<FinanceStatementDTO | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
+export default async function ParentFinancesPage() {
+  let data: Awaited<ReturnType<typeof getForParent>> | null = null;
+  let errorCode: string | null = null;
 
-  useEffect(() => {
-    let cancelled = false;
+  try {
+    data = await getForParent();
+  } catch (err: any) {
+    const code = err?.code ?? err?.cause?.code ?? err?.message;
+    errorCode = typeof code === 'string' ? code : 'UNKNOWN_ERROR';
+  }
 
-    setLoading(true);
-    setErrorCode(null);
-
-    getForParent()
-      .then((res) => {
-        if (cancelled) return;
-        setData(res);
-        setLoading(false);
-      })
-      .catch((err: any) => {
-        if (cancelled) return;
-        const code = err?.code ?? err?.cause?.code ?? err?.message;
-        setErrorCode(typeof code === 'string' ? code : 'UNKNOWN_ERROR');
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const empty = useMemo(() => {
-    if (!data) return false;
-    return data.students.length === 0;
-  }, [data]);
+  const empty = !errorCode && data && data.students.length === 0;
 
   return (
     <DashboardLayout
@@ -93,7 +70,7 @@ export default function ParentFinancesPage() {
         </div>
       </div>
 
-      {loading ? (
+      {!data && !errorCode ? (
         <div className="space-y-4">
           {[1, 2].map((i) => (
             <div key={i} className="stat-card p-6 animate-pulse">
@@ -130,21 +107,21 @@ export default function ParentFinancesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
               <div className="p-4 rounded-xl bg-white border border-gray-100">
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Cargos</div>
-                <div className="text-lg font-bold text-gray-900 mt-1">{formatMoneyFromCents(data!.totals.chargesCents, 'MXN')}</div>
+                <div className="text-lg font-bold text-gray-900 mt-1">{formatMoneyFromCents(data?.totals.chargesCents ?? 0, 'MXN')}</div>
               </div>
               <div className="p-4 rounded-xl bg-white border border-gray-100">
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Pagos</div>
-                <div className="text-lg font-bold text-gray-900 mt-1">{formatMoneyFromCents(data!.totals.paymentsCents, 'MXN')}</div>
+                <div className="text-lg font-bold text-gray-900 mt-1">{formatMoneyFromCents(data?.totals.paymentsCents ?? 0, 'MXN')}</div>
               </div>
               <div className="p-4 rounded-xl bg-white border border-gray-100">
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saldo</div>
-                <div className="text-lg font-bold text-blue-700 mt-1">{formatMoneyFromCents(data!.totals.balanceDueCents, 'MXN')}</div>
+                <div className="text-lg font-bold text-blue-700 mt-1">{formatMoneyFromCents(data?.totals.balanceDueCents ?? 0, 'MXN')}</div>
               </div>
             </div>
           </div>
 
           {/* Per-student */}
-          {data!.students.map((s) => (
+          {(data?.students ?? []).map((s) => (
             <div key={s.studentId} className="stat-card p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -153,7 +130,7 @@ export default function ParentFinancesPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saldo</div>
-                  <div className="text-lg font-bold text-blue-700">{formatMoneyFromCents(s.totals.balanceDueCents, 'MXN')}</div>
+                  <div className="text-lg font-bold text-blue-700">{formatMoneyFromCents(s.totals.balanceDueCents ?? 0, 'MXN')}</div>
                 </div>
               </div>
 
@@ -167,8 +144,12 @@ export default function ParentFinancesPage() {
                       {s.charges.map((c) => (
                         <div key={c.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-gray-50">
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{c.periodKey ?? 'Cargo'}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">Status: {c.status}</div>
+                            <div className="text-sm font-medium text-gray-900">{c.conceptName ?? c.periodKey ?? 'Cargo'}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {c.periodKey ? `Periodo: ${c.periodKey}` : null}
+                              {c.periodKey ? ' · ' : null}
+                              Status: {c.status}
+                            </div>
                           </div>
                           <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">{formatMoneyFromCents(c.amountCents, c.currency)}</div>
                         </div>
@@ -188,6 +169,7 @@ export default function ParentFinancesPage() {
                           <div>
                             <div className="text-sm font-medium text-gray-900">{formatDate(p.paidAt)}</div>
                             <div className="text-xs text-gray-600 mt-0.5">Método: {p.method}</div>
+                            {p.note ? <div className="text-xs text-gray-500 mt-1">Nota: {p.note}</div> : null}
                           </div>
                           <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">{formatMoneyFromCents(p.amountCents, p.currency)}</div>
                         </div>

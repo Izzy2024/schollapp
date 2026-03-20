@@ -80,7 +80,7 @@
   - Verify: `pnpm -C app test -- payments-and-statement.actions.test.ts`
   - Done when: Los tests de T01 pasan (verde) y las acciones devuelven errores estables en paths negativos.
 
-- [ ] **T04: Construir UI Parent real en /parent/finances y remover mocks del dashboard parent** `est:1h`
+- [x] **T04: Construir UI Parent real en /parent/finances y remover mocks del dashboard parent** `est:1h`
   - Why: Entregar el resultado visible al usuario (Parent) y asegurar que finanzas ya no dependan de datos hardcoded.
   - Files: `app/src/app/parent/finances/page.tsx`, `app/src/actions/parent.ts`, `app/src/app/parent/page.tsx`
   - Do: Crear página `/parent/finances` que llama `financeStatement.getForParent()` y muestra por student: saldo, lista de cargos y pagos (fechas/montos). Actualizar `getParentDashboardData` para que el bloque financial provenga del statement real (o elimine secciones mock) y linkee a `/parent/finances`.

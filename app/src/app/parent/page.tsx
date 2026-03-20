@@ -107,10 +107,13 @@ export default function ParentDashboard() {
           <div className="stat-card p-6 bg-gradient-to-b from-white to-blue-50/30">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h2>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-md">
-                <span className="material-symbols-outlined text-sm">credit_card</span>
-                Pagar
-              </button>
+              <a
+                href="/parent/finances"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-md"
+              >
+                <span className="material-symbols-outlined text-sm">receipt_long</span>
+                Ver detalle
+              </a>
             </div>
             <div className="text-center mb-6">
               <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Pendiente</span>
