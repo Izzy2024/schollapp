@@ -44,7 +44,7 @@
 
 ## Tasks
 
-- [ ] **T01: Agregar verificación automatizada de “failure visibility” (códigos estables) para finanzas** `est:45m`
+- [x] **T01: Agregar verificación automatizada de “failure visibility” (códigos estables) para finanzas** `est:45m`
   - Why: Evitar que el cierre dependa sólo del manual smoke; asegurar por test que ciertos fallos producen `STABLE_ERROR.*` (no `UNKNOWN_ERROR`).
   - Files: `app/src/actions/finance/__tests__/finance.failure-visibility.contract.test.ts`, `app/src/test-runner.ts`
   - Do: Crear un test `node:test` usando seams (`__TEST_PRISMA__`, `__TEST_SESSION__`) que provoque un fallo determinista (p.ej. parent intentando acción admin, o cross-student access) y asertar `error.code` estable.

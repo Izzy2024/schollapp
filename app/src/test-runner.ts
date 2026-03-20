@@ -20,3 +20,6 @@ import './test/routes/director-overview-activity.rbac.test';
 // M003 official contract suites (Slice S04)
 import './actions/finance/__tests__/finance.contract.test';
 import './actions/activity.__tests__/finance-activity.contract.test';
+
+// M003/S05 failure visibility contract
+import './actions/finance/__tests__/finance.failure-visibility.contract.test';
