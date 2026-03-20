@@ -87,7 +87,7 @@
   - Verify: `pnpm -C app dev` + navegación a `/parent/finances` con un Parent sembrado; `pnpm -C app build`
   - Done when: `/parent/finances` renderiza datos reales (cero mocks) y falla con mensaje estable si la acción retorna error.
 
-- [ ] **T05: Superficie Admin mínima para registrar pago manual contra un cargo** `est:1h`
+- [x] **T05: Superficie Admin mínima para registrar pago manual contra un cargo** `est:1h`
   - Why: Completar el flujo MVP: Admin/Director puede registrar pago sin necesitar scripts/DB manual.
   - Files: `app/src/app/(admin)/finance/*` (o ruta existente de finanzas admin), `app/src/actions/finance/payments.ts`, `app/src/components/*` (si aplica)
   - Do: Añadir acción/botón “Registrar pago” en la lista de cargos (S01) que abre un form (monto, fecha, nota, método) y llama `recordManual({ chargeId, amountCents, paidAt, ... })`. Manejar errores estables en UI.

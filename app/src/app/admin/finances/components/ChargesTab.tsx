@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, Select, Table, message } from 'antd';
+import { Button, Form, Input, Select, Table, Tag, message } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
 import * as financeCharge from '@/actions/finance/charges';
 import { formatErrorForMessage, getStableErrorCode } from './stableErrorUi';
+import RecordPaymentModal from './RecordPaymentModal';
 
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
 type Charge = Awaited<ReturnType<typeof financeCharge.listByPeriod>>[number];
@@ -19,6 +20,9 @@ export default function ChargesTab() {
   const [generating, setGenerating] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [charges, setCharges] = useState<Charge[]>([]);
+
+  const [recordOpen, setRecordOpen] = useState(false);
+  const [recordChargeId, setRecordChargeId] = useState<string | null>(null);
 
   const loadConcepts = async () => {
     setConceptsLoading(true);
@@ -68,13 +72,36 @@ export default function ChargesTab() {
         key: 'amount',
         render: (_: any, r: Charge) => `${(r.amountCents / 100).toFixed(2)} ${r.currency}`,
       },
-      { title: 'Estado', dataIndex: 'status', key: 'status' },
+      {
+        title: 'Estado',
+        dataIndex: 'status',
+        key: 'status',
+        render: (v: string) => {
+          const color = v === 'paid' ? 'green' : v === 'void' ? 'default' : 'gold';
+          return <Tag color={color}>{String(v).toUpperCase()}</Tag>;
+        },
+      },
       { title: 'Periodo', dataIndex: 'periodKey', key: 'periodKey' },
       {
         title: 'Creado',
         dataIndex: 'createdAt',
         key: 'createdAt',
         render: (v: string) => new Date(v).toLocaleString(),
+      },
+      {
+        title: 'Acciones',
+        key: 'actions',
+        render: (_: any, r: Charge) => (
+          <Button
+            size="small"
+            onClick={() => {
+              setRecordChargeId(r.id);
+              setRecordOpen(true);
+            }}
+          >
+            Registrar pago
+          </Button>
+        ),
       },
     ],
     []
@@ -152,6 +179,18 @@ export default function ChargesTab() {
       </div>
 
       <Table rowKey="id" loading={tableLoading} dataSource={charges} columns={columns as any} pagination={{ pageSize: 10 }} />
+
+      <RecordPaymentModal
+        open={recordOpen}
+        chargeId={recordChargeId}
+        onClose={() => {
+          setRecordOpen(false);
+          setRecordChargeId(null);
+        }}
+        onRecorded={async () => {
+          await refreshCharges();
+        }}
+      />
     </div>
   );
 }

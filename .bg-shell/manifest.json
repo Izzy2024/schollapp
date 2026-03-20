@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "c900fdba",
+    "label": "next-dev-no-turbo",
+    "command": "NEXT_DISABLE_TURBOPACK=1 pnpm -C app dev",
+    "cwd": "/Users/admin/Documents/Paginas web/APPSSCHOLL",
+    "startedAt": 1774029822247,
+    "processType": "server",
+    "group": "s02",
+    "readyPattern": null,
+    "readyPort": 3000,
+    "pid": 70690
+  }
+]
