@@ -66,7 +66,7 @@
   - Verify: `pnpm -C app test -- payments-and-statement.actions.test.ts` (debe fallar al inicio por acciones/modelo faltante)
   - Done when: El test file existe, corre, y falla por razones esperadas (missing model/actions), dejando asserts claros.
 
-- [ ] **T02: Añadir modelo Prisma FinancePayment + migración + errores estables nuevos** `est:1h`
+- [x] **T02: Añadir modelo Prisma FinancePayment + migración + errores estables nuevos** `est:1h`
   - Why: Persistir pagos y soportar queries deterministas de estado de cuenta con scoping por tenant.
   - Files: `app/prisma/schema.prisma`, `app/prisma/migrations/*`, `app/src/lib/errors.ts`
   - Do: Modelar `FinancePayment` ligado a `FinanceCharge` y `Student`, con `tenantId`, `amountCents`, `paidAt`, `method`, `note?`, `attachmentId?` (si Attachment aplica). Añadir stable errors: `FINANCE_CHARGE_NOT_FOUND`, `FINANCE_PAYMENT_INVALID_AMOUNT`.

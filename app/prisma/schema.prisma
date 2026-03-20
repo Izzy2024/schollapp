@@ -52,6 +52,7 @@ model Tenant {
 
   financeConcepts FinanceConcept[]
   financeCharges  FinanceCharge[]
+  financePayments FinancePayment[]
 }
 
 model User {
@@ -64,14 +65,16 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  memberships        UserMembership[]
-  roles              UserRole[]
-  staffProfiles      Staff[]
-  attendanceSessions AttendanceSession[]
-  announcements      Announcement[]
-  activityEvents     ActivityEvent[]     @relation("ActorActivityEvent")
-  reviewedRequests   ClassRequest[]      @relation("ReviewedClassRequests")
-  reviewedScheduleRequests ScheduleRequest[] @relation("ReviewedScheduleRequests")
+  memberships              UserMembership[]
+  roles                    UserRole[]
+  staffProfiles            Staff[]
+  attendanceSessions       AttendanceSession[]
+  announcements            Announcement[]
+  activityEvents           ActivityEvent[]     @relation("ActorActivityEvent")
+  reviewedRequests         ClassRequest[]      @relation("ReviewedClassRequests")
+  reviewedScheduleRequests ScheduleRequest[]   @relation("ReviewedScheduleRequests")
+
+  financePaymentsCreated FinancePayment[]
 }
 
 model UserMembership {
@@ -174,8 +177,8 @@ model GradeLevel {
   name      String
   sortOrder Int    @default(0)
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sections      Section[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sections Section[]
 
   @@unique([tenantId, code])
 }
@@ -221,13 +224,13 @@ model SectionSubject {
   subjectId String
   staffId   String?
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  section         Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  staff           Staff?           @relation(fields: [staffId], references: [id])
-  evaluations     Evaluation[]
-  curricularUnits CurricularUnit[]
-  schedules       ClassSchedule[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject          Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  staff            Staff?            @relation(fields: [staffId], references: [id])
+  evaluations      Evaluation[]
+  curricularUnits  CurricularUnit[]
+  schedules        ClassSchedule[]
   scheduleRequests ScheduleRequest[]
 
   @@unique([tenantId, sectionId, subjectId])
@@ -258,6 +261,7 @@ model Student {
   attendanceRecords AttendanceRecord[]
   gradeRecords      GradeRecord[]
   financeCharges    FinanceCharge[]
+  financePayments   FinancePayment[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
@@ -302,10 +306,10 @@ model Staff {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  sectionSubjects SectionSubject[]
-  classRequests   ClassRequest[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sectionSubjects  SectionSubject[]
+  classRequests    ClassRequest[]
   scheduleRequests ScheduleRequest[]
 }
 
@@ -320,7 +324,8 @@ model Attachment {
   sizeBytes   Int?
   createdAt   DateTime @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  financePayments FinancePayment[]
 
   @@index([tenantId, ownerType, ownerId])
 }
@@ -479,7 +484,7 @@ model GradeRecord {
 }
 
 model CurricularUnit {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
   sectionSubjectId String
   termId           String
@@ -487,12 +492,12 @@ model CurricularUnit {
   description      String?
   startDate        DateTime?
   endDate          DateTime?
-  order            Int      @default(0)
-  createdAt        DateTime @default(now())
+  order            Int       @default(0)
+  createdAt        DateTime  @default(now())
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sectionSubject SectionSubject  @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
-  term           Term            @relation(fields: [termId], references: [id], onDelete: Cascade)
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sectionSubject SectionSubject    @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
+  term           Term              @relation(fields: [termId], references: [id], onDelete: Cascade)
   topics         CurricularTopic[]
 
   @@index([tenantId, sectionSubjectId, termId])
@@ -508,27 +513,27 @@ model CurricularTopic {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unit    CurricularUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit   CurricularUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 }
 
 model ClassRequest {
-  id           String    @id @default(uuid())
-  tenantId     String
-  staffId      String
-  subjectId    String
-  sectionId    String
-  status       String    @default("pending") // pending, approved, rejected
+  id            String    @id @default(uuid())
+  tenantId      String
+  staffId       String
+  subjectId     String
+  sectionId     String
+  status        String    @default("pending") // pending, approved, rejected
   justification String
-  reviewedById String?
-  reviewedAt   DateTime?
-  createdAt    DateTime  @default(now())
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  section    Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  reviewedBy User?    @relation("ReviewedClassRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff      Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  subject    Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  section    Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("ReviewedClassRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId, status])
 }
@@ -550,26 +555,26 @@ model ClassSchedule {
 }
 
 model ScheduleRequest {
-  id               String   @id @default(uuid())
-  tenantId         String
-  sectionSubjectId String
-  staffId          String
-  type             String // new/change
-  status           String   @default("pending") // pending, approved, rejected
-  proposedDayOfWeek Int
-  proposedStartTime String // HH:mm
-  proposedEndTime   String // HH:mm
-  proposedRoom      String?
+  id                   String    @id @default(uuid())
+  tenantId             String
+  sectionSubjectId     String
+  staffId              String
+  type                 String // new/change
+  status               String    @default("pending") // pending, approved, rejected
+  proposedDayOfWeek    Int
+  proposedStartTime    String // HH:mm
+  proposedEndTime      String // HH:mm
+  proposedRoom         String?
   alternativeDayOfWeek Int?
   alternativeStartTime String?
   alternativeEndTime   String?
   alternativeRoom      String?
-  reason            String
-  reviewNote        String?
-  reviewedById      String?
-  reviewedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  reason               String
+  reviewNote           String?
+  reviewedById         String?
+  reviewedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sectionSubject SectionSubject @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
@@ -626,11 +631,37 @@ model FinanceCharge {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  concept FinanceConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student  Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  concept  FinanceConcept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  payments FinancePayment[]
 
   @@unique([tenantId, studentId, conceptId, periodKey])
   @@index([tenantId, studentId])
   @@index([tenantId, periodKey])
+}
+
+model FinancePayment {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  chargeId     String
+  amountCents  Int
+  currency     String   @default("MXN")
+  paidAt       DateTime
+  method       String
+  note         String?
+  reference    String?
+  attachmentId String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  charge     FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  createdBy  User          @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  attachment Attachment?   @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, paidAt])
+  @@index([tenantId, chargeId])
 }
