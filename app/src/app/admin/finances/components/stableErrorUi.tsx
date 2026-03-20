@@ -26,10 +26,10 @@ export function toStableErrorDisplay(err: StableErrorLike): StableErrorDisplay {
 
   const msg = (err as any)?.message;
   if (typeof msg === 'string' && msg.trim()) {
-    return { code: STABLE_ERROR.UNKNOWN_ERROR, message: msg };
+    return { code: 'UNKNOWN_ERROR', message: msg };
   }
 
-  return { code: STABLE_ERROR.UNKNOWN_ERROR, message: 'Error inesperado' };
+  return { code: 'UNKNOWN_ERROR', message: 'Error inesperado' };
 }
 
 export function formatErrorForMessage(err: StableErrorLike): string {

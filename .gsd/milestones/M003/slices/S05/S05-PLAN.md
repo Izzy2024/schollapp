@@ -58,7 +58,7 @@
   - Verify: `pnpm -C app dev` y provocar un error controlado (p.ej. enviar form inválido o simular fallo de red con devtools) y observar que el UI muestra `Código: ...`.
   - Done when: En todos los flujos admin, ante error se ve un bloque UI con `code` estable y la app sigue navegable.
 
-- [ ] **T03: Asegurar demo reproducible (seed/fixture) + runbook de lanzamiento S05 (happy path + failure case)** `est:1h`
+- [x] **T03: Asegurar demo reproducible (seed/fixture) + runbook de lanzamiento S05 (happy path + failure case)** `est:1h`
   - Why: El mayor riesgo residual es falta de datos/usuarios para reproducir el flujo; se necesita guión único para ejecutar el smoke.
   - Files: `app/prisma/seed.ts` (o archivo seed actual), `app/README.md` (si aplica), `.gsd/milestones/M003/slices/S05/S05-RUNBOOK.md`
   - Do: Verificar/ajustar seed para incluir tenant demo con: (1) Admin/Director, (2) Parent/Guardian vinculado a un Student; documentar credenciales/forma de login (sin secretos). Escribir `S05-RUNBOOK.md` con:

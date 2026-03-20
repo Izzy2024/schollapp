@@ -14,6 +14,7 @@ async function main() {
   });
 
   const usersData = [
+    // NOTE: These are dev-only deterministic demo accounts.
     { email: 'admin@demo.com', fullName: 'Administrador Principal', role: 'admin' },
     { email: 'director@demo.com', fullName: 'Director Académico', role: 'director' },
     { email: 'docente1@demo.com', fullName: 'Docente Uno', role: 'docente' },
@@ -22,7 +23,9 @@ async function main() {
     { email: 'docente4@demo.com', fullName: 'Docente Cuatro', role: 'docente' },
     { email: 'docente5@demo.com', fullName: 'Docente Cinco', role: 'docente' },
     { email: 'alumno@demo.com', fullName: 'Alumno Demo', role: 'alumno' },
-    { email: 'padre@demo.com', fullName: 'Padre Demo', role: 'padre' }
+    { email: 'padre@demo.com', fullName: 'Padre Demo', role: 'padre' },
+    // Extra non-finance user for deterministic RBAC failure visibility scenario in S05 runbook.
+    { email: 'docente-rbac@demo.com', fullName: 'Docente Sin Finanzas', role: 'docente' }
   ];
 
   const createdUsers: Record<string, any> = {};
@@ -321,6 +324,49 @@ async function main() {
       });
     }
   }
+
+  // Step 8.7.1 — Demo Guardian + Link to a deterministic Student
+  // This enables the /parent/finances happy-path with seeded relationships.
+  const demoGuardian = await prisma.guardian.findFirst({
+    where: { tenantId: tenant.id, fullName: 'Padre Demo' },
+  }).then(async (g) => {
+    if (g) return g;
+    return prisma.guardian.create({
+      data: {
+        tenantId: tenant.id,
+        fullName: 'Padre Demo',
+        relationship: 'Padre',
+        email: 'padre@demo.com',
+        phone: '555-000-0000',
+      },
+    });
+  });
+
+  // Pick a deterministic seeded student (first created student code STD-001)
+  const demoStudent = await prisma.student.findUnique({
+    where: { tenantId_studentCode: { tenantId: tenant.id, studentCode: 'STD-001' } },
+  });
+
+  if (!demoStudent) {
+    throw new Error('Seed invariant failed: expected demo student STD-001 to exist');
+  }
+
+  await prisma.studentGuardian.upsert({
+    where: {
+      tenantId_studentId_guardianId: {
+        tenantId: tenant.id,
+        studentId: demoStudent.id,
+        guardianId: demoGuardian.id,
+      },
+    },
+    update: { isPrimary: true },
+    create: {
+      tenantId: tenant.id,
+      studentId: demoStudent.id,
+      guardianId: demoGuardian.id,
+      isPrimary: true,
+    },
+  });
 
   // Step 8.8 — AttendanceSessions + AttendanceRecords
   const getLastValidWeekdays = (count: number) => {

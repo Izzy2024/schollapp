@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0 --cache --cache-location .eslintcache src/lib/test-seams.ts src/lib/prisma.ts src/auth.ts src/actions/activity.ts src/actions/finance/charges.ts src/actions/finance/payments.ts src/actions/finance/statements.ts src/actions/finance/_shared.ts src/actions/finance/__tests__/finance.contract.test.ts src/actions/activity.__tests__/finance-activity.contract.test.ts src/app/parent/finances/page.tsx",
-    "test": "tsx src/test-runner.ts"
+    "test": "tsx src/test-runner.ts",
+    "db:reset": "prisma migrate reset --force",
+    "db:seed": "node --import tsx scripts/seed.mjs",
+    "db:seed:check": "node scripts/seed-check.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.0",

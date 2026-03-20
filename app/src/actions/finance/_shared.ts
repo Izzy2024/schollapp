@@ -9,6 +9,8 @@ export type FinanceSessionUser = {
   tenantSlug?: string | null;
   role?: string | null;
   roles?: string[] | null;
+  // Parent/guardian context (used by /parent/finances and FinanceStatement getForParent)
+  guardianId?: string | null;
 };
 
 export async function getTenantIdFromSession(): Promise<{ tenantId: string; tenantSlug: string; actorUserId: string; user: FinanceSessionUser }> {
