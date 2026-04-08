@@ -1,8 +1,43 @@
-# BLOCKER — auto-mode recovery failed
+---
+id: T02
+parent: S03
+milestone: M008
+key_files:
+  - (none)
+key_decisions:
+  - (none)
+duration: 
+verification_result: untested
+completed_at: 2026-04-08T19:39:17.247Z
+blocker_discovered: false
+---
 
-Unit `execute-task` for `M008/S03/T02` failed to produce this artifact after idle recovery exhausted all retries.
+# T02: Implementar UI mínima para tomar asistencia en detalle de clase
 
-**Reason**: Artifact verification failed after 3 retries for execute-task "M008/S03/T02".
+****
 
-This placeholder was written by auto-mode so the pipeline can advance.
-Review and replace this file before relying on downstream artifacts.
+## What Happened
+
+No summary recorded.
+
+## Verification
+
+No verification recorded.
+
+## Verification Evidence
+
+| # | Command | Exit Code | Verdict | Duration |
+|---|---------|-----------|---------|----------|
+| — | No verification commands discovered | — | — | — |
+
+## Deviations
+
+None.
+
+## Known Issues
+
+None.
+
+## Files Created/Modified
+
+None.

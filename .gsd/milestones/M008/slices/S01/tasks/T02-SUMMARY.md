@@ -2,29 +2,6 @@
 id: T02
 parent: S01
 milestone: M008
-provides: []
-requires: []
-affects: []
-key_files: ["app/src/app/admin/enrollment/page.tsx", "app/src/app/teacher/classes/[sectionSubjectId]/page.tsx", "app/src/actions/enrollment-impl.ts", "app/src/actions/teacher.ts", "app/src/lib/nav/menu.ts"]
-key_decisions: ["Para M008, el fix mínimo para el gap teacher es crear `/teacher/classes/page.tsx` como listado (usando data existente de `getTeacherDashboardData()`), ya que el detalle por `[sectionSubjectId]` ya existe.", "En admin, el placeholder `/admin/enrollment` se reemplazará conectando a `actions/enrollment-impl.ts` (ya implementa dominio y errores tipados)."]
-patterns_established: []
-drill_down_paths: []
-observability_surfaces: []
-duration: ""
-verification_result: "Lectura puntual de archivos y confirmación estructural (existencia/ausencia) + revisión de actions de dominio disponibles."
-completed_at: 2026-03-27T21:16:58.339Z
-blocker_discovered: false
----
-
-# T02: Mapeé los gaps del happy path a archivos concretos: /admin/enrollment es placeholder intencional y /teacher/classes falta page.tsx; el dominio de enrollment ya existe.
-
-> Mapeé los gaps del happy path a archivos concretos: /admin/enrollment es placeholder intencional y /teacher/classes falta page.tsx; el dominio de enrollment ya existe.
-
-## What Happened
----
-id: T02
-parent: S01
-milestone: M008
 key_files:
   - app/src/app/admin/enrollment/page.tsx
   - app/src/app/teacher/classes/[sectionSubjectId]/page.tsx
@@ -34,9 +11,9 @@ key_files:
 key_decisions:
   - Para M008, el fix mínimo para el gap teacher es crear `/teacher/classes/page.tsx` como listado (usando data existente de `getTeacherDashboardData()`), ya que el detalle por `[sectionSubjectId]` ya existe.
   - En admin, el placeholder `/admin/enrollment` se reemplazará conectando a `actions/enrollment-impl.ts` (ya implementa dominio y errores tipados).
-duration: ""
+duration: 
 verification_result: passed
-completed_at: 2026-03-27T21:16:58.340Z
+completed_at: 2026-03-27T21:16:58.339Z
 blocker_discovered: false
 ---
 
@@ -74,7 +51,6 @@ Lectura puntual de archivos y confirmación estructural (existencia/ausencia) + 
 |---|---------|-----------|---------|----------|
 | 1 | `read admin/enrollment/page.tsx + find teacher/classes tree + read enrollment-impl.ts` | 0 | ✅ pass | 1ms |
 
-
 ## Deviations
 
 Ninguna.
@@ -90,10 +66,3 @@ Ninguna.
 - `app/src/actions/enrollment-impl.ts`
 - `app/src/actions/teacher.ts`
 - `app/src/lib/nav/menu.ts`
-
-
-## Deviations
-Ninguna.
-
-## Known Issues
-`/admin/enrollment/page.tsx` fue dejado como placeholder por un build break previo al importar server-only code en un client component. El fix debe respetar separación server/client.

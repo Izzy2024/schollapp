@@ -8,5 +8,5 @@ Convertir el flujo principal de demo (Admin crea/gestiona inscripción → alumn
 |----|-------|------|---------|------|------------|
 | S01 | Ruta crítica: mapa del happy path + gaps (En construcción/errores) | high | — | ✅ | Lista exacta de páginas/rutas del happy path y cuáles están operables vs placeholders; plan de cierre por orden. |
 | S02 | Admin: Inscripción mínima utilizable (listado + acción) | high | S01 | ✅ | Admin completa una acción de inscripción y ve el resultado reflejado (estado/registro). |
-| S03 | Teacher: Asistencia mínima (tomar asistencia + persistencia) | high | S02 | ⬜ | Teacher entra a su clase y registra asistencia para una fecha; ve confirmación. |
+| S03 | S03 | high | — | ✅ | Teacher entra a su clase y registra asistencia para una fecha; ve confirmación. |
 | S04 | E2E demo + UAT final (Admin→Teacher) | medium | S03 | ⬜ | Recorrido completo grabable: login admin → inscripción → login teacher → asistencia, sin placeholders. |

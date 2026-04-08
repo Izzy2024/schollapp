@@ -2,41 +2,15 @@
 id: T01
 parent: S01
 milestone: M008
-provides: []
-requires: []
-affects: []
-key_files: ["app/src/app/admin/enrollment/**", "app/src/app/teacher/classes/**", "app/src/lib/nav/menu.ts"]
-key_decisions: ["Priorizar arreglar rutas del happy path antes de construir asistencia, porque hoy teacher no puede llegar a 'Mis Clases'."]
-patterns_established: []
-drill_down_paths: []
-observability_surfaces: []
-duration: ""
-verification_result: "- Seed aplicado: `node --import tsx scripts/seed.mjs` + `node scripts/seed-check.mjs`.
-- Browser: `/admin/enrollment` muestra `Página en construcción.`.
-- Browser: `/teacher/classes` responde 404.
-- Browser: `/teacher/classes/123` muestra error controlado `No se pudo cargar la clase`."
-completed_at: 2026-03-27T21:13:33.215Z
-blocker_discovered: false
----
-
-# T01: Mapeé el happy path demo y encontré los primeros bloqueos: /admin/enrollment está en construcción y /teacher/classes da 404.
-
-> Mapeé el happy path demo y encontré los primeros bloqueos: /admin/enrollment está en construcción y /teacher/classes da 404.
-
-## What Happened
----
-id: T01
-parent: S01
-milestone: M008
 key_files:
   - app/src/app/admin/enrollment/**
   - app/src/app/teacher/classes/**
   - app/src/lib/nav/menu.ts
 key_decisions:
   - Priorizar arreglar rutas del happy path antes de construir asistencia, porque hoy teacher no puede llegar a 'Mis Clases'.
-duration: ""
+duration: 
 verification_result: passed
-completed_at: 2026-03-27T21:13:33.217Z
+completed_at: 2026-03-27T21:13:33.215Z
 blocker_discovered: false
 ---
 
@@ -74,7 +48,6 @@ Conclusión: antes de trabajar asistencia, hay dos gaps de alto impacto:
 |---|---------|-----------|---------|----------|
 | 1 | `Browser: /admin/enrollment placeholder + /teacher/classes 404` | 0 | ✅ pass (gaps confirmed) | 30000ms |
 
-
 ## Deviations
 
 Ninguna.
@@ -88,10 +61,3 @@ El menú teacher incluye un href a `/teacher/classes` pero esa ruta no existe, g
 - `app/src/app/admin/enrollment/**`
 - `app/src/app/teacher/classes/**`
 - `app/src/lib/nav/menu.ts`
-
-
-## Deviations
-Ninguna.
-
-## Known Issues
-El menú teacher incluye un href a `/teacher/classes` pero esa ruta no existe, generando 404 (regresión UX importante para demo).
