@@ -1,27 +1,34 @@
-# S03: Recovery placeholder UAT
+# S03 UAT: Gestión de Expedientes (Alumnos y Tutores) (M001)
 
-**Milestone:** M001
-**Written:** 2026-03-20T17:18:51.817Z
+## Objetivo
+Validar CRUD de estudiantes y vinculación de tutores (familia) en el expediente.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login Admin: `admin@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Listado y búsqueda
+1. Ir a `/admin/students`.
+2. Expected: lista con alumnos del seed.
+3. Usar búsqueda "Ana".
+4. Expected: filtra resultados.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Crear estudiante
+1. Click "Nuevo Alumno".
+2. Capturar nombre y apellidos.
+3. Dejar matrícula en blanco.
+4. Guardar.
+5. Expected: aparece en lista y tiene matrícula generada.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Ver expediente y tutores
+1. Abrir expediente (acción ver/detalle).
+2. Ir a pestaña "Tutores / Familia".
+3. Añadir tutor (nombre, parentesco, teléfono) y marcar como principal.
+4. Expected: aparece vinculado con etiqueta de principal.
+5. Desvincular tutor.
+6. Expected: se elimina el vínculo.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- No se genera matrícula al crear.
+- Se permite vincular tutor a alumno de otro tenant.

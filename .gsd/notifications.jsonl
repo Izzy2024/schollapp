@@ -1,0 +1,5 @@
+{"id":"a17f5f3f-2b3e-4481-b94b-c18f29842f40","ts":"2026-04-08T19:27:56.501Z","severity":"warning","message":"Web search: Set BRAVE_API_KEY or use an Anthropic model for built-in search","source":"notify","read":false}
+{"id":"19bd9556-1c43-47a8-ac34-d610507b91df","ts":"2026-04-08T19:38:45.058Z","severity":"info","message":"Step-mode started. Will loop until milestone complete.","source":"notify","read":false}
+{"id":"cff60109-a88e-4aca-a8a2-2f14233f2e78","ts":"2026-04-08T19:38:45.060Z","severity":"info","message":"Pre-flight: 8 milestones queued. All have full context.","source":"notify","read":false}
+{"id":"8eb8764a-f96e-4fcb-8baf-423d5df1d401","ts":"2026-04-08T19:38:46.012Z","severity":"info","message":"Pre-dispatch: pre-dispatch: created gsd snapshot after 27233m of uncommitted changes","source":"notify","read":false}
+{"id":"daeb1933-6e08-4244-8eef-3dbb89af1e92","ts":"2026-04-08T19:38:53.609Z","severity":"warning","message":"execute-task M008/S03/T02 completed with 0 tool calls — context exhaustion, will retry","source":"notify","read":false}

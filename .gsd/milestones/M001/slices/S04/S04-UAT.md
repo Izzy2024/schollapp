@@ -1,27 +1,32 @@
-# S04: Recovery placeholder UAT
+# S04 UAT: Planificador Docente — Archivos Adjuntos (M001)
 
-**Milestone:** M001
-**Written:** 2026-03-20T17:18:51.821Z
+## Objetivo
+Validar que un docente puede adjuntar, ver y eliminar archivos (Attachment) en el planificador.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login teacher: `docente1@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Abrir planificador
+1. Ir a `/teacher/planning`.
+2. Seleccionar materia y periodo (ej. Bimestre 1).
+3. Expected: se muestran unidades y tópicos.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Adjuntar archivo
+1. En un tópico, usar "Adjuntar archivo".
+2. Seleccionar un archivo pequeño (PDF o imagen).
+3. Expected: aparece en la lista de adjuntos del tópico.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Abrir archivo
+1. Click en el nombre del archivo.
+2. Expected: abre en nueva pestaña o descarga.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
+## Caso 4 — Eliminar archivo
+1. Eliminar adjunto (icono basurero).
+2. Confirmar.
+3. Expected: desaparece de la lista.
 
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- El upload falla silenciosamente.
+- El archivo queda accesible cross-tenant.

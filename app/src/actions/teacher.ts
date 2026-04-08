@@ -136,27 +136,27 @@ export async function getTeacherDashboardData(tenantSlug?: string) {
 export async function getTeacherClassesOptions(tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  // Accept both tenantSlug and tenantId session shapes.
   tenantSlug = session.user.tenantSlug;
 
-  const tenantSlugSession = session.user.tenantSlug;
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug || tenantSlugSession },
+  const tenantKey = tenantSlug || session.user.tenantSlug || (session.user as any).tenantId;
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      OR: [{ slug: tenantKey }, { id: tenantKey }],
+    },
   });
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
     where: {
       tenantId: tenant.id,
-      OR: [
-        { user: { email: 'docente1@demo.com' } },
-        { userId: session.user.id }
-      ]
+      OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }],
     },
     include: {
       sectionSubjects: {
-        include: { subject: true, section: { include: { gradeLevel: true } } }
-      }
-    }
+        include: { subject: true, section: { include: { gradeLevel: true } } },
+      },
+    },
   });
 
   let terms = await prisma.term.findMany({

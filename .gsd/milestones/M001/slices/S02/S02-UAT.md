@@ -1,27 +1,33 @@
-# S02: Recovery placeholder UAT
+# S02 UAT: Configuración Académica (CRUD) (M001)
 
-**Milestone:** M001
-**Written:** 2026-03-20T17:18:51.812Z
+## Objetivo
+Validar CRUD y activación de ciclo escolar, grados, secciones y sus validaciones básicas.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login Admin: `admin@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Navegación al módulo
+1. Ir a `/admin/academic`.
+2. Expected: se ven secciones/tarjetas para Ciclos, Grados, Secciones.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Crear y activar ciclo
+1. Crear ciclo "2027-2028" (fechas válidas).
+2. Expected: aparece en lista.
+3. Marcar como Activo.
+4. Expected: queda como activo (etiqueta/estado visible).
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Crear grado
+1. Crear grado "4° Secundaria" (código "4S").
+2. Expected: aparece en lista.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
+## Caso 4 — Crear sección
+1. Crear sección "C" con capacidad 25, asociada al ciclo activo y grado creado.
+2. Expected: aparece en la tabla.
+3. Intentar borrar sección recién creada sin alumnos.
+4. Expected: se permite borrar.
 
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- Se permite borrar secciones con alumnos inscritos (debería bloquear).
+- CRUD afecta registros de otro tenant.

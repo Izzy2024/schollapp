@@ -10,7 +10,8 @@
     "test": "tsx src/test-runner.ts",
     "db:reset": "prisma migrate reset --force",
     "db:seed": "node --import tsx scripts/seed.mjs",
-    "db:seed:check": "node scripts/seed-check.mjs"
+    "db:seed:check": "node scripts/seed-check.mjs",
+    "prisma:seed": "node --import tsx scripts/seed.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.0",

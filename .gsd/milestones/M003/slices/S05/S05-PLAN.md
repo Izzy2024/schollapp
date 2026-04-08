@@ -69,7 +69,7 @@
   - Verify: Ejecutar seed + `pnpm -C app dev` y seguir el runbook hasta completar; corroborar en Activity Feed y `/parent/finances`.
   - Done when: Cualquier dev puede seguir `S05-RUNBOOK.md` desde cero y reproducir el flujo con resultados esperados.
 
-- [ ] **T04: Smoke operacional final (build + navegación) y cierre de slice (gates + evidencia)** `est:45m`
+- [x] **T04: Smoke operacional final (build + navegación) y cierre de slice (gates + evidencia)** `est:45m`
   - Why: Confirmar “lanzable” y evitar sorpresas de build/runtime en rutas de finanzas/activity.
   - Files: `.gsd/milestones/M003/slices/S05/S05-SUMMARY.md`, `.gsd/STATE.md`
   - Do: Correr gates (lint/test/build). Ejecutar dev server y navegar rutas clave con usuarios seed. Anotar evidencia mínima en `S05-SUMMARY.md` (qué se probó, qué se vio, comandos/outputs relevantes, ruta del feed).

@@ -67,7 +67,20 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
   const roles = ctx.user.roles ?? [];
   if (role !== 'parent' && !roles.includes('parent')) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 
-  const guardianId = ('guardianId' in ctx.user ? (ctx.user.guardianId as string | undefined) : undefined) ?? undefined;
+  // Prefer guardianId injected into session when available.
+  // For the deterministic dev seed, we also support resolving guardianId by the user's email.
+  const sessionGuardianId = ('guardianId' in ctx.user ? (ctx.user.guardianId as string | undefined) : undefined) ?? undefined;
+
+  let guardianId = sessionGuardianId;
+
+  if (!guardianId) {
+    const email = ctx.user.email as string | undefined;
+    if (email) {
+      const g = await prisma.guardian.findFirst({ where: { tenantId: ctx.tenantId, email } });
+      guardianId = g?.id;
+    }
+  }
+
   if (!guardianId) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   // Resolve visible students (tenant-scoped) for this guardian.

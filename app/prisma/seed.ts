@@ -50,6 +50,96 @@ async function main() {
     });
   }
 
+  // Step 8.1.1 — RBAC: Permissions + Roles + UserRoles
+  // Keep these minimal and stable; UI (menus) and guards can rely on them.
+  const permissionCodes = [
+    'app:admin',
+    'app:director',
+    'app:teacher',
+    'app:parent',
+    'app:student',
+  ];
+
+  const permissions: Record<string, any> = {};
+  for (const code of permissionCodes) {
+    permissions[code] = await prisma.permission.upsert({
+      where: { code },
+      update: {},
+      create: { code, description: `Base permission for ${code}` },
+    });
+  }
+
+  const roleDefs = [
+    { name: 'admin', permissions: ['app:admin'] },
+    { name: 'director', permissions: ['app:director'] },
+    { name: 'teacher', permissions: ['app:teacher'] },
+    { name: 'parent', permissions: ['app:parent'] },
+    { name: 'student', permissions: ['app:student'] },
+  ] as const;
+
+  const rolesByName: Record<string, any> = {};
+  for (const r of roleDefs) {
+    const role = await prisma.role.upsert({
+      where: { tenantId_name: { tenantId: tenant.id, name: r.name } },
+      update: {},
+      create: { tenantId: tenant.id, name: r.name },
+    });
+    rolesByName[r.name] = role;
+
+    for (const permCode of r.permissions) {
+      const perm = permissions[permCode];
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: role.id,
+            permissionId: perm.id,
+          },
+        },
+        update: {},
+        create: { roleId: role.id, permissionId: perm.id },
+      });
+    }
+  }
+
+  const assignRoleByEmail = async (email: string) => {
+    const user = createdUsers[email];
+    if (!user) return;
+
+    // Map legacy demo labels to canonical DB role names
+    const canonicalRole = email.includes('admin')
+      ? 'admin'
+      : email.includes('director')
+        ? 'director'
+        : email.includes('docente')
+          ? 'teacher'
+          : email.includes('padre')
+            ? 'parent'
+            : email.includes('alumno')
+              ? 'student'
+              : 'admin';
+
+    const role = rolesByName[canonicalRole];
+    await prisma.userRole.upsert({
+      where: {
+        tenantId_userId_roleId: {
+          tenantId: tenant.id,
+          userId: user.id,
+          roleId: role.id,
+        },
+      },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        userId: user.id,
+        roleId: role.id,
+      },
+    });
+  };
+
+  for (const u of usersData) {
+    await assignRoleByEmail(u.email);
+  }
+
   const staffEmails = ['docente1@demo.com', 'docente2@demo.com', 'docente3@demo.com', 'docente4@demo.com', 'docente5@demo.com'];
   const staffDict: Record<string, any> = {};
 
@@ -367,6 +457,87 @@ async function main() {
       isPrimary: true,
     },
   });
+
+  // Step 8.7.2 — Messaging demo thread (Parent ↔ Teacher)
+  // Creates a deterministic conversation so `/parent/messages` and `/teacher/messages` have content.
+  const parentUser = createdUsers['padre@demo.com'];
+  const teacherUser = createdUsers['docente1@demo.com'];
+
+  if (parentUser && teacherUser) {
+    // Find an existing conversation with both participants.
+    let convo = await prisma.messageConversation.findFirst({
+      where: {
+        tenantId: tenant.id,
+        AND: [
+          { participants: { some: { userId: parentUser.id } } },
+          { participants: { some: { userId: teacherUser.id } } },
+        ],
+      },
+    });
+
+    if (!convo) {
+      convo = await prisma.messageConversation.create({ data: { tenantId: tenant.id } });
+      await prisma.messageParticipant.createMany({
+        data: [
+          { tenantId: tenant.id, conversationId: convo.id, userId: parentUser.id, lastReadAt: null },
+          { tenantId: tenant.id, conversationId: convo.id, userId: teacherUser.id, lastReadAt: null },
+        ],
+      });
+    }
+
+    // Ensure at least one message exists (idempotent by checking latest message)
+    const existingMsg = await prisma.message.findFirst({
+      where: { tenantId: tenant.id, conversationId: convo.id },
+      select: { id: true },
+    });
+
+    if (!existingMsg) {
+      await prisma.message.createMany({
+        data: [
+          { tenantId: tenant.id, conversationId: convo.id, senderId: parentUser.id, body: 'Hola profe, ¿hay tarea para esta semana?' },
+          { tenantId: tenant.id, conversationId: convo.id, senderId: teacherUser.id, body: 'Hola, sí. Revisen la plataforma el miércoles. Gracias.' },
+        ],
+      });
+
+      // Touch conversation updatedAt
+      await prisma.messageConversation.update({ where: { id: convo.id }, data: {} });
+    }
+  }
+
+  // Step 8.7.3 — School Calendar demo events (M005/S01)
+  // Create some global events visible in /admin/calendar, /teacher/calendar, /parent/calendar
+  const adminUser = createdUsers['admin@demo.com'];
+  if (adminUser) {
+    const existingCal = await prisma.schoolCalendarEvent.findFirst({
+      where: { tenantId: tenant.id },
+      select: { id: true },
+    });
+
+    if (!existingCal) {
+      await prisma.schoolCalendarEvent.createMany({
+        data: [
+          {
+            tenantId: tenant.id,
+            title: 'Inicio de clases',
+            description: 'Bienvenidos al nuevo ciclo escolar.',
+            startAt: new Date('2026-08-26T00:00:00.000Z'),
+            endAt: null,
+            allDay: true,
+            createdById: adminUser.id,
+          },
+          {
+            tenantId: tenant.id,
+            title: 'Consejo Técnico Escolar',
+            description: 'Sin clases para alumnos.',
+            startAt: new Date('2026-09-27T00:00:00.000Z'),
+            endAt: null,
+            allDay: true,
+            createdById: adminUser.id,
+          },
+        ],
+      });
+    }
+  }
 
   // Step 8.8 — AttendanceSessions + AttendanceRecords
   const getLastValidWeekdays = (count: number) => {

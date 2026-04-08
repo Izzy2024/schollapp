@@ -15,6 +15,9 @@ export function resolveHomePath(roles) {
   return '/admin';
 }
 
+// NOTE: Sidebar menu single-source is implemented in TS at `src/lib/nav/menu.ts`.
+// This file stays as .mjs for Edge compatibility (authorized() callback).
+
 export function resolveFallbackPath(path, roles) {
   if (path.startsWith('/admin') && !roles.includes('admin') && !roles.includes('director')) {
     return '/teacher';

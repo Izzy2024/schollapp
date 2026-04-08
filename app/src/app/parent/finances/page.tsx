@@ -1,26 +1,9 @@
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getForParent } from '@/actions/finance/statements';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Panel Familiar',
-    items: [
-      { key: '1', icon: 'family_restroom', label: 'Mis Hijos', href: '/parent' },
-      { key: '2', icon: 'attach_money', label: 'Pagos y Finanzas', href: '/parent/finances' },
-      { key: '3', icon: 'calendar_month', label: 'Calendario', href: '/parent/calendar' },
-      { key: '4', icon: 'mail', label: 'Mensajes', href: '/parent/messages', badge: 1 },
-      { key: '5', icon: 'description', label: 'Documentos', href: '/parent/documents' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: '6', icon: 'campaign', label: 'Noticias', href: '/parent/news' },
-      { key: '7', icon: 'settings', label: 'Configuración', href: '/parent/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['parent']);
 
 function formatMoneyFromCents(amountCents: number, currency = 'MXN'): string {
   const amount = (amountCents ?? 0) / 100;

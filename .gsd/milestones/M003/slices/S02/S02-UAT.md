@@ -1,27 +1,32 @@
-# S02: Recovery placeholder UAT
+# S02 UAT: Registro manual de pagos + Estado de cuenta Parent (M003)
 
-**Milestone:** M003
-**Written:** 2026-03-20T18:06:50.501Z
+## Objetivo
+Validar que un Admin registra un pago manual y un Parent ve saldo/historial determinista en `/parent/finances`.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Usuario admin: `admin@demo.com` / `demo-hash-123`
+- Usuario parent: `padre@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Admin genera cargos
+1. Login como Admin.
+2. Ir a `/admin/finances`.
+3. (Si aplica) crear concepto mensual y generar cargos para un periodo.
+4. Expected: cargos aparecen para alumnos.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Admin registra pago manual
+1. En un cargo, usar "Registrar pago".
+2. Monto parcial (ej. 250) y método "Efectivo".
+3. Guardar.
+4. Expected: el cargo refleja pago / saldo actualizado.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Parent ve estado de cuenta real
+1. Login como Parent.
+2. Ir a `/parent/finances`.
+3. Expected: se ve historial de cargos/pagos y saldo = sum(cargos) - sum(pagos).
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- Saldo inconsistente entre refresh.
+- El pago no aparece en historial.
+- Acceso cross-tenant o RBAC incorrecto.

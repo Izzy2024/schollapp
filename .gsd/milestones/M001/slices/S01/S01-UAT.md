@@ -1,27 +1,45 @@
-# S01: Recovery placeholder UAT
+# S01 UAT: RBAC y Multi-tenant Core (M001)
 
-**Milestone:** M001
-**Written:** 2026-03-20T17:18:51.807Z
+## Objetivo
+Validar que el sistema fuerza autenticación, deriva tenant desde sesión y enruta por rol de forma consistente.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- DB seeded con usuarios demo. Nota operativa: en este repo el seed puede ejecutarse con `node app/prisma/seed.ts`.
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Usuarios demo
+- Admin: `admin@demo.com`
+- Director: `director@demo.com`
+- Teacher: `docente1@demo.com`
+- Parent: `padre@demo.com`
+- Password (todos): `demo-hash-123`
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Casos de prueba
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+### 1) Protección de rutas (sin sesión)
+1. Abrir ventana incógnito.
+2. Ir a `/admin`.
+3. Expected: redirige a `/login`.
+4. Ir a `/teacher`.
+5. Expected: redirige a `/login`.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
+### 2) Login Admin y tenant derivado de sesión
+1. Ir a `/login`.
+2. Ingresar como Admin (o usar botón demo).
+3. Expected: redirige a `/admin`.
+4. Navegar a `/admin/students`.
+5. Expected: lista carga sin error (datos del tenant demo). No debe pedir seleccionar tenant en cliente.
 
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+### 3) Ruteo por rol (Teacher)
+1. Cerrar sesión.
+2. Iniciar sesión con `docente1@demo.com`.
+3. Expected: redirige a `/teacher`.
+4. Intentar ir manualmente a `/admin`.
+5. Expected: el sistema no debe permitir operaciones fuera de rol (puede redirigir o mostrar error estable según el guard actual).
+
+### 4) Señales de fallo
+- Quedarse en `/login` con error “Credenciales incorrectas” usando credenciales demo.
+- Ver datos de otro tenant (no debería ser posible con tenant derivado de sesión).
+
+## Notas
+- Si hay problemas de login “Usuario no encontrado o inactivo”, ejecutar seed (ver precondiciones).

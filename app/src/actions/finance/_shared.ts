@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 
 export type FinanceSessionUser = {
   id: string;
+  email?: string | null;
   tenantSlug?: string | null;
   role?: string | null;
   roles?: string[] | null;

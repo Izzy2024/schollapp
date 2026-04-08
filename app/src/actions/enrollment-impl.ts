@@ -2,23 +2,9 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-
-export type EnrollmentErrorCode =
-  | 'TENANT_SCOPE_VIOLATION'
-  | 'CAPACITY_EXCEEDED'
-  | 'ALREADY_ENROLLED_IN_YEAR'
-  | 'NO_ACTIVE_YEAR'
-  | 'ENROLLMENT_NOT_FOUND';
-
-export class EnrollmentDomainError extends Error {
-  readonly code: EnrollmentErrorCode;
-
-  constructor(code: EnrollmentErrorCode, message: string) {
-    super(message);
-    this.name = 'EnrollmentDomainError';
-    this.code = code;
-  }
-}
+import { makeEnrollmentDomainError } from './enrollment-errors';
+// NOTE: keep imports in this file limited to functions; Next server-action modules
+// disallow exporting classes, but importing is ok.
 
 type SessionContext = {
   tenantId: string;
@@ -38,7 +24,7 @@ async function getSessionContext(): Promise<SessionContext> {
   });
 
   if (!tenant) {
-    throw new EnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Tenant not found for authenticated session');
+    throw makeEnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Tenant not found for authenticated session');
   }
 
   return {
@@ -55,7 +41,7 @@ async function getActiveAcademicYear(tenantId: string) {
   });
 
   if (!activeYear) {
-    throw new EnrollmentDomainError('NO_ACTIVE_YEAR', 'No active academic year found');
+    throw makeEnrollmentDomainError('NO_ACTIVE_YEAR', 'No active academic year found');
   }
 
   return activeYear;
@@ -64,7 +50,7 @@ async function getActiveAcademicYear(tenantId: string) {
 function ensureCapacityOrThrow(enrolledCount: number, capacity: number | null | undefined) {
   if (capacity == null) return;
   if (enrolledCount >= capacity) {
-    throw new EnrollmentDomainError('CAPACITY_EXCEEDED', `Section capacity exceeded (${capacity})`);
+    throw makeEnrollmentDomainError('CAPACITY_EXCEEDED', `Section capacity exceeded (${capacity})`);
   }
 }
 
@@ -77,20 +63,42 @@ async function createActivityEvent(params: {
   sectionId: string;
   academicYearId: string;
 }) {
-  await prisma.activityEvent.create({
-    data: {
+  // ActivityEvent is best-effort for demo flows.
+  // Defensive: if actorUserId is null, skip.
+  // Also enforce FK by verifying the actor exists inside the same tenant.
+  if (!params.actorUserId) return;
+
+  const actorExists = await prisma.userMembership.findFirst({
+    where: {
       tenantId: params.tenantId,
-      actorUserId: params.actorUserId,
-      action: params.action,
-      entityType: 'enrollment',
-      entityId: params.entityId,
-      metadata: JSON.stringify({
-        studentId: params.studentId,
-        sectionId: params.sectionId,
-        academicYearId: params.academicYearId,
-      }),
+      userId: params.actorUserId,
+      status: 'active',
     },
+    select: { userId: true },
   });
+  if (!actorExists) return;
+
+  try {
+    await prisma.activityEvent.create({
+      data: {
+        tenantId: params.tenantId,
+        actorUserId: params.actorUserId,
+        action: params.action,
+        entityType: 'enrollment',
+        entityId: params.entityId,
+        metadata: JSON.stringify({
+          studentId: params.studentId,
+          sectionId: params.sectionId,
+          academicYearId: params.academicYearId,
+        }),
+      },
+    });
+  } catch (e) {
+    console.warn('[enrollment] ActivityEvent create failed (non-fatal)', {
+      action: params.action,
+      entityId: params.entityId,
+    });
+  }
 }
 
 export async function getEnrollments(_tenantSlug?: string, academicYearId?: string) {
@@ -136,7 +144,7 @@ export async function enrollStudent(studentId: string, sectionId: string, _tenan
   });
 
   if (existing) {
-    throw new EnrollmentDomainError('ALREADY_ENROLLED_IN_YEAR', 'Student is already enrolled in the active year');
+    throw makeEnrollmentDomainError('ALREADY_ENROLLED_IN_YEAR', 'Student is already enrolled in the active year');
   }
 
   const section = await prisma.section.findFirst({
@@ -148,7 +156,7 @@ export async function enrollStudent(studentId: string, sectionId: string, _tenan
   });
 
   if (!section) {
-    throw new EnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Section not found for tenant');
+    throw makeEnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Section not found for tenant');
   }
 
   ensureCapacityOrThrow(section.enrollments.length, section.capacity);
@@ -186,7 +194,7 @@ export async function unenrollStudent(enrollmentId: string, _tenantSlug?: string
   });
 
   if (!existing) {
-    throw new EnrollmentDomainError('ENROLLMENT_NOT_FOUND', 'Enrollment not found');
+    throw makeEnrollmentDomainError('ENROLLMENT_NOT_FOUND', 'Enrollment not found');
   }
 
   const enrollment = await prisma.enrollment.update({
@@ -219,7 +227,7 @@ export async function reenrollStudent(studentId: string, sectionId: string, _ten
   });
 
   if (!section) {
-    throw new EnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Section not found for tenant');
+    throw makeEnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Section not found for tenant');
   }
 
   ensureCapacityOrThrow(section.enrollments.length, section.capacity);

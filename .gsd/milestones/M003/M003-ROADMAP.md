@@ -62,7 +62,7 @@ This milestone is complete only when all are true:
 - [x] **S04: Estabilización (lint/types/build) + suite de verificación sin mock.module** `risk:medium` `depends:[S01,S02,S03]`
   > After this: El repo tiene una suite de tests confiable (sin `mock.module`) que cubre finanzas + un mínimo de RBAC/scope, y `lint/test/build` pasan como gate.
 
-- [ ] **S05: Slice de integración final “Lanzamiento” (happy path + failure visibility)** `risk:low` `depends:[S01,S02,S03,S04]`
+- [x] **S05: Slice de integración final “Lanzamiento” (happy path + failure visibility)** `risk:low` `depends:[S01,S02,S03,S04]`
   > After this: Se demuestra end-to-end en runtime real: Admin crea cargos y registra pago → Parent confirma saldo; errores estables se muestran en UI; no quedan mocks/placeholder en finanzas.
 
 ## Boundary Map

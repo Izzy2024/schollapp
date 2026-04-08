@@ -3,33 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getStudentDashboardData } from '@/actions/student';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'grid_view', label: 'Vista General', href: '/student' },
-      { key: '2', icon: 'assignment', label: 'Preparación de Clase', href: '/student/class-prep' },
-      { key: '3', icon: 'schedule', label: 'Asistencia', href: '/student/attendance' },
-      { key: '4', icon: 'edit_note', label: 'Exámenes', href: '/student/exams' },
-      { key: '5', icon: 'bookmark', label: 'Gestión de Tareas', href: '/student/assignments' },
-      { key: '6', icon: 'access_time', label: 'Horarios', href: '/student/schedule' },
-      { key: '7', icon: 'people', label: 'Estudiantes', href: '/student/peers' },
-      { key: '8', icon: 'mail', label: 'Mensajes', href: '/student/messages', badge: 2 },
-      { key: '9', icon: 'donut_large', label: 'Analítica', href: '/student/analytics' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/student/reports' },
-    ],
-  },
-  {
-    title: 'Configuración y Noticias',
-    items: [
-      { key: '11', icon: 'campaign', label: 'Noticias de la Escuela', href: '/student/news' },
-      { key: '12', icon: 'local_activity', label: 'Actividades', href: '/student/activities' },
-      { key: '13', icon: 'tips_and_updates', label: 'Novedades', href: '/student/whats-new' },
-      { key: '14', icon: 'settings', label: 'Configuración', href: '/student/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['student']);
 
 const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul'];
 

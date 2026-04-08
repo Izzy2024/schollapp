@@ -24,6 +24,14 @@ async function clearAuthCookies() {
   }
 }
 
+class SeedRequiredError extends Error {
+  public readonly code = 'SEED_REQUIRED' as const;
+  constructor(message = 'Base sin datos iniciales (seed requerido)') {
+    super(message);
+    this.name = 'SeedRequiredError';
+  }
+}
+
 async function resolveLoginRedirectPath(email: string) {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -35,15 +43,32 @@ async function resolveLoginRedirectPath(email: string) {
           role: true,
         },
       },
+      memberships: true,
     },
   });
 
-  const dbRoles = user?.roles.map((userRole) => userRole.role.name.toLowerCase()) ?? [];
+  // If the user doesn't exist at all, this is almost always a missing seed in dev.
+  // We treat it as a handled error to avoid NextAuth wrapping it as CallbackRouteError.
+  if (!user) {
+    throw new SeedRequiredError(
+      'Base sin datos iniciales. Ejecuta: npx prisma db seed'
+    );
+  }
+
+  // Seed invariant: demo users should always have an active membership.
+  if (user.memberships.length === 0) {
+    throw new SeedRequiredError(
+      'Falta asociación a escuela (seed incompleto). Ejecuta: npx prisma db seed'
+    );
+  }
+
+  const dbRoles = user.roles.map((userRole) => userRole.role.name.toLowerCase());
 
   if (dbRoles.length > 0) {
     return resolveHomePath(dbRoles);
   }
 
+  // Legacy fallback (kept for safety).
   if (normalizedEmail.includes('director')) return '/director';
   if (normalizedEmail.includes('docente') || normalizedEmail.includes('teacher')) return '/teacher';
   if (normalizedEmail.includes('alumno') || normalizedEmail.includes('student')) return '/student';
@@ -64,11 +89,16 @@ export async function authenticate(
     await signIn('credentials', {
       ...data,
       redirect: false,
-      redirectTo: redirectPath,
     });
 
     return `REDIRECT:${redirectPath}`;
   } catch (error) {
+    // Handle seed-missing explicitly to avoid a generic CallbackRouteError and to give an actionable message.
+    if (error instanceof SeedRequiredError) {
+      console.error(`[auth][seed-missing] ${error.code}: ${error.message}`);
+      return `${error.code}: ${error.message}`;
+    }
+
     console.error('Login error:', error);
     if (error instanceof AuthError) {
       switch (error.type) {

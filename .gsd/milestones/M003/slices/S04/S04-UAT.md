@@ -1,27 +1,25 @@
-# S04: Recovery placeholder UAT
+# S04 UAT: Estabilización (lint/types/build) + suite sin mock.module (M003)
 
-**Milestone:** M003
-**Written:** 2026-03-20T21:09:41.021Z
+## Objetivo
+Validar que el repo está "lanzable": lint/test/build en verde y que la suite no depende de `mock.module`.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- Dependencias instaladas.
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Checks (operacional)
+1. Ejecutar:
+   - `pnpm -C app lint`
+   - `pnpm -C app test`
+   - `pnpm -C app build`
+2. Expected: todos terminan con exit code 0.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Check (negativo/diagnóstico)
+- Si `pnpm -C app test` falla por `mock.module`:
+  - Expected: no debería ocurrir; esta slice existe para eliminar esa fragilidad.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Señales de fallo
+- Cualquier comando falla.
+- Tests flaky (pasan/fallan sin cambios).
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Notas
+- Los tests contract usan seams globales (`globalThis.__TEST_SESSION__`, `globalThis.__TEST_PRISMA__`) para evitar mocking frágil.

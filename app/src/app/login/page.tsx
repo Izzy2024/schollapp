@@ -102,6 +102,7 @@ export default function LoginPage() {
               <button onClick={() => setDemoUser('director@demo.com')} className="px-3 py-2 text-xs font-medium bg-gray-50 text-gray-700 rounded-md border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors">Director</button>
               <button onClick={() => setDemoUser('docente1@demo.com')} className="px-3 py-2 text-xs font-medium bg-gray-50 text-gray-700 rounded-md border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors">Profesor</button>
               <button onClick={() => setDemoUser('alumno@demo.com')} className="px-3 py-2 text-xs font-medium bg-gray-50 text-gray-700 rounded-md border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors">Estudiante</button>
+              <button onClick={() => setDemoUser('padre@demo.com')} className="px-3 py-2 text-xs font-medium bg-gray-50 text-gray-700 rounded-md border border-gray-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors">Tutor</button>
             </div>
           </div>
         </div>

@@ -1,27 +1,32 @@
-# S03: Recovery placeholder UAT
+# S03 UAT: Observabilidad financiera (ActivityEvent) + auditoría (M003)
 
-**Milestone:** M003
-**Written:** 2026-03-20T18:22:24.576Z
+## Objetivo
+Validar que mutaciones financieras emiten eventos `finance.*` en el Activity Feed con metadata parseable (sin PII).
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login Director: `director@demo.com` / `demo-hash-123` (o Admin)
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Generar evento finance.charge.created
+1. Login como Admin.
+2. Ir a `/admin/finances`.
+3. Generar cargos para un periodo.
+4. Expected: se crearon cargos.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Ver activity
+1. Login como Director.
+2. Ir a `/director/activity`.
+3. Expected: aparecen eventos recientes `finance.charge.created`.
+4. Abrir un evento.
+5. Expected: metadata JSON parseable (ej. contiene `chargeId`, `periodKey`, `amountCents`).
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Generar evento finance.payment.recorded
+1. Como Admin, registrar un pago manual en un cargo.
+2. Volver a `/director/activity`.
+3. Expected: aparece `finance.payment.recorded` con metadata parseable.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- No aparecen eventos.
+- Metadata no es JSON.
+- Metadata contiene PII (nombres completos, emails, etc.).

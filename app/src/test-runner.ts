@@ -23,3 +23,9 @@ import './actions/activity.__tests__/finance-activity.contract.test';
 
 // M003/S05 failure visibility contract
 import './actions/finance/__tests__/finance.failure-visibility.contract.test';
+
+// M004 messaging contract suites
+import './actions/__tests__/messages.contract.test';
+
+// M004 communication -> activity contract suites
+import './actions/activity.__tests__/communication-activity.contract.test';

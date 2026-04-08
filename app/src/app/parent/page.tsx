@@ -3,26 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getParentDashboardData } from '@/actions/parent';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Panel Familiar',
-    items: [
-      { key: '1', icon: 'family_restroom', label: 'Mis Hijos', href: '/parent' },
-      { key: '2', icon: 'attach_money', label: 'Pagos y Finanzas', href: '/parent/finances' },
-      { key: '3', icon: 'calendar_month', label: 'Calendario', href: '/parent/calendar' },
-      { key: '4', icon: 'mail', label: 'Mensajes', href: '/parent/messages', badge: 1 },
-      { key: '5', icon: 'description', label: 'Documentos', href: '/parent/documents' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: '6', icon: 'campaign', label: 'Noticias', href: '/parent/news' },
-      { key: '7', icon: 'settings', label: 'Configuración', href: '/parent/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['parent']);
 
 export default function ParentDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

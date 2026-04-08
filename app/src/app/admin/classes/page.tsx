@@ -12,38 +12,10 @@ import {
 } from '@/actions/adminClasses';
 import { getSubjects } from '@/actions/subjects';
 import { message } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 // Match the updated admin menu groups
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: '2', icon: 'assignment', label: 'Preparación de Clase', href: '/admin/class-prep' },
-      { key: '3', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: '4', icon: 'edit_note', label: 'Exámenes', href: '/admin/exams' },
-      { key: '5', icon: 'bookmark', label: 'Gestión de Tareas', href: '/admin/assignments' },
-      { key: '6', icon: 'access_time', label: 'Horarios', href: '/admin/schedule' },
-      { key: '8', icon: 'mail', label: 'Mensajes', href: '/admin/messages' },
-      { key: '9', icon: 'donut_large', label: 'Analítica', href: '/admin/analytics' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: '11', icon: 'campaign', label: 'Noticias', href: '/admin/news' },
-      { key: '12', icon: 'local_activity', label: 'Actividades', href: '/admin/activities' },
-      { key: '13', icon: 'settings', label: 'Configuración', href: '/admin/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 type SectionSubject = {
   id: string;

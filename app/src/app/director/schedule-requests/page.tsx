@@ -4,19 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getScheduleRequests, approveScheduleRequest, rejectScheduleRequest } from '@/actions/scheduleRequests';
 import { message } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Consola Directiva',
-    items: [
-      { key: '1', icon: 'analytics', label: 'Vista General', href: '/director' },
-      { key: 'dir-enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/director/enrollment' },
-      { key: 'dir-class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/director/class-requests' },
-      { key: 'dir-schedule-requests', icon: 'schedule_send', label: 'Solicitudes de Horario', href: '/director/schedule-requests' },
-      { key: '5', icon: 'inventory_2', label: 'Gestión de Recursos', href: '/director/resources' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['director']);
 
 const DAY_LABEL: Record<number, string> = {
   1: 'Lunes',

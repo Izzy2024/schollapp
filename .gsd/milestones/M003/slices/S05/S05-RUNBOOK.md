@@ -14,8 +14,15 @@ Desde repo root:
 
 ```bash
 pnpm -C app install
+
+# IMPORTANT: db:reset runs prisma migrate reset and re-generates Prisma Client.
+# If you skip this (or prisma generate), you can hit build/runtime errors like:
+# "Property 'financeConcept' does not exist on type PrismaClient".
 pnpm -C app run db:reset
+
+# Seed depends on the reset schema + generated client.
 pnpm -C app run db:seed
+
 pnpm -C app dev
 ```
 
