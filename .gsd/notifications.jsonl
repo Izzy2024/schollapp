@@ -202,3 +202,6 @@
 {"id":"2b5b7ae4-9c3d-4e74-84bc-57bc13e53f60","ts":"2026-04-08T19:59:12.671Z","severity":"info","message":"Committed: chore: auto-commit after execute-task","source":"notify","read":false}
 {"id":"ab7f2a60-313b-441a-8208-ac9a34c28f71","ts":"2026-04-08T19:59:12.690Z","severity":"warning","message":"Artifact missing for execute-task M008/S04/T01 — retrying (attempt 2)","source":"notify","read":false}
 {"id":"946fbcb7-348f-4cb4-a004-d503e63530db","ts":"2026-04-08T19:59:23.489Z","severity":"warning","message":"execute-task M008/S04/T01 completed with 0 tool calls — context exhaustion, will retry","source":"notify","read":false}
+{"id":"8c41378b-3310-492f-93df-34bffecaf76a","ts":"2026-04-08T19:59:23.734Z","severity":"info","message":"Committed: chore: auto-commit after execute-task","source":"notify","read":false}
+{"id":"291d72bb-fd4f-4639-a8cf-99c73a79f093","ts":"2026-04-08T19:59:23.755Z","severity":"warning","message":"Artifact missing for execute-task M008/S04/T01 — retrying (attempt 3)","source":"notify","read":false}
+{"id":"8ee7fce6-abf7-4f27-9af9-327812e4ec48","ts":"2026-04-08T19:59:44.924Z","severity":"warning","message":"execute-task M008/S04/T01 completed with 0 tool calls — context exhaustion, will retry","source":"notify","read":false}
