@@ -73,3 +73,4 @@
 {"cmd":"complete-task","params":{"milestoneId":"M008","sliceId":"S03","taskId":"T01"},"ts":"2026-03-27T21:51:10.444Z","actor":"agent","hash":"4395c0708866b2a7","session_id":"75d10f76-b85b-4a9c-9ecd-1198b3500dba"}
 {"cmd":"complete-slice","params":{"milestoneId":"M008","sliceId":"S01"},"ts":"2026-03-31T18:54:54.387Z","actor":"agent","hash":"297317fe3cab6e68","session_id":"0895ca82-90e0-4f48-82b0-d540f0a21b8f"}
 {"cmd":"complete-slice","params":{"milestoneId":"M008","sliceId":"S02"},"ts":"2026-03-31T20:59:16.651Z","actor":"agent","hash":"93d19c675a15ef40","session_id":"0895ca82-90e0-4f48-82b0-d540f0a21b8f"}
+{"v":2,"cmd":"complete-task","params":{"milestoneId":"M008","sliceId":"S03","taskId":"T02"},"ts":"2026-04-08T19:39:17.247Z","actor":"system","trigger_reason":"blocker-placeholder-recovery","hash":"66ee798b0f1097a2","session_id":"f33c2acf-2293-4e40-9293-5127ecd6c076"}
