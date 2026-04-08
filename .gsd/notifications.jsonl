@@ -228,3 +228,13 @@
 {"id":"6b0630b5-2f69-4775-9a23-366a52d191e4","ts":"2026-04-08T20:14:50.219Z","severity":"info","message":"Step-mode started. Will loop until milestone complete.","source":"notify","read":false}
 {"id":"d4fdca81-5f9f-4b2d-be62-c1ffe3791a57","ts":"2026-04-08T20:14:50.222Z","severity":"info","message":"Pre-flight: 8 milestones queued. All have full context.","source":"notify","read":false}
 {"id":"9db5be27-a4b5-40fb-a822-561e7872871d","ts":"2026-04-08T20:14:55.056Z","severity":"warning","message":"execute-task M008/S04/T02 completed with 0 tool calls — context exhaustion, will retry","source":"notify","read":false}
+{"id":"41108097-9794-4258-bfb5-e605ba1e2f31","ts":"2026-04-08T20:14:55.377Z","severity":"info","message":"Committed: chore: auto-commit after execute-task","source":"notify","read":false}
+{"id":"64ecffa8-08d7-4f25-88dc-393d7212a206","ts":"2026-04-08T20:14:55.399Z","severity":"warning","message":"[safety] file-change: app/prisma/dev.db — Modified but not in task plan's expected output","source":"workflow-logger","read":false}
+{"id":"93f95413-1481-4c35-931e-95af101e8821","ts":"2026-04-08T20:14:55.399Z","severity":"warning","message":"Safety: 1 unexpected file change(s) outside task plan","source":"notify","read":false}
+{"id":"b3a301ce-2a34-4de5-8059-41dbc784479a","ts":"2026-04-08T20:14:55.399Z","severity":"warning","message":"Artifact missing for execute-task M008/S04/T02 — retrying (attempt 1)","source":"notify","read":false}
+{"id":"4c917138-7fd8-468d-bb6b-5acaec3aba0a","ts":"2026-04-08T20:15:25.596Z","severity":"warning","message":"Session creation timed out or was cancelled for execute-task M008/S04/T02. Will retry.","source":"notify","read":false}
+{"id":"cfa2f562-f457-47f2-b06e-8924b95e4382","ts":"2026-04-08T20:15:25.600Z","severity":"info","message":"Auto-mode stopped — Session creation failed. Session: $23.69 · 65.37M tokens · 164 units","source":"notify","read":false}
+{"id":"aa47d16c-e093-4b17-a25b-604f6bea0cf1","ts":"2026-04-08T20:15:25.601Z","severity":"warning","message":"[state] DB unavailable — using filesystem state derivation (degraded mode)","source":"workflow-logger","read":false}
+{"id":"cf7ca3ab-f1c9-4db3-bb8b-914f971d35f0","ts":"2026-04-08T20:15:25.608Z","severity":"warning","message":"[reconcile] task M008/S04/T01 reconciled via SUMMARY on disk (#2514)","source":"workflow-logger","read":false}
+{"id":"33d3f3b5-fc37-44be-851d-8cb5596d897c","ts":"2026-04-08T20:16:14.727Z","severity":"info","message":"Step-mode started. Will loop until milestone complete.","source":"notify","read":false}
+{"id":"62dcf100-3757-44e6-8fef-66b4079d3803","ts":"2026-04-08T20:16:14.728Z","severity":"info","message":"Pre-flight: 8 milestones queued. All have full context.","source":"notify","read":false}
