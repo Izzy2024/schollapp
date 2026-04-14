@@ -24,7 +24,7 @@ Integra de forma explícita los flujos ya habilitados por S02 (admin inscripció
 
 ## Tasks
 
-- [ ] **T01: Orquestar script de demo E2E Admin→Teacher con verificaciones mecánicas** `est:90m`
+- [x] **T01: Orquestar script de demo E2E Admin→Teacher con verificaciones mecánicas** `est:90m`
   ## Description
 Construir un runner reproducible del happy path completo para que cualquier ejecutor valide la demo sin interpretación manual. Este task existe para cerrar el riesgo principal de S04: tener piezas funcionales aisladas (S02/S03) pero sin prueba de ensamblaje real.
 
@@ -72,7 +72,7 @@ Construir un runner reproducible del happy path completo para que cualquier ejec
   - Files: `app/scripts/s04-e2e-demo.ts`, `.gsd/milestones/M008/slices/S04/tasks/verify-t01-e2e.sh`, `.gsd/milestones/M008/slices/S04/tasks/T01-SUMMARY.md`
   - Verify: bash .gsd/milestones/M008/slices/S04/tasks/verify-t01-e2e.sh
 
-- [ ] **T02: Consolidar evidencia UAT final y diagnóstico DB del ensamblaje** `est:70m`
+- [x] **T02: Consolidar evidencia UAT final y diagnóstico DB del ensamblaje** `est:70m`
   ## Description
 Tomar el runner E2E y producir evidencia final de cierre de slice: artefacto UAT legible + verificación en DB para inscripción y asistencia. Este task transforma la ejecución técnica en prueba de aceptación reproducible para milestone.
 

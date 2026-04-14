@@ -1,20 +1,134 @@
 'use client';
 
+import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import UnderConstructionPage from '@/components/UnderConstructionPage';
+import { getAnnouncements, AnnouncementRow } from '@/actions/announcements';
+import { message } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
 export default function AdminNewsPage() {
+  const [rows, setRows] = useState<AnnouncementRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<AnnouncementRow | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getAnnouncements();
+        setRows(data);
+      } catch (e: any) {
+        message.error(e.message || 'Error cargando noticias');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const published = useMemo(() => rows.filter(r => r.publishedAt), [rows]);
+
   return (
-    <DashboardLayout roleTitle="Admin" userName="Administrador" userRole="Administrador" menuGroups={menuGroups} breadcrumbs={['Admin', 'Noticias']}>
-      <UnderConstructionPage
-        title="Noticias"
-        description="Próximamente podrás gestionar noticias internas desde esta sección."
-        backHref="/admin"
-        backLabel="Volver a Admin"
-      />
+    <DashboardLayout
+      roleTitle="Admin"
+      userName="Administrador"
+      userRole="Administrador"
+      menuGroups={menuGroups}
+      breadcrumbs={['Admin', 'Noticias']}
+    >
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Noticias</h1>
+          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+            {published.length} publicadas
+          </span>
+        </div>
+        <a
+          href="/admin/announcements"
+          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
+        >
+          <span className="material-symbols-outlined text-lg">edit</span>
+          Gestionar Comunicados
+        </a>
+      </div>
+
+      {loading ? (
+        <div className="py-16 text-center text-gray-400">
+          <span className="material-symbols-outlined text-4xl text-gray-200 block mb-3 animate-spin">progress_activity</span>
+          Cargando noticias...
+        </div>
+      ) : published.length === 0 ? (
+        <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+          <span className="material-symbols-outlined text-5xl text-gray-200 mb-4 block">newspaper</span>
+          <p className="text-gray-500 mb-6">No hay noticias publicadas todavía.</p>
+          <a
+            href="/admin/announcements"
+            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            Crear primer comunicado
+          </a>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {published.map(row => (
+            <div
+              key={row.id}
+              onClick={() => setSelected(row)}
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 cursor-pointer hover:border-gray-300 hover:shadow-md transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-lg">article</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-indigo-700 transition-colors">{row.title}</h3>
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-2">{row.body}</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span>
+                      {new Date(row.publishedAt!).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                    {row.createdByName && (
+                      <>
+                        <span>&bull;</span>
+                        <span>{row.createdByName}</span>
+                      </>
+                    )}
+                    <span>&bull;</span>
+                    <span>{row.targets[0]?.targetType === 'all' ? 'Toda la escuela' : row.targets[0]?.targetType === 'grade' ? 'Por grado' : 'Por grupo'}</span>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-gray-300 group-hover:text-gray-500 transition-colors">
+                  chevron_right
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg">Noticia</span>
+              </div>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{selected.title}</h3>
+              <p className="text-gray-600 text-sm whitespace-pre-wrap leading-relaxed">{selected.body}</p>
+              <div className="mt-5 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                Publicado {new Date(selected.publishedAt!).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {selected.createdByName ? ` por ${selected.createdByName}` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
