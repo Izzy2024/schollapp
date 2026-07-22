@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
 
 export async function getStudents(
   tenantSlug?: string, 
@@ -153,7 +154,18 @@ export async function createStudent(
     }
   });
 
-  return { success: true, student };
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: `${data.firstName} ${data.lastName}`,
+      role: 'student',
+    });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
+  return { success: true, student, credentials };
 }
 
 export async function getStudentById(studentId: string, tenantSlug?: string) {

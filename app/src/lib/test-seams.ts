@@ -1,6 +1,7 @@
 export type AuthSession = {
   user?: {
     id: string;
+    email?: string;
     role?: string;
     tenantSlug?: string;
     tenantId?: string;

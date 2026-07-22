@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getSubjectsAndSections, createClassRequest } from '@/actions/classRequests';
-import { getDemoStaffId } from '@/actions/teacher';
+import { getCurrentStaffId } from '@/actions/teacher';
 import { App } from 'antd';
 
 export default function ClassRequestModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
@@ -22,7 +22,7 @@ export default function ClassRequestModal({ isOpen, onClose }: { isOpen: boolean
       setLoading(true);
       Promise.all([
         getSubjectsAndSections('school-demo'),
-        getDemoStaffId('school-demo')
+        getCurrentStaffId('school-demo')
       ]).then(([data, staffIdResult]) => {
         setSubjects(data.subjects);
         setSections(data.sections);

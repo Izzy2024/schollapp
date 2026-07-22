@@ -441,6 +441,13 @@ async function main() {
     throw new Error('Seed invariant failed: expected demo student STD-001 to exist');
   }
 
+  // Link the demo student login (alumno@demo.com) to this deterministic student record,
+  // so the student portal resolves "my" data instead of "the first active student in tenant".
+  await prisma.student.update({
+    where: { id: demoStudent.id },
+    data: { email: 'alumno@demo.com' },
+  });
+
   await prisma.studentGuardian.upsert({
     where: {
       tenantId_studentId_guardianId: {

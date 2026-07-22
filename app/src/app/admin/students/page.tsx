@@ -46,6 +46,7 @@ export default function StudentsPage() {
     email: '',
     phone: '',
   });
+  const [newCredentials, setNewCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
 
   const [sections, setSections] = useState<Section[]>([]);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,6 +126,7 @@ export default function StudentsPage() {
         message.success('Estudiante registrado con éxito');
         setModalOpen(false);
         setFormData({ firstName: '', lastName: '', studentCode: '', dob: '', email: '', phone: '' });
+        if (res.credentials) setNewCredentials(res.credentials);
         loadData(1, search);
       }
     } catch (error: any) {
@@ -577,6 +579,34 @@ export default function StudentsPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
               >
                 Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credenciales generadas */}
+      {newCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Acceso generado</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-600">
+                Comparte estas credenciales con el alumno o su tutor. La contraseña no se volverá a mostrar.
+              </p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-1 font-mono text-sm">
+                <div><span className="text-gray-500">Correo:</span> {newCredentials.email}</div>
+                <div><span className="text-gray-500">Contraseña temporal:</span> {newCredentials.tempPassword}</div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
+              <button
+                onClick={() => setNewCredentials(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Entendido
               </button>
             </div>
           </div>

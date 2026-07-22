@@ -36,10 +36,7 @@ export async function getTeacherDashboardData(tenantSlug?: string) {
   const teacher = await prisma.staff.findFirst({
     where: {
       tenantId: tenant.id,
-      OR: [
-        { user: { email: 'docente1@demo.com' } },
-        { userId: session.user.id }
-      ]
+      userId: session.user.id,
     },
     include: teacherInclude,
   });
@@ -150,7 +147,7 @@ export async function getTeacherClassesOptions(tenantSlug?: string) {
   const teacher = await prisma.staff.findFirst({
     where: {
       tenantId: tenant.id,
-      OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }],
+      userId: session.user.id,
     },
     include: {
       sectionSubjects: {
@@ -201,7 +198,7 @@ export async function getTeacherClassesOptions(tenantSlug?: string) {
   };
 }
 
-export async function getDemoStaffId(tenantSlug?: string) {
+export async function getCurrentStaffId(tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
   tenantSlug = session.user.tenantSlug;
@@ -212,16 +209,7 @@ export async function getDemoStaffId(tenantSlug?: string) {
   if (!tenant) return null;
 
   const teacher = await prisma.staff.findFirst({
-    where: {
-      tenantId: tenant.id,
-      OR: [
-        { user: { email: 'docente1@demo.com' } },
-        { email: 'docente1@demo.com' }
-      ]
-    }
-  }) ?? await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    orderBy: { createdAt: 'asc' }
+    where: { tenantId: tenant.id, userId: session.user.id },
   });
 
   return teacher?.id || null;

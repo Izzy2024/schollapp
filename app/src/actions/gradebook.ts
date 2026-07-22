@@ -18,10 +18,7 @@ export async function getGradebookData(sectionSubjectId: string, termId: string,
   const teacher = await prisma.staff.findFirst({
     where: {
       tenantId: tenant.id,
-      OR: [
-        { user: { email: 'docente1@demo.com' } },
-        { userId: session.user.id }
-      ]
+      userId: session.user.id,
     }
   });
   if (!teacher) throw new Error('Teacher profile not found');
@@ -130,7 +127,7 @@ export async function createEvaluation(
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -162,7 +159,7 @@ export async function saveGradeRecord(evaluationId: string, studentId: string, s
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 

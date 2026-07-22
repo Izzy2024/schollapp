@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
 
 export async function getStaffList(
   search?: string, 
@@ -82,6 +83,18 @@ export async function createStaff(
     }
   });
 
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: data.fullName,
+      role: 'teacher',
+    });
+    await prisma.staff.update({ where: { id: staff.id }, data: { userId: result.userId } });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
   revalidatePath('/admin/staff');
-  return { success: true, staff };
+  return { success: true, staff, credentials };
 }

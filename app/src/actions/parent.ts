@@ -15,33 +15,78 @@ export async function getParentDashboardData(tenantSlug?: string) {
 
   if (!tenant) throw new Error('Tenant not found');
 
-  // Fetch up to 2 active students to simulate children for the Parent Dashboard MVP
-  const students = await prisma.student.findMany({
-    where: { tenantId: tenant.id, status: 'active' },
-    take: 2,
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-    },
+  const guardian = await prisma.guardian.findFirst({
+    where: { tenantId: tenant.id, email: session.user.email },
   });
 
-  // Real financial snapshot (tenant-scoped + RBAC via session)
+  const links = guardian
+    ? await prisma.studentGuardian.findMany({
+        where: { tenantId: tenant.id, guardianId: guardian.id },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              enrollments: {
+                where: { status: 'enrolled' },
+                include: { section: { include: { gradeLevel: true } } },
+                take: 1,
+              },
+            },
+          },
+        },
+      })
+    : [];
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const children = await Promise.all(
+    links.map(async (link) => {
+      const student = link.student;
+      const enrollment = student.enrollments[0];
+
+      const [totalRecords, presentRecords, todayRecord] = await Promise.all([
+        prisma.attendanceRecord.count({
+          where: { tenantId: tenant.id, studentId: student.id, attendanceSession: { date: { gte: startOfMonth } } },
+        }),
+        prisma.attendanceRecord.count({
+          where: { tenantId: tenant.id, studentId: student.id, status: 'present', attendanceSession: { date: { gte: startOfMonth } } },
+        }),
+        prisma.attendanceRecord.findFirst({
+          where: { tenantId: tenant.id, studentId: student.id, attendanceSession: { date: { gte: todayStart } } },
+          select: { status: true },
+        }),
+      ]);
+
+      const attendancePct = totalRecords > 0 ? Math.round((presentRecords / totalRecords) * 100) : null;
+      const statusLabels: Record<string, string> = {
+        present: 'Presente',
+        absent: 'Ausente',
+        late: 'Retardo',
+        excused: 'Falta Justificada',
+      };
+
+      return {
+        id: student.id,
+        name: `${student.firstName} ${student.lastName}`,
+        grade: enrollment?.section ? `${enrollment.section.gradeLevel.name} - ${enrollment.section.name}` : 'Sin inscripción activa',
+        status: todayRecord ? statusLabels[todayRecord.status] || todayRecord.status : 'Sin registro hoy',
+        attendance: attendancePct === null ? '—' : `${attendancePct}%`,
+      };
+    })
+  );
+
   const statement = await getForParent().catch(() => null);
   const balanceDueCents = statement?.totals?.balanceDueCents ?? 0;
 
   return {
-    parentName: 'Familia',
-    children:
-      students.length > 0
-        ? students.map((s, idx) => ({
-            id: s.id,
-            name: `${s.firstName} ${s.lastName}`,
-            grade: idx === 0 ? '3° Secundaria' : '1° Primaria',
-            status: idx === 0 ? 'Presente' : 'Falta Justificada',
-            attendance: idx === 0 ? '98%' : '85%',
-          }))
-        : [{ id: '1', name: 'Estudiante Demo', grade: '3° Secundaria', status: 'Presente', attendance: '98%' }],
+    parentName: guardian?.fullName || 'Familia',
+    children,
     financial: {
       balanceDueCents,
       upcomingCharges: [],

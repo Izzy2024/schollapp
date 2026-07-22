@@ -12,7 +12,7 @@ export async function getCurrentStudent() {
 
   // For student users, resolve student record from their user ID
   const student = await prisma.student.findFirst({
-    where: { tenantId: tenant.id, status: 'active' },
+    where: { tenantId: tenant.id, email: session.user.email, status: 'active' },
     select: { id: true, firstName: true, lastName: true, studentCode: true },
   });
 
@@ -28,7 +28,7 @@ export async function getStudentSchedule() {
 
   // Get student's section via enrollment
   const student = await prisma.student.findFirst({
-    where: { tenantId: tenant.id, status: 'active' },
+    where: { tenantId: tenant.id, email: session.user.email, status: 'active' },
   });
   if (!student) return [];
 
@@ -70,7 +70,7 @@ export async function getStudentExams() {
   if (!tenant) throw new Error('Tenant not found');
 
   const student = await prisma.student.findFirst({
-    where: { tenantId: tenant.id, status: 'active' },
+    where: { tenantId: tenant.id, email: session.user.email, status: 'active' },
   });
   if (!student) return [];
 
@@ -113,7 +113,7 @@ export async function getStudentGrades() {
   if (!tenant) throw new Error('Tenant not found');
 
   const student = await prisma.student.findFirst({
-    where: { tenantId: tenant.id, status: 'active' },
+    where: { tenantId: tenant.id, email: session.user.email, status: 'active' },
   });
   if (!student) return [];
 
@@ -150,7 +150,7 @@ export async function getStudentPeers() {
   const tenant = await prisma.tenant.findUnique({ where: { slug: session.user.tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const student = await prisma.student.findFirst({ where: { tenantId: tenant.id, status: 'active' } });
+  const student = await prisma.student.findFirst({ where: { tenantId: tenant.id, email: session.user.email, status: 'active' } });
   if (!student) return { peers: [], sectionName: '' };
 
   const enrollment = await prisma.enrollment.findFirst({
@@ -178,7 +178,7 @@ export async function getStudentClassPrep() {
   const tenant = await prisma.tenant.findUnique({ where: { slug: session.user.tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const student = await prisma.student.findFirst({ where: { tenantId: tenant.id, status: 'active' } });
+  const student = await prisma.student.findFirst({ where: { tenantId: tenant.id, email: session.user.email, status: 'active' } });
   if (!student) return [];
 
   const enrollment = await prisma.enrollment.findFirst({

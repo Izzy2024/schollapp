@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
 
 export async function createGuardianAndLink(
   studentId: string,
@@ -18,7 +19,7 @@ export async function createGuardianAndLink(
   });
   if (!tenant) throw new Error('Tenant not found');
 
-  return await prisma.$transaction(async (tx) => {
+  const guardian = await prisma.$transaction(async (tx) => {
     // 1. Create Guardian
     const guardian = await tx.guardian.create({
       data: {
@@ -40,9 +41,22 @@ export async function createGuardianAndLink(
       }
     });
 
-    revalidatePath(`/admin/students/${studentId}`);
-    return { success: true, guardian };
+    return guardian;
   });
+
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: data.fullName,
+      role: 'parent',
+    });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
+  revalidatePath(`/admin/students/${studentId}`);
+  return { success: true, guardian, credentials };
 }
 
 export async function removeGuardianLink(studentId: string, guardianId: string, tenantSlug?: string) {

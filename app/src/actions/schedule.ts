@@ -16,10 +16,7 @@ export async function getTeacherWeeklySchedule(tenantSlug?: string) {
   const teacher = await prisma.staff.findFirst({
     where: {
       tenantId: tenant.id,
-      OR: [
-        { user: { email: 'docente1@demo.com' } },
-        { userId: session.user.id }
-      ]
+      userId: session.user.id,
     }
   });
 
