@@ -5,6 +5,9 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Tabs } from 'antd';
 import ConceptsTab from './components/ConceptsTab';
 import ChargesTab from './components/ChargesTab';
+import InvoicesTab from './components/InvoicesTab';
+import PaymentsTab from './components/PaymentsTab';
+import DelinquencyTab from './components/DelinquencyTab';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -21,7 +24,7 @@ export default function AdminFinancesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Finanzas</h1>
-          <p className="text-sm text-gray-500">Conceptos y generación de cargos (idempotente por periodo)</p>
+          <p className="text-sm text-gray-500">Gestión de conceptos, cargos, facturas y cobranza</p>
         </div>
       </div>
 
@@ -29,14 +32,29 @@ export default function AdminFinancesPage() {
         <Tabs
           items={[
             {
-              key: 'concepts',
-              label: 'Conceptos',
-              children: <ConceptsTab />,
+              key: 'invoices',
+              label: 'Facturas',
+              children: <InvoicesTab />,
+            },
+            {
+              key: 'payments',
+              label: 'Pagos',
+              children: <PaymentsTab />,
+            },
+            {
+              key: 'delinquency',
+              label: 'Morosidad',
+              children: <DelinquencyTab />,
             },
             {
               key: 'charges',
               label: 'Cargos',
               children: <ChargesTab />,
+            },
+            {
+              key: 'concepts',
+              label: 'Conceptos',
+              children: <ConceptsTab />,
             },
           ]}
         />

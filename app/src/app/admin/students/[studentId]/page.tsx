@@ -6,13 +6,14 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { getStudentById } from '@/actions/students';
 import { createGuardianAndLink, removeGuardianLink } from '@/actions/guardians';
 import { getStudentAttendanceSummary } from '@/actions/attendance';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 // Match the updated admin menu groups
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
 export default function StudentRecordPage() {
+  const { message } = App.useApp();
   const { studentId } = useParams();
   const router = useRouter();
   const [student, setStudent] = useState<any>(null);

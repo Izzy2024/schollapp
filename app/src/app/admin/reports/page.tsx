@@ -8,7 +8,7 @@ import {
   getRecentAttendanceStats,
   exportActiveStudentsCsv 
 } from '@/actions/reports';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -19,6 +19,7 @@ type EnrollmentStats = Awaited<ReturnType<typeof getEnrollmentStatsBySection>>;
 type AttendanceStats = Awaited<ReturnType<typeof getRecentAttendanceStats>>;
 
 export default function ReportsPage() {
+  const { message } = App.useApp();
   const [kpis, setKpis] = useState<KPIs | null>(null);
   const [enrollment, setEnrollment] = useState<EnrollmentStats>([]);
   const [attendance, setAttendance] = useState<AttendanceStats>([]);

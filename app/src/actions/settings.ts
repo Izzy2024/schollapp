@@ -145,3 +145,68 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
     logs
   };
 }
+
+// 4. Get Tenant Settings (including Panama fiscal)
+export async function getTenantSettings(tenantSlug?: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  
+  const resolvedSlug = tenantSlug || session.user.tenantSlug;
+  const tenant = await prisma.tenant.findUnique({
+    where: { slug: resolvedSlug },
+    select: {
+      panamaRUC: true,
+      panamaDV: true,
+      panamaNIT: true,
+      panamaPACApiKey: true,
+    }
+  });
+
+  if (!tenant) throw new Error('Tenant no encontrado');
+  
+  return {
+    panamaRUC: tenant.panamaRUC,
+    panamaDV: tenant.panamaDV,
+    panamaNIT: tenant.panamaNIT,
+    panamaPACApiKey: tenant.panamaPACApiKey,
+  };
+}
+
+// 5. Update Tenant Settings (Panama fiscal)
+export async function updateTenantSettings(
+  tenantSlug: string,
+  data: {
+    panamaRUC?: string | null;
+    panamaDV?: string | null;
+    panamaNIT?: string | null;
+    panamaPACApiKey?: string | null;
+  }
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  
+  const tenant = await prisma.tenant.findUnique({
+    where: { slug: tenantSlug }
+  });
+  
+  if (!tenant) throw new Error('Tenant no encontrado');
+  
+  // Verify the user belongs to this tenant
+  if (session.user.tenantSlug !== tenantSlug) {
+    throw new Error('No autorizado para modificar este tenant');
+  }
+
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: {
+      panamaRUC: data.panamaRUC || null,
+      panamaDV: data.panamaDV || null,
+      panamaNIT: data.panamaNIT || null,
+      panamaPACApiKey: data.panamaPACApiKey || null,
+    }
+  });
+
+  revalidatePath('/admin/settings');
+  
+  return { success: true };
+}

@@ -8,11 +8,15 @@ export async function enrollmentGetEnrollments() {
   return getEnrollments();
 }
 
-export async function enrollmentEnrollStudent(studentId: string, sectionId: string) {
+export async function enrollmentEnrollStudent(
+  studentId: string,
+  sectionId: string,
+  paymentOption: 'enrollment_only' | 'monthly' | 'annual_with_discount' = 'monthly'
+) {
   const { enrollStudent, reenrollStudent } = await import('./enrollment-impl');
 
   try {
-    return await enrollStudent(studentId, sectionId);
+    return await enrollStudent(studentId, sectionId, undefined, paymentOption);
   } catch (e: any) {
     const code = typeof e === 'object' && e && 'code' in e ? String(e.code) : null;
     if (code === 'ALREADY_ENROLLED_IN_YEAR') {

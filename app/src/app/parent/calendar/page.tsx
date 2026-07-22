@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Button, Card, DatePicker, Input, List, message as antdMessage } from 'antd';
+import { Button, Card, DatePicker, Input, Spin, message as antdMessage } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { listCalendarEvents } from '@/actions/calendar';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
@@ -83,27 +83,27 @@ export default function ParentCalendarPage() {
         </Card>
 
         <Card className="lg:col-span-2" title={`Eventos (${filtered.length})`}>
-          <List
-            loading={loading}
-            dataSource={filtered}
-            renderItem={(item) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={<div className="font-medium">{item.title}</div>}
-                  description={
-                    <div className="text-sm text-gray-600">
-                      <div>
-                        {dayjs(item.startAt).format('YYYY-MM-DD HH:mm')}
-                        {item.endAt ? ` → ${dayjs(item.endAt).format('YYYY-MM-DD HH:mm')}` : ''}
-                        {item.allDay ? ' (Todo el día)' : ''}
-                      </div>
-                      {item.description ? <div className="text-gray-500">{item.description}</div> : null}
+          {loading ? (
+            <div className="text-center py-8"><Spin /></div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">Sin eventos</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {filtered.map((item) => (
+                <div key={item.id} className="py-3">
+                  <div className="font-medium">{item.title}</div>
+                  <div className="text-sm text-gray-600">
+                    <div>
+                      {dayjs(item.startAt).format('YYYY-MM-DD HH:mm')}
+                      {item.endAt ? ` → ${dayjs(item.endAt).format('YYYY-MM-DD HH:mm')}` : ''}
+                      {item.allDay ? ' (Todo el día)' : ''}
                     </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+                    {item.description ? <div className="text-gray-500">{item.description}</div> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </DashboardLayout>

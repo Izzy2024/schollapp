@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getScheduleRequests, approveScheduleRequest, rejectScheduleRequest } from '@/actions/scheduleRequests';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -38,6 +38,7 @@ type Req = {
 };
 
 export default function ScheduleRequestsAdminPage() {
+  const { message } = App.useApp();
   const [requests, setRequests] = useState<Req[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);

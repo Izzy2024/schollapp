@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { getSubjectsAndSections, createClassRequest } from '@/actions/classRequests';
 import { getDemoStaffId } from '@/actions/teacher';
-import { message } from 'antd';
+import { App } from 'antd';
 
 export default function ClassRequestModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  const { message } = App.useApp();
   const [subjects, setSubjects] = useState<{ id: string, name: string }[]>([]);
   const [sections, setSections] = useState<{ id: string, displayName: string }[]>([]);
   const [staffId, setStaffId] = useState<string | null>(null);

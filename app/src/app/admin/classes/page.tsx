@@ -11,7 +11,7 @@ import {
   getSectionsForTenant 
 } from '@/actions/adminClasses';
 import { getSubjects } from '@/actions/subjects';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 // Match the updated admin menu groups
@@ -35,6 +35,7 @@ type Section = { id: string; name: string; gradeLevelName: string };
 type Subject = { id: string; name: string };
 
 export default function ClassesPage() {
+  const { message } = App.useApp();
   const [classes, setClasses] = useState<SectionSubject[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [sections, setSections] = useState<Section[]>([]);

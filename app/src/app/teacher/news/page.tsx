@@ -3,12 +3,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getAnnouncements, AnnouncementRow } from '@/actions/announcements';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['teacher']);
 
 export default function TeacherNewsPage() {
+  const { message } = App.useApp();
   const [rows, setRows] = useState<AnnouncementRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AnnouncementRow | null>(null);

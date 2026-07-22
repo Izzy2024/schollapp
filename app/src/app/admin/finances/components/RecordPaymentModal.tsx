@@ -76,7 +76,7 @@ export default function RecordPaymentModal({ open, chargeId, onClose, onRecorded
       open={open}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <StableErrorUi error={stableError} className="mb-3" />
 

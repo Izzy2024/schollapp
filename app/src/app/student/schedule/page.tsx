@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -12,6 +12,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 type ScheduleEntry = { id: string; dayOfWeek: number; startTime: string; endTime: string; room: string | null; subjectName: string; sectionName: string; teacherName: string };
 
 export default function StudentSchedulePage() {
+  const { message } = App.useApp();
   const [schedules, setSchedules] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 

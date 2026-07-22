@@ -9,7 +9,7 @@ type AllowedAttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
 type AttendanceWriteContext = {
   userId: string;
-  role?: string | null;
+  roles: string[];
   staffId?: string | null;
   tenantId: string;
 };
@@ -47,14 +47,23 @@ async function getAttendanceWriteContext(tenantSlug?: string): Promise<Attendanc
 
   return {
     userId: authSession.user.id,
-    role: (authSession.user as { role?: string | null }).role,
+    roles: Array.isArray((authSession.user as { roles?: string[] }).roles)
+      ? (authSession.user as { roles?: string[] }).roles ?? []
+      : [],
     staffId: (authSession.user as { staffId?: string | null }).staffId,
     tenantId: tenant.id,
   };
 }
 
-function assertRoleCanWriteAttendance(role?: string | null) {
-  const normalized = role ?? null;
+function getPrimaryAttendanceRole(roles: string[]) {
+  const normalizedRoles = roles.map((role) => String(role).toLowerCase());
+  if (normalizedRoles.includes('admin')) return 'admin';
+  if (normalizedRoles.includes('teacher')) return 'teacher';
+  return null;
+}
+
+function assertRoleCanWriteAttendance(roles: string[]) {
+  const normalized = getPrimaryAttendanceRole(roles);
   if (normalized === 'admin' || normalized === 'teacher') {
     return;
   }
@@ -136,13 +145,14 @@ export async function saveAttendanceSession(
   if (!sectionSubjectId?.trim()) throw new Error('sectionSubjectId requerido');
 
   const context = await getAttendanceWriteContext(tenantSlug);
-  assertRoleCanWriteAttendance(context.role);
+  assertRoleCanWriteAttendance(context.roles);
+  const primaryRole = getPrimaryAttendanceRole(context.roles);
 
   const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
   if (!ss) throw new Error('Clase no encontrada');
 
   assertTenantScope(ss.tenantId, context.tenantId);
-  assertTeacherOwnership(context.role, context.staffId, ss.staffId);
+  assertTeacherOwnership(primaryRole, context.staffId, ss.staffId);
 
   const date = normalizeDate(dateIso);
   const normalizedRecords = sanitizeRecords(records);
@@ -299,7 +309,7 @@ export async function saveAttendanceBySectionDate(
   tenantSlug?: string
 ) {
   const context = await getAttendanceWriteContext(tenantSlug);
-  assertRoleCanWriteAttendance(context.role);
+  assertRoleCanWriteAttendance(context.roles);
 
   const section = await prisma.section.findUnique({ where: { id: sectionId }, select: { id: true, tenantId: true } });
   if (!section) throw new Error('SECTION_NOT_FOUND');

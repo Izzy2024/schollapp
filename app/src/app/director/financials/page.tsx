@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 import type { DirectorFinancialSummary } from '@/actions/reports';
 
@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function DirectorFinancialsPage() {
+  const { message } = App.useApp();
   const [data, setData] = useState<DirectorFinancialSummary | null>(null);
   const [loading, setLoading] = useState(true);
 

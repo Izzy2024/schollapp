@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -13,6 +13,7 @@ type SubjectPrep = {
 };
 
 export default function StudentClassPrepPage() {
+  const { message } = App.useApp();
   const [subjects, setSubjects] = useState<SubjectPrep[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Input, message as antdMessage } from 'antd';
+import { App, Input } from 'antd';
 import { listConversationsForUser, listMessages, markConversationRead, sendMessage, sendMessageInConversation, listRecipients } from '@/actions/messages';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
@@ -11,6 +11,7 @@ const menuGroups = getMenuGroupsForRoles(['student']);
 type ThreadState = { conversationId: string | null; messages: Awaited<ReturnType<typeof listMessages>>; loading: boolean };
 
 export default function StudentMessagesPage() {
+  const { message: antdMessage } = App.useApp();
   const [inboxLoading, setInboxLoading] = useState(true);
   const [inbox, setInbox] = useState<Awaited<ReturnType<typeof listConversationsForUser>>>([]);
   const [thread, setThread] = useState<ThreadState>({ conversationId: null, messages: [], loading: false });

@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { makeEnrollmentDomainError } from './enrollment-errors';
+import { generateEnrollmentCharges, type PaymentOption } from './finance/enrollment-charges';
 // NOTE: keep imports in this file limited to functions; Next server-action modules
 // disallow exporting classes, but importing is ok.
 
@@ -129,7 +130,12 @@ export async function getEnrollments(_tenantSlug?: string, academicYearId?: stri
   }));
 }
 
-export async function enrollStudent(studentId: string, sectionId: string, _tenantSlug?: string) {
+export async function enrollStudent(
+  studentId: string,
+  sectionId: string,
+  _tenantSlug?: string,
+  paymentOption: PaymentOption = 'monthly'
+) {
   const ctx = await getSessionContext();
   const activeYear = await getActiveAcademicYear(ctx.tenantId);
 
@@ -181,6 +187,19 @@ export async function enrollStudent(studentId: string, sectionId: string, _tenan
     sectionId,
     academicYearId: activeYear.id,
   });
+
+  // Generate automatic charges
+  try {
+    await generateEnrollmentCharges(
+      studentId,
+      enrollment.id,
+      paymentOption,
+      activeYear.id
+    );
+  } catch (e) {
+    // Non-fatal: enrollment succeeded, charges may need manual generation
+    console.warn('[enrollment] Auto-charge generation failed (enrollment still valid)', e);
+  }
 
   return enrollment;
 }

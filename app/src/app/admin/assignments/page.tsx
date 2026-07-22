@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -21,6 +21,7 @@ type Evaluation = {
 };
 
 export default function AdminAssignmentsPage() {
+  const { message } = App.useApp();
   const [assignments, setAssignments] = useState<Evaluation[]>([]);
   const [loading, setLoading] = useState(true);
 

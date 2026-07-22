@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -10,6 +10,7 @@ const menuGroups = getMenuGroupsForRoles(['student']);
 type MonthSummary = { month: string; present: number; absent: number; late: number; excused: number; total: number };
 
 export default function StudentAttendancePage() {
+  const { message } = App.useApp();
   const [byMonth, setByMonth] = useState<MonthSummary[]>([]);
   const [totalStats, setTotalStats] = useState({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
   const [loading, setLoading] = useState(true);

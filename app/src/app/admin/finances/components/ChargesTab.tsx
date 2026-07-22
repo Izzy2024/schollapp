@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, Select, Table, Tag, message } from 'antd';
+import { Button, Form, Input, Select, Table, Tag } from 'antd';
+import { App } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
 import * as financeCharge from '@/actions/finance/charges';
+import { generateInvoice } from '@/actions/finance/invoices';
 import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 import RecordPaymentModal from './RecordPaymentModal';
 
@@ -13,6 +15,7 @@ type Charge = Awaited<ReturnType<typeof financeCharge.listByPeriod>>[number];
 const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export default function ChargesTab() {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [conceptsLoading, setConceptsLoading] = useState(false);
@@ -25,6 +28,7 @@ export default function ChargesTab() {
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordChargeId, setRecordChargeId] = useState<string | null>(null);
+  const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
 
   const loadConcepts = async () => {
     setConceptsLoading(true);
@@ -77,8 +81,19 @@ export default function ChargesTab() {
         dataIndex: 'status',
         key: 'status',
         render: (v: string) => {
-          const color = v === 'paid' ? 'green' : v === 'void' ? 'default' : 'gold';
-          return <Tag color={color}>{String(v).toUpperCase()}</Tag>;
+          const colors: Record<string, string> = {
+            pending: 'gold',
+            paid: 'green',
+            overdue: 'red',
+            void: 'default',
+          };
+          const labels: Record<string, string> = {
+            pending: 'Pendiente',
+            paid: 'Pagado',
+            overdue: 'Vencido',
+            void: 'Anulado',
+          };
+          return <Tag color={colors[v] || 'default'}>{labels[v] || v}</Tag>;
         },
       },
       { title: 'Periodo', dataIndex: 'periodKey', key: 'periodKey' },
@@ -92,15 +107,36 @@ export default function ChargesTab() {
         title: 'Acciones',
         key: 'actions',
         render: (_: any, r: Charge) => (
-          <Button
-            size="small"
-            onClick={() => {
-              setRecordChargeId(r.id);
-              setRecordOpen(true);
-            }}
-          >
-            Registrar pago
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="small"
+              onClick={() => {
+                setRecordChargeId(r.id);
+                setRecordOpen(true);
+              }}
+            >
+              Registrar pago
+            </Button>
+            <Button
+              size="small"
+              loading={generatingInvoice === r.id}
+              onClick={async () => {
+                setGeneratingInvoice(r.id);
+                try {
+                  const invoice = await generateInvoice({ chargeId: r.id });
+                  message.success(`Factura ${invoice.folio} generada`);
+                  // Open PDF
+                  window.open(`/api/invoices/${invoice.id}/pdf`, '_blank');
+                } catch (err: any) {
+                  message.error(err.message || 'Error generando factura');
+                } finally {
+                  setGeneratingInvoice(null);
+                }
+              }}
+            >
+              Factura
+            </Button>
+          </div>
         ),
       },
     ],

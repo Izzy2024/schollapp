@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getRecentActivities } from '@/actions/activity';
 import { getActivityFilterOptions } from '@/lib/activity-taxonomy';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -14,6 +14,7 @@ type ActivityResult = Awaited<ReturnType<typeof getRecentActivities>>;
 const FILTERS = getActivityFilterOptions();
 
 export default function ActivityLogPage() {
+  const { message } = App.useApp();
   const [data, setData] = useState<ActivityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');

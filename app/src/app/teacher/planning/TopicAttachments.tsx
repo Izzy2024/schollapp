@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { getAttachments, uploadAttachment, deleteAttachment } from '@/actions/attachments';
-import { message } from 'antd';
+import { App } from 'antd';
 
 export function TopicAttachments({ topicId }: { topicId: string }) {
+  const { message } = App.useApp();
   const [attachments, setAttachments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);

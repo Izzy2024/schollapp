@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
-import { getStudents, createStudent } from '@/actions/students';
+import { getStudents, createStudent, updateStudent } from '@/actions/students';
 import { getSectionsForTenant } from '@/actions/adminClasses';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 // Match the updated admin menu groups
@@ -23,6 +24,8 @@ type Student = {
 type Section = { id: string; name: string; gradeLevelName: string; gradeLevelId: string };
 
 export default function StudentsPage() {
+  const { message } = App.useApp();
+  const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -46,6 +49,19 @@ export default function StudentsPage() {
 
   const [sections, setSections] = useState<Section[]>([]);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Edit state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    studentCode: '',
+    dob: '',
+    email: '',
+    phone: '',
+    status: 'active' as 'active' | 'inactive'
+  });
 
   const loadData = async (currentPage = page, currentSearch = search) => {
     setLoading(true);
@@ -113,6 +129,62 @@ export default function StudentsPage() {
       }
     } catch (error: any) {
       message.error(error.message || 'Error al guardar estudiante');
+    }
+  };
+
+  const openEditModal = async (student: Student) => {
+    // Fetch full student data for editing
+    try {
+      const { getStudentById } = await import('@/actions/students');
+      const fullData = await getStudentById(student.id);
+      if (!fullData) {
+        message.error('No se pudo cargar el estudiante');
+        return;
+      }
+      setEditingStudent(student);
+      setEditForm({
+        firstName: fullData.firstName || '',
+        lastName: fullData.lastName || '',
+        studentCode: fullData.studentCode || '',
+        dob: fullData.dob ? new Date(fullData.dob).toISOString().split('T')[0] : '',
+        email: fullData.email || '',
+        phone: fullData.phone || '',
+        status: (fullData.status as 'active' | 'inactive') || 'active'
+      });
+      setEditModalOpen(true);
+    } catch (error: any) {
+      message.error(error.message || 'Error al cargar estudiante');
+    }
+  };
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+    if (!editForm.firstName || !editForm.lastName) {
+      message.error('Nombre y Apellido son requeridos');
+      return;
+    }
+    try {
+      const res = await updateStudent(editingStudent.id, {
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        studentCode: editForm.studentCode || undefined,
+        dob: editForm.dob ? new Date(editForm.dob) : null,
+        email: editForm.email || undefined,
+        phone: editForm.phone || undefined,
+        status: editForm.status
+      }, 'school-demo');
+
+      if ('error' in res) {
+        message.error(res.error);
+      } else {
+        message.success('Estudiante actualizado con éxito');
+        setEditModalOpen(false);
+        setEditingStudent(null);
+        loadData(page, search);
+      }
+    } catch (error: any) {
+      message.error(error.message || 'Error al actualizar estudiante');
     }
   };
 
@@ -241,10 +313,10 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => window.location.href = `/admin/students/${s.id}`} className="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ver Expediente">
+                        <button onClick={() => router.push(`/admin/students/${s.id}`)} className="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ver Expediente">
                           <span className="material-symbols-outlined text-xl">visibility</span>
                         </button>
-                        <button className="text-gray-400 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Editar">
+                        <button onClick={() => openEditModal(s)} className="text-gray-400 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Editar">
                           <span className="material-symbols-outlined text-xl">edit</span>
                         </button>
                       </div>
@@ -385,6 +457,126 @@ export default function StudentsPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
               >
                 Guardar Alumno
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editModalOpen && editingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Editar Alumno</h3>
+              <button
+                onClick={() => { setEditModalOpen(false); setEditingStudent(null); }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6 flex-1">
+              <form id="edit-student-form" onSubmit={handleUpdateStudent}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre(s) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.firstName}
+                      onChange={e => setEditForm({...editForm, firstName: e.target.value})}
+                      required
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Apellidos <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.lastName}
+                      onChange={e => setEditForm({...editForm, lastName: e.target.value})}
+                      required
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Matrícula
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.studentCode}
+                      onChange={e => setEditForm({...editForm, studentCode: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de Nacimiento
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.dob}
+                      onChange={e => setEditForm({...editForm, dob: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={e => setEditForm({...editForm, email: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estado
+                    </label>
+                    <select
+                      value={editForm.status}
+                      onChange={e => setEditForm({...editForm, status: e.target.value as 'active' | 'inactive'})}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    >
+                      <option value="active">Activo</option>
+                      <option value="inactive">Inactivo</option>
+                    </select>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+              <button
+                type="button"
+                onClick={() => { setEditModalOpen(false); setEditingStudent(null); }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="edit-student-form"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+              >
+                Guardar Cambios
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -10,6 +10,7 @@ const menuGroups = getMenuGroupsForRoles(['student']);
 type Peer = { id: string; firstName: string; lastName: string; studentCode: string };
 
 export default function StudentPeersPage() {
+  const { message } = App.useApp();
   const [peers, setPeers] = useState<Peer[]>([]);
   const [sectionName, setSectionName] = useState('');
   const [loading, setLoading] = useState(true);

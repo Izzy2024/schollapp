@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Button, Card, DatePicker, Input, List, Modal, Switch, message as antdMessage } from 'antd';
+import { App, Button, Card, DatePicker, Input, Modal, Switch } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { createCalendarEvent, deleteCalendarEvent, listCalendarEvents } from '@/actions/calendar';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
@@ -18,6 +18,7 @@ function defaultRange(): { start: Dayjs; end: Dayjs } {
 }
 
 export default function AdminCalendarPage() {
+  const { message: antdMessage } = App.useApp();
   const [{ start, end }, setRange] = useState(defaultRange);
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<CalendarRow[]>([]);
@@ -143,21 +144,17 @@ export default function AdminCalendarPage() {
         </Card>
 
         <Card className="lg:col-span-2" title={`Eventos (${filtered.length})`}>
-          <List
-            loading={loading}
-            dataSource={filtered}
-            renderItem={(item) => (
-              <List.Item
-                actions={[
-                  <Button key="del" danger onClick={() => handleDelete(item.id)}>
-                    Eliminar
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={<div className="font-medium">{item.title}</div>}
-                  description={
-                    <div className="text-sm text-gray-600">
+          {loading ? (
+            <div className="py-10 text-center text-gray-400">Cargando eventos...</div>
+          ) : filtered.length === 0 ? (
+            <div className="py-10 text-center text-gray-400">No hay eventos en el rango seleccionado.</div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((item) => (
+                <div key={item.id} className="flex items-start justify-between gap-4 rounded-xl border border-gray-100 p-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-900">{item.title}</div>
+                    <div className="mt-1 text-sm text-gray-600">
                       <div>
                         {dayjs(item.startAt).format('YYYY-MM-DD HH:mm')}
                         {item.endAt ? ` → ${dayjs(item.endAt).format('YYYY-MM-DD HH:mm')}` : ''}
@@ -165,11 +162,14 @@ export default function AdminCalendarPage() {
                       </div>
                       {item.description ? <div className="text-gray-500">{item.description}</div> : null}
                     </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
+                  </div>
+                  <Button danger onClick={() => handleDelete(item.id)}>
+                    Eliminar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 

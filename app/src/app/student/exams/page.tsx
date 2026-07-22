@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<string, string> = { exam: 'Examen', quiz: 'Quiz', home
 type Exam = { id: string; name: string; type: string; date: string; maxScore: number; subjectName: string; teacherName: string; score: number | null };
 
 export default function StudentExamsPage() {
+  const { message } = App.useApp();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');

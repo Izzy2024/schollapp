@@ -7,7 +7,7 @@ import AttendanceDrawer from '@/components/AttendanceDrawer';
 import { getClassStudents, getClassAttendanceHistory } from '@/actions/classes';
 import { createScheduleRequest, previewScheduleRequestConflict } from '@/actions/scheduleRequests';
 import { useRouter } from 'next/navigation';
-import { message } from 'antd';
+import { App } from 'antd';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Lunes' },
@@ -49,6 +49,7 @@ export default function ClassDetailsTabs({
   attendanceHistory: any[];
   sectionSubjectId: string;
 }) {
+  const { message } = App.useApp();
   const [activeTab, setActiveTab] = useState<'alumnos'|'asistencia'|'horario'|'calificaciones'>('alumnos');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerDate, setDrawerDate] = useState(new Date().toISOString());

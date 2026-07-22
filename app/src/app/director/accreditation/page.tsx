@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['director']);
@@ -10,6 +10,7 @@ const menuGroups = getMenuGroupsForRoles(['director']);
 type ActivityEvent = { id: string; action: string; entityType: string; entityId: string; occurredAt: string; actorName: string; display: { icon: string; iconColor: string; iconBg: string; text: string } };
 
 export default function DirectorAccreditationPage() {
+  const { message } = App.useApp();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
 

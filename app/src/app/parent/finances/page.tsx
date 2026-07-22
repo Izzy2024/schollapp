@@ -2,6 +2,7 @@ import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getForParent } from '@/actions/finance/statements';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import ChargesWithInvoice from './ChargesWithInvoice';
 
 const menuGroups = getMenuGroupsForRoles(['parent']);
 
@@ -121,25 +122,7 @@ export default async function ParentFinancesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900 mb-3">Cargos</h4>
-                  {s.charges.length === 0 ? (
-                    <p className="text-sm text-gray-500">Sin cargos.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {s.charges.map((c) => (
-                        <div key={c.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-gray-50">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{c.conceptName ?? c.periodKey ?? 'Cargo'}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {c.periodKey ? `Periodo: ${c.periodKey}` : null}
-                              {c.periodKey ? ' · ' : null}
-                              Status: {c.status}
-                            </div>
-                          </div>
-                          <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">{formatMoneyFromCents(c.amountCents, c.currency)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <ChargesWithInvoice charges={s.charges} />
                 </div>
 
                 <div>

@@ -13,12 +13,13 @@ import {
   createSection,
   deleteSection
 } from '@/actions/academic';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
 export default function AcademicSetupPage() {
+  const { message } = App.useApp();
   const [years, setYears] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);

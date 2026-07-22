@@ -7,7 +7,7 @@ import {
   getAttendanceBySectionDate,
   saveAttendanceBySectionDate,
 } from '@/actions/attendance';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -56,6 +56,7 @@ function todayIso() {
 }
 
 export default function AttendancePage() {
+  const { message } = App.useApp();
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [date, setDate] = useState(todayIso());

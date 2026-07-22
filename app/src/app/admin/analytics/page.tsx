@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -31,6 +31,7 @@ type AttendanceSection = {
 };
 
 export default function AdminAnalyticsPage() {
+  const { message } = App.useApp();
   const [kpis, setKpis] = useState<KPIs | null>(null);
   const [enrollment, setEnrollment] = useState<EnrollmentSection[]>([]);
   const [attendance, setAttendance] = useState<AttendanceSection[]>([]);

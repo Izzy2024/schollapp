@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getAttendanceSession, saveAttendanceSession } from '@/actions/attendance';
-import { message } from 'antd';
+import { App } from 'antd';
 
 type DrawerStatus = 'idle' | 'success' | 'error';
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
@@ -53,6 +53,7 @@ export default function AttendanceDrawer({
   onClose: () => void,
   onSaved: () => void
 }) {
+  const { message } = App.useApp();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

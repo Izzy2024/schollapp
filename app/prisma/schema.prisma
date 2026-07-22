@@ -5,10 +5,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator seed {
-  provider = "node --import tsx scripts/seed.mjs"
-}
-
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
@@ -23,6 +19,13 @@ model Tenant {
   name      String
   slug      String   @unique
   timezone  String   @default("America/Mexico_City")
+
+  // Panama fiscal fields
+  panamaRUC       String? // RUC de la escuela
+  panamaDV        String? // Dígito verificador
+  panamaNIT       String? // NIT
+  panamaPACApiKey String? // API key del PAC (proveedor autorizado)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -57,6 +60,12 @@ model Tenant {
   financeConcepts FinanceConcept[]
   financeCharges  FinanceCharge[]
   financePayments FinancePayment[]
+  financeInvoices FinanceInvoice[]
+  paymentPlans       FinancePaymentPlan[]
+  paymentInstallments FinancePaymentInstallment[]
+  discounts          FinanceDiscount[]
+  reminders          FinanceReminder[]
+  dunningEvents      FinanceDunningEvent[]
 
   messageConversations MessageConversation[]
   messageParticipants  MessageParticipant[]
@@ -635,6 +644,7 @@ enum FinanceConceptKind {
 enum FinanceChargeStatus {
   pending
   paid
+  overdue
   void
 }
 
@@ -646,6 +656,13 @@ model FinanceConcept {
   amountCents Int
   currency    String             @default("MXN")
   isActive    Boolean            @default(true)
+
+  // Configuración de generación automática al matricular
+  autoGenerateOnEnrollment Boolean @default(false) // Generar automáticamente al matricular
+  chargeType              String? // "enrollment" | "monthly" | "annual"
+  installmentCount        Int?    @default(1) // Para mensualidades: cuántos meses (ej. 10)
+  applySiblingDiscount   Boolean @default(false) // Aplicar descuento por hermano
+
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -673,6 +690,10 @@ model FinanceCharge {
   student  Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   concept  FinanceConcept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
   payments FinancePayment[]
+  invoices FinanceInvoice[]
+  paymentPlans FinancePaymentPlan[]
+  reminders FinanceReminder[]
+  dunningEvents FinanceDunningEvent[]
 
   @@unique([tenantId, studentId, conceptId, periodKey])
   @@index([tenantId, studentId])
@@ -702,6 +723,260 @@ model FinancePayment {
 
   @@index([tenantId, studentId, paidAt])
   @@index([tenantId, chargeId])
+}
+
+// -----------------------------------------------------------------------------
+// 9.1) Invoice and Payment Plan Models (M010 - Billing Module)
+// -----------------------------------------------------------------------------
+
+enum FinanceInvoiceStatus {
+  issued    // Emitida
+  sent      // Enviada al tutor
+  paid      // Pagada
+  cancelled // Cancelada
+  overdue   // Vencida
+}
+
+enum PaymentPlanStatus {
+  active
+  completed
+  cancelled
+  defaulted
+}
+
+enum InstallmentStatus {
+  pending
+  paid
+  overdue
+  cancelled
+}
+
+enum DiscountKind {
+  sibling        // Descuento hermanos
+  scholarship    // Beca académica
+  prompt_payment // Pronto pago
+  financial_aid  // Apoyo financiero
+  custom         // Personalizado
+}
+
+enum DiscountAppliesTo {
+  enrollment        // Inscripción
+  tuition           // Colegiatura
+  all_charges       // Todos los cargos
+  specific_concept  // Concepto específico
+}
+
+enum ReminderType {
+  before_due_7d   // 7 días antes
+  before_due_3d   // 3 días antes
+  on_due_date     // Día de vencimiento
+  after_due_1d    // 1 día después
+  after_due_7d    // 1 semana después
+  after_due_15d   // 15 días después
+  after_due_30d   // 1 mes después
+}
+
+enum ReminderChannel {
+  email
+  sms
+  in_app
+  whatsapp
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+}
+
+enum DunningAction {
+  email_sent
+  call_made
+  meeting_scheduled
+  payment_plan_offered
+  warning_issued
+  suspended_services
+  referred_collection
+}
+
+model FinanceInvoice {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chargeId  String   // Cargo asociado
+  folio     String   @unique // "INV-2025-00123"
+
+  // Panama fiscal
+  panamaCUFE String? // Código Único de Factura Electrónica
+  panamaXML  String? // XML enviado a PAC (JSON stringified)
+
+  // Datos del momento (snapshot)
+  studentName  String // Nombre al momento de generación
+  studentCode  String?
+  conceptName  String
+  amountCents  Int
+  currency     String @default("USD") // Panama usa USD/Balboa
+
+  // Receptor (datos del tutor)
+  recipientName    String?
+  recipientRUC     String? // Para factura fiscal Panama
+  recipientEmail   String?
+  recipientPhone   String?
+
+  // Fechas importantes
+  issuedAt      DateTime @default(now())
+  dueDate       DateTime
+  sentAt        DateTime? // Cuando se envió por email
+  paidAt        DateTime?
+
+  // Estado
+  status FinanceInvoiceStatus @default(issued)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, folio])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([tenantId, chargeId])
+}
+
+model FinancePaymentPlan {
+  id              String   @id @default(uuid())
+  tenantId        String
+  chargeId        String
+
+  totalAmountCents  Int
+  installmentCount   Int      // Número de parcialidades
+  installmentsPaid   Int      @default(0)
+
+  startDate   DateTime
+  nextDueDate DateTime?
+
+  status PaymentPlanStatus @default(active)
+
+  installments FinancePaymentInstallment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, chargeId])
+}
+
+model FinancePaymentInstallment {
+  id        String   @id @default(uuid())
+  planId    String
+  tenantId  String
+
+  number       Int  // 1, 2, 3...
+  amountCents  Int
+  dueDate      DateTime
+
+  status   InstallmentStatus @default(pending)
+  paidAt   DateTime?
+  paymentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plan   FinancePaymentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, number])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+}
+
+model FinanceDiscount {
+  id       String   @id @default(uuid())
+  tenantId String
+
+  name String // "Beca Hermanos", "Pronto Pago"
+  code String? // Código canjeable
+  kind DiscountKind
+
+  // Reglas
+  percentage Int? // Descuento %
+  fixedCents Int? // O monto fijo
+
+  // Aplicación
+  appliesTo       DiscountAppliesTo
+  conceptIdFilter String? // Si appliesTo = specific_concept
+
+  // Configuración
+  maxUses         Int? // Máximo número de usos
+  currentUses     Int  @default(0)
+  siblingMinCount Int? // Mínimo de hermanos para descuento sibling
+
+  // Vigencia
+  validFrom  DateTime?
+  validUntil DateTime?
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isActive])
+}
+
+model FinanceReminder {
+  id       String   @id @default(uuid())
+  tenantId String
+  invoiceId String?
+  chargeId  String
+
+  scheduledFor DateTime
+  sentAt       DateTime?
+
+  type    ReminderType
+  channel ReminderChannel @default(email)
+  status  ReminderStatus @default(pending)
+
+  // Contenido generado
+  subject String?
+  body    String?
+
+  // Metadata de envío
+  errorMessage String?
+  externalId   String? // ID del proveedor (SendGrid, etc.)
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge  FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, scheduledFor])
+  @@index([tenantId, chargeId])
+}
+
+model FinanceDunningEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chargeId  String
+
+  action      DunningAction
+  performedAt DateTime @default(now())
+  performedBy String // userId
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chargeId])
+  @@index([tenantId, performedAt])
 }
 
 // -----------------------------------------------------------------------------

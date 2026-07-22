@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -18,6 +18,7 @@ type SectionSubjectInfo = {
 };
 
 export default function AdminClassPrepPage() {
+  const { message } = App.useApp();
   const [classes, setClasses] = useState<SectionSubjectInfo[]>([]);
   const [loading, setLoading] = useState(true);
 

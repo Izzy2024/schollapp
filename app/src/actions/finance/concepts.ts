@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { getTenantIdFromSession, assertFinanceWriteAccess } from './_shared';
+import { Prisma } from '@prisma/client';
 
 export type FinanceConceptKind = 'monthly' | 'one_time';
 
@@ -10,43 +11,59 @@ export async function create(input: {
   kind: FinanceConceptKind;
   amountCents: number;
   currency: string;
+  autoGenerateOnEnrollment?: boolean;
+  chargeType?: string | null;
+  installmentCount?: number | null;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
 
   const name = input.name?.trim();
-  if (!name) throw new Error('Invalid name');
+  if (!name) throw new Error('El nombre es requerido');
 
-  return prisma.$transaction(async (tx) => {
-    const concept = await tx.financeConcept.create({
-      data: {
-        tenantId: ctx.tenantId,
-        name,
-        kind: input.kind,
-        amountCents: input.amountCents,
-        currency: input.currency,
-        isActive: true,
-      },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const concept = await tx.financeConcept.create({
+        data: {
+          tenantId: ctx.tenantId,
+          name,
+          kind: input.kind,
+          amountCents: input.amountCents,
+          currency: input.currency,
+          isActive: true,
+          autoGenerateOnEnrollment: input.autoGenerateOnEnrollment || false,
+          chargeType: input.chargeType || null,
+          installmentCount: input.installmentCount || null,
+        },
+      });
+
+      await tx.activityEvent.create({
+        data: {
+          tenantId: ctx.tenantId,
+          actorUserId: ctx.actorUserId,
+          entityType: 'finance',
+          entityId: concept.id,
+          action: 'finance.concept.created',
+          metadata: JSON.stringify({
+            conceptId: concept.id,
+            amountCents: concept.amountCents,
+            currency: concept.currency,
+            cadence: concept.kind,
+            autoGenerate: concept.autoGenerateOnEnrollment,
+            chargeType: concept.chargeType,
+          }),
+        },
+      });
+
+      return concept;
     });
-
-    await tx.activityEvent.create({
-      data: {
-        tenantId: ctx.tenantId,
-        actorUserId: ctx.actorUserId,
-        entityType: 'finance',
-        entityId: concept.id,
-        action: 'finance.concept.created',
-        metadata: JSON.stringify({
-          conceptId: concept.id,
-          amountCents: concept.amountCents,
-          currency: concept.currency,
-          cadence: concept.kind,
-        }),
-      },
-    });
-
-    return concept;
-  });
+  } catch (err) {
+    // Handle unique constraint violation
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new Error(`Ya existe un concepto llamado "${name}". Usa otro nombre o edita el existente.`);
+    }
+    throw err;
+  }
 }
 
 export async function update(input: {
@@ -55,12 +72,15 @@ export async function update(input: {
   amountCents?: number;
   currency?: string;
   isActive?: boolean;
+  autoGenerateOnEnrollment?: boolean;
+  chargeType?: string | null;
+  installmentCount?: number | null;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
 
   const concept = await prisma.financeConcept.findFirst({ where: { id: input.id, tenantId: ctx.tenantId } });
-  if (!concept) throw new Error('Concept not found');
+  if (!concept) throw new Error('Concepto no encontrado');
 
   const next = await prisma.$transaction(async (tx) => {
     const updated = await tx.financeConcept.update({
@@ -70,6 +90,9 @@ export async function update(input: {
         amountCents: typeof input.amountCents === 'number' ? input.amountCents : undefined,
         currency: input.currency ?? undefined,
         isActive: typeof input.isActive === 'boolean' ? input.isActive : undefined,
+        autoGenerateOnEnrollment: typeof input.autoGenerateOnEnrollment === 'boolean' ? input.autoGenerateOnEnrollment : undefined,
+        chargeType: input.chargeType !== undefined ? input.chargeType : undefined,
+        installmentCount: typeof input.installmentCount === 'number' ? input.installmentCount : undefined,
       },
     });
 
@@ -85,6 +108,8 @@ export async function update(input: {
           amountCents: updated.amountCents,
           currency: updated.currency,
           cadence: updated.kind,
+          autoGenerate: updated.autoGenerateOnEnrollment,
+          chargeType: updated.chargeType,
         }),
       },
     });

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
@@ -11,6 +11,7 @@ type Grade = { id: string; score: number; maxScore: number; evaluationName: stri
 const TYPE_LABELS: Record<string, string> = { exam: 'Examen', quiz: 'Quiz', homework: 'Tarea', project: 'Proyecto', participation: 'Participación' };
 
 export default function StudentReportsPage() {
+  const { message } = App.useApp();
   const [grades, setGrades] = useState<Grade[]>([]);
   const [loading, setLoading] = useState(true);
 

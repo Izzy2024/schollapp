@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getStaffList, createStaff } from '@/actions/staff';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -20,6 +20,7 @@ type StaffMember = {
 };
 
 export default function StaffPage() {
+  const { message } = App.useApp();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

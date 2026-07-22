@@ -10,7 +10,7 @@ import {
   AnnouncementRow,
 } from '@/actions/announcements';
 import { getSectionsForAttendance } from '@/actions/attendance';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -49,6 +49,7 @@ function NewAnnouncementModal({
   onCreated: () => void;
   sections: Section[];
 }) {
+  const { message } = App.useApp();
   const [form, setForm] = useState({
     title: '',
     body: '',
@@ -306,6 +307,7 @@ function AnnouncementPreview({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnnouncementsPage() {
+  const { message } = App.useApp();
   const [rows, setRows] = useState<AnnouncementRow[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);

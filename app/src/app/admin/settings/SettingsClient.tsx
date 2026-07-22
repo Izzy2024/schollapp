@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { updateTenantProfile, importStudentsCsv } from '@/actions/settings';
+import { updateTenantProfile, importStudentsCsv, getTenantSettings, updateTenantSettings } from '@/actions/settings';
 import { ADMIN_MENU_GROUPS } from '@/lib/adminMenu';
-import { message } from 'antd';
+import { App } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -12,15 +12,26 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
   initProfile: { id: string, name: string, slug: string, domain: string, logoUrl: string } | null;
   tenantSlug: string;
 }) {
+  const { message } = App.useApp();
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'modules' | 'import'>('modules');
+  const [activeTab, setActiveTab] = useState<'profile' | 'modules' | 'import' | 'panama'>('modules');
   const [profileData, setProfileData] = useState({
     name: initProfile?.name || '',
     domain: initProfile?.domain || '',
     logoUrl: initProfile?.logoUrl || ''
   });
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Panama fiscal config
+  const [panamaData, setPanamaData] = useState({
+    ruc: '',
+    dv: '',
+    nit: '',
+    pacApiKey: '',
+  });
+  const [savingPanama, setSavingPanama] = useState(false);
+  const [loadingPanama, setLoadingPanama] = useState(true);
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -70,6 +81,47 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
     }
   };
 
+  // Load Panama settings
+  useEffect(() => {
+    const loadPanamaSettings = async () => {
+      setLoadingPanama(true);
+      try {
+        const settings = await getTenantSettings(tenantSlug);
+        if (settings) {
+          setPanamaData({
+            ruc: settings.panamaRUC || '',
+            dv: settings.panamaDV || '',
+            nit: settings.panamaNIT || '',
+            pacApiKey: settings.panamaPACApiKey || '',
+          });
+        }
+      } catch (err) {
+        console.error('Error loading Panama settings:', err);
+      } finally {
+        setLoadingPanama(false);
+      }
+    };
+    loadPanamaSettings();
+  }, [tenantSlug]);
+
+  const handlePanamaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPanama(true);
+    try {
+      await updateTenantSettings(tenantSlug, {
+        panamaRUC: panamaData.ruc || null,
+        panamaDV: panamaData.dv || null,
+        panamaNIT: panamaData.nit || null,
+        panamaPACApiKey: panamaData.pacApiKey || null,
+      });
+      message.success('Configuración fiscal actualizada');
+    } catch (err: any) {
+      message.error(err.message || 'Error al guardar');
+    } finally {
+      setSavingPanama(false);
+    }
+  };
+
   return (
     <DashboardLayout
       roleTitle="Appsschool"
@@ -102,6 +154,12 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
               className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'import' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Importador Masivo
+            </button>
+            <button 
+              onClick={() => setActiveTab('panama')}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'panama' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Panamá Fiscal
             </button>
           </div>
         </div>
@@ -265,6 +323,106 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                       </ul>
                     )}
                   </div>
+                )}
+             </div>
+          )}
+
+          {/* TAB 4: PANAMA FISCAL */}
+          {activeTab === 'panama' && (
+             <div className="max-w-2xl bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                   <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                     <span className="material-symbols-outlined">receipt_long</span>
+                   </div>
+                   <div>
+                     <h2 className="text-lg font-bold text-gray-900">Facturación Electrónica Panamá (SFEP)</h2>
+                     <p className="text-sm text-gray-500">Configura los datos fiscales para emitir facturas electrónicas.</p>
+                   </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6">
+                  <p className="text-sm text-blue-800">
+                    <strong>Requisito legal:</strong> Según Ley 256/2021 y Decreto 766/2020, las escuelas deben emitir facturas electrónicas 
+                    a través de un PAC (Proveedor Autorizado Calificado). Configura tus datos y obtén tu API key del PAC.
+                  </p>
+                </div>
+
+                {loadingPanama ? (
+                  <div className="text-center py-8 text-gray-400">Cargando...</div>
+                ) : (
+                  <form onSubmit={handlePanamaSubmit} className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">RUC de la Escuela</label>
+                        <input 
+                          type="text" 
+                          placeholder="123456789"
+                          value={panamaData.ruc} 
+                          onChange={e => setPanamaData({...panamaData, ruc: e.target.value})} 
+                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Registro Único de Contribuyente</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">DV</label>
+                        <input 
+                          type="text" 
+                          placeholder="12"
+                          maxLength={2}
+                          value={panamaData.dv} 
+                          onChange={e => setPanamaData({...panamaData, dv: e.target.value})} 
+                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Dígito Verificador (2 dígitos)</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">NIT (Opcional)</label>
+                      <input 
+                        type="text" 
+                        placeholder="1234567890"
+                        value={panamaData.nit} 
+                        onChange={e => setPanamaData({...panamaData, nit: e.target.value})} 
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Número de Identificación Tributaria</p>
+                    </div>
+
+                    <hr className="my-6 border-gray-100" />
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">API Key del PAC</label>
+                      <input 
+                        type="password" 
+                        placeholder="sk_live_..."
+                        value={panamaData.pacApiKey} 
+                        onChange={e => setPanamaData({...panamaData, pacApiKey: e.target.value})} 
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        Clave API proporcionada por tu PAC (Alegra, etc.). <a href="https://dgi-fep.mef.gob.pa" target="_blank" rel="noopener" className="text-blue-600 hover:underline">Lista de PAC autorizados →</a>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                      <span className={`w-3 h-3 rounded-full ${panamaData.ruc && panamaData.dv && panamaData.pacApiKey ? 'bg-green-500' : 'bg-yellow-400'}`}></span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {panamaData.ruc && panamaData.dv && panamaData.pacApiKey 
+                          ? 'Facturación electrónica: ✅ Lista para emitir' 
+                          : 'Facturación electrónica: ⚠️ Configuración incompleta'}
+                      </span>
+                    </div>
+                    
+                    <button 
+                      type="submit" 
+                      disabled={savingPanama}
+                      className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md w-full"
+                    >
+                      {savingPanama ? 'Guardando...' : 'Guardar Configuración Fiscal'}
+                    </button>
+                  </form>
                 )}
              </div>
           )}

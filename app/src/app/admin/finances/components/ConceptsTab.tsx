@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, InputNumber, Select, Table, message } from 'antd';
+import { App, Button, Form, Input, InputNumber, Select, Table, Switch, Tag } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
 import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
 
 export default function ConceptsTab() {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [stableError, setStableError] = useState<StableErrorDisplay | null>(null);
+
+  const kind = Form.useWatch('kind', form);
+  const autoGenerate = Form.useWatch('autoGenerateOnEnrollment', form);
 
   const load = async () => {
     setTableLoading(true);
@@ -46,6 +50,18 @@ export default function ConceptsTab() {
         render: (_: any, r: Concept) => `${(r.amountCents / 100).toFixed(2)} ${r.currency}`,
       },
       {
+        title: 'Auto-generar',
+        key: 'autoGenerate',
+        render: (_: any, r: any) =>
+          r.autoGenerateOnEnrollment ? (
+            <Tag color="green">
+              {r.chargeType === 'enrollment' ? 'Matrícula' : r.chargeType === 'monthly' ? 'Mensual' : 'Sí'}
+            </Tag>
+          ) : (
+            <Tag>No</Tag>
+          ),
+      },
+      {
         title: 'Activo',
         dataIndex: 'isActive',
         key: 'isActive',
@@ -64,6 +80,9 @@ export default function ConceptsTab() {
         kind: values.kind,
         amountCents: Math.round(Number(values.amount) * 100),
         currency: values.currency,
+        autoGenerateOnEnrollment: values.autoGenerateOnEnrollment || false,
+        chargeType: values.chargeType || null,
+        installmentCount: values.installmentCount ? Number(values.installmentCount) : null,
       });
       message.success('Concepto creado');
       form.resetFields(['name']);
@@ -80,7 +99,7 @@ export default function ConceptsTab() {
       <StableErrorUi error={stableError} />
 
       <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ kind: 'monthly', currency: 'MXN' }}>
+        <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ kind: 'monthly', currency: 'MXN', autoGenerateOnEnrollment: false }}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Form.Item name="name" label="Nombre" rules={[{ required: true, message: 'Ingresa el nombre' }]}>
               <Input placeholder="Colegiatura" />
@@ -104,7 +123,44 @@ export default function ConceptsTab() {
             </Form.Item>
           </div>
 
-          <div className="flex gap-2">
+          {/* Auto-generate options */}
+          <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-100">
+            <Form.Item name="autoGenerateOnEnrollment" label={null} valuePropName="checked">
+              <Switch checkedChildren="Auto-generar" unCheckedChildren="Manual" />
+            </Form.Item>
+            <p className="text-xs text-gray-500 -mt-2 mb-3">
+              Generar automáticamente al matricular un alumno
+            </p>
+
+            {autoGenerate && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Form.Item name="chargeType" label="Tipo de cargo">
+                  <Select
+                    allowClear
+                    placeholder="Seleccionar..."
+                    options={[
+                      { value: 'enrollment', label: 'Matrícula (único)' },
+                      { value: 'monthly', label: 'Mensualidad (varios)' },
+                      { value: 'annual', label: 'Anual (con descuento)' },
+                    ]}
+                  />
+                </Form.Item>
+
+                <Form.Item name="installmentCount" label="Número de cuotas">
+                  <InputNumber
+                    className="w-full"
+                    min={1}
+                    max={12}
+                    placeholder="10"
+                    disabled={form.getFieldValue('chargeType') !== 'monthly'}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Solo para mensualidades</p>
+                </Form.Item>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 mt-4">
             <Button type="primary" htmlType="submit" loading={loading}>
               Crear concepto
             </Button>

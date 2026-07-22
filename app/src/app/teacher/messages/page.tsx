@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Input, List, Badge, Card, Button, message as antdMessage } from 'antd';
+import { Input, Badge, Card, Button, message as antdMessage } from 'antd';
 import { listConversationsForUser, listMessages, markConversationRead, sendMessage, sendMessageInConversation, listRecipients } from '@/actions/messages';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
@@ -159,23 +159,27 @@ export default function TeacherMessagesPage() {
           </div>
 
           <Input placeholder="Buscar..." value={query} onChange={(e) => setQuery(e.target.value)} className="mb-3" />
-          <List
-            loading={inboxLoading}
-            dataSource={filteredInbox}
-            renderItem={(item) => (
-              <List.Item onClick={() => openConversation(item.conversationId)} className="cursor-pointer">
-                <List.Item.Meta
-                  title={
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium">{item.otherUser?.fullName ?? 'Conversación'}</span>
-                      <Badge count={item.unreadCount} />
-                    </div>
-                  }
-                  description={item.lastMessage ? item.lastMessage.body : 'Sin mensajes'}
-                />
-              </List.Item>
+          <div className="space-y-0">
+            {inboxLoading ? (
+              <div className="py-3 text-sm text-gray-500">Cargando...</div>
+            ) : filteredInbox.length === 0 ? (
+              <div className="py-3 text-sm text-gray-500">No hay conversaciones.</div>
+            ) : (
+              filteredInbox.map((item) => (
+                <div
+                  key={item.conversationId}
+                  onClick={() => openConversation(item.conversationId)}
+                  className="py-3 border-b border-gray-100 cursor-pointer last:border-b-0"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{item.otherUser?.fullName ?? 'Conversación'}</span>
+                    <Badge count={item.unreadCount} />
+                  </div>
+                  <div className="text-sm text-gray-600">{item.lastMessage ? item.lastMessage.body : 'Sin mensajes'}</div>
+                </div>
+              ))
             )}
-          />
+          </div>
         </Card>
 
         <Card className="lg:col-span-2" title="Conversación">

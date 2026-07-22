@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getClassRequests, approveClassRequest, rejectClassRequest } from '@/actions/classRequests';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 // Match the updated admin menu groups
@@ -22,6 +22,7 @@ type RequestObj = {
 };
 
 export default function ClassRequestsAdminPage() {
+  const { message } = App.useApp();
   const [requests, setRequests] = useState<RequestObj[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [loading, setLoading] = useState(true);

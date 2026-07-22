@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getTeacherStudentsData } from '@/actions/teacherStudents';
 import { TEACHER_MENU_GROUPS } from '@/lib/teacherMenu';
-import { message } from 'antd';
+import { App } from 'antd';
 
 type StudentBase = { id: string; enrollmentId: string | null; firstName: string; lastName: string; curp: string; email: string | null };
 
@@ -14,6 +14,7 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
   initialClassId: string;
   tenantSlug: string;
 }) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
 

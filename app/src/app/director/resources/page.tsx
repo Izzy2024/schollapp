@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['director']);
@@ -10,6 +10,7 @@ const menuGroups = getMenuGroupsForRoles(['director']);
 type Resource = { id: string; name: string; type: string; capacity: string; status: string; description: string };
 
 export default function DirectorResourcesPage() {
+  const { message } = App.useApp();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { message } from 'antd';
+import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['parent']);
@@ -10,6 +10,7 @@ const menuGroups = getMenuGroupsForRoles(['parent']);
 type Attachment = { id: string; fileName: string; fileType: string; createdAt: string; url: string };
 
 export default function ParentDocumentsPage() {
+  const { message } = App.useApp();
   const [documents, setDocuments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
 
