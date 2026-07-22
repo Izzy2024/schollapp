@@ -295,50 +295,64 @@ async function main() {
   }
 
   // Step 8.6 — ClassSchedules
-  const scheduleMapping: Record<string, any[]> = {
-    'Matemáticas': [
-      { dayOfWeek: 1, startTime: '08:00', endTime: '09:30' },
-      { dayOfWeek: 3, startTime: '08:00', endTime: '09:30' }
-    ],
-    'Español': [
-      { dayOfWeek: 1, startTime: '10:00', endTime: '11:30' },
-      { dayOfWeek: 4, startTime: '10:00', endTime: '11:30' }
-    ],
-    'Ciencias Naturales': [
-      { dayOfWeek: 2, startTime: '08:00', endTime: '09:30' },
-      { dayOfWeek: 5, startTime: '08:00', endTime: '09:30' }
-    ],
-    'Historia': [
-      { dayOfWeek: 2, startTime: '10:00', endTime: '11:30' },
-      { dayOfWeek: 4, startTime: '08:00', endTime: '09:30' }
-    ],
-    'Geografía': [
-      { dayOfWeek: 3, startTime: '10:00', endTime: '11:30' },
-      { dayOfWeek: 5, startTime: '10:00', endTime: '11:30' }
-    ],
-    'Educación Física': [
-      { dayOfWeek: 1, startTime: '12:00', endTime: '13:00' },
-      { dayOfWeek: 3, startTime: '12:00', endTime: '13:00' }
-    ],
-    'Inglés': [
-      { dayOfWeek: 2, startTime: '12:00', endTime: '13:30' },
-      { dayOfWeek: 4, startTime: '12:00', endTime: '13:30' }
-    ],
-    'Arte': [
-      { dayOfWeek: 5, startTime: '12:00', endTime: '13:30' },
-      { dayOfWeek: 3, startTime: '14:00', endTime: '15:30' }
-    ],
-    'Formación Cívica y Ética': [
-      { dayOfWeek: 1, startTime: '14:00', endTime: '15:00' },
-      { dayOfWeek: 5, startTime: '14:00', endTime: '15:00' }
-    ]
+  //
+  // Each section needs 2 sessions/week for each of its 9 subjects (18 slots),
+  // and no teacher may be double-booked across the sections they cover (a
+  // teacher can hold up to 2 subjects × 6 sections × 2 sessions = 24 slots).
+  // A single 90-min-block grid only has 5 days × 4 blocks = 20 slots, not
+  // enough headroom for the busiest teacher, so this uses 6 blocks/day (30
+  // slots/week) and greedily assigns each (section, subject) pair the next
+  // slot that's free for BOTH that section (so a student is never double-
+  // booked) and that subject's teacher (so a teacher is never double-booked).
+  const DAY_NUMBERS = [1, 2, 3, 4, 5];
+  const TIME_BLOCKS = [
+    { startTime: '07:00', endTime: '08:30' },
+    { startTime: '08:30', endTime: '10:00' },
+    { startTime: '10:00', endTime: '11:30' },
+    { startTime: '11:30', endTime: '13:00' },
+    { startTime: '13:00', endTime: '14:30' },
+    { startTime: '14:30', endTime: '16:00' },
+  ];
+  const ALL_WEEK_SLOTS = DAY_NUMBERS.flatMap((dayOfWeek) => TIME_BLOCKS.map((block) => ({ dayOfWeek, ...block })));
+  const slotKey = (s: { dayOfWeek: number; startTime: string }) => `${s.dayOfWeek}-${s.startTime}`;
+
+  const teacherUsedSlots: Record<string, Set<string>> = {};
+  const sectionUsedSlots: Record<string, Set<string>> = {};
+
+  // Rotate the scan start point each call instead of always trying slot #0
+  // first: a fixed order makes every teacher/section greedily pile onto the
+  // same early slots, starving whichever pair gets processed last.
+  let scanOffset = 0;
+
+  const pickFreeSlots = (teacherEmail: string, sectionId: string, count: number) => {
+    teacherUsedSlots[teacherEmail] ??= new Set();
+    sectionUsedSlots[sectionId] ??= new Set();
+    const picked: typeof ALL_WEEK_SLOTS = [];
+    for (let i = 0; i < ALL_WEEK_SLOTS.length; i++) {
+      if (picked.length >= count) break;
+      const slot = ALL_WEEK_SLOTS[(i + scanOffset) % ALL_WEEK_SLOTS.length];
+      const key = slotKey(slot);
+      if (teacherUsedSlots[teacherEmail].has(key) || sectionUsedSlots[sectionId].has(key)) continue;
+      picked.push(slot);
+      teacherUsedSlots[teacherEmail].add(key);
+      sectionUsedSlots[sectionId].add(key);
+    }
+    scanOffset = (scanOffset + 7) % ALL_WEEK_SLOTS.length;
+    return picked;
   };
 
+  // Regenerate from scratch each run: the slot-picking above is only
+  // conflict-free if it starts from a clean slate, and the old scheduleMapping
+  // (or a previous run's assignment) could otherwise leave stale rows behind.
+  await prisma.classSchedule.deleteMany({ where: { tenantId: tenant.id } });
+
   for (const ss of sectionSubjectsList) {
-    const schedules = scheduleMapping[ss.subjectName];
-    for (const sch of schedules) {
-      let schedule = await prisma.classSchedule.findFirst({
-        where: {
+    const staffEmail = subjectStaffMapping[ss.subjectName];
+    const slots = pickFreeSlots(staffEmail, ss.sectionId, 2);
+
+    for (const sch of slots) {
+      await prisma.classSchedule.create({
+        data: {
           tenantId: tenant.id,
           sectionSubjectId: ss.id,
           dayOfWeek: sch.dayOfWeek,
@@ -346,17 +360,6 @@ async function main() {
           endTime: sch.endTime
         }
       });
-      if (!schedule) {
-        await prisma.classSchedule.create({
-          data: {
-            tenantId: tenant.id,
-            sectionSubjectId: ss.id,
-            dayOfWeek: sch.dayOfWeek,
-            startTime: sch.startTime,
-            endTime: sch.endTime
-          }
-        });
-      }
     }
   }
 
