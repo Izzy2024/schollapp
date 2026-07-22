@@ -19,10 +19,10 @@ export async function getTenantProfile(tenantSlug?: string) {
     id: tenant.id,
     name: tenant.name,
     slug: tenant.slug,
-    // NOTE: schema currently doesn't include `domain`/`logoUrl`.
-    // Keep them for forward-compat but default to empty.
+    // NOTE: schema doesn't have a custom-domain field; this app isn't routed
+    // by tenant domain, so it's kept as a display-only field for now.
     domain: '',
-    logoUrl: ''
+    logoUrl: tenant.logoUrl || ''
   };
 }
 
@@ -45,7 +45,7 @@ export async function updateTenantProfile(
     where: { id: tenantId },
     data: {
       name: data.name,
-      // domain/logoUrl not in current schema
+      logoUrl: data.logoUrl?.trim() || null,
     }
   });
 

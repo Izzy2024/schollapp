@@ -19,6 +19,7 @@ model Tenant {
   name      String
   slug      String   @unique
   timezone  String   @default("America/Mexico_City")
+  logoUrl   String?
 
   // Panama fiscal fields
   panamaRUC       String? // RUC de la escuela

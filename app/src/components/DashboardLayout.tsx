@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { logOut } from '@/actions/authActions';
+import { getTenantProfile } from '@/actions/settings';
 
 interface NavItem {
   key: string;
@@ -39,6 +40,13 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+  const [branding, setBranding] = useState({ name: 'APPSSCHOLL', logoUrl: '' });
+
+  useEffect(() => {
+    getTenantProfile()
+      .then((profile) => setBranding({ name: profile.name || 'APPSSCHOLL', logoUrl: profile.logoUrl || '' }))
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="h-screen overflow-hidden flex items-center justify-center p-3 bg-gray-200">
@@ -50,12 +58,17 @@ export default function DashboardLayout({
           {/* Logo */}
           <div className="flex items-center justify-between mb-10">
             <Link href="/" className="flex items-center gap-3 no-underline">
-              <div className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <span className="material-symbols-outlined text-xl">school</span>
-              </div>
+              {branding.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={branding.logoUrl} alt={branding.name} className="w-10 h-10 rounded-xl object-cover shadow-lg flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <span className="material-symbols-outlined text-xl">school</span>
+                </div>
+              )}
               {sidebarOpen && (
                 <span className="font-bold text-lg tracking-tight text-gray-800">
-                  APPSSCHOLL
+                  {branding.name}
                 </span>
               )}
             </Link>
@@ -147,7 +160,7 @@ export default function DashboardLayout({
           <header className="h-16 border-b border-gray-100 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md sticky top-0 z-20">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Link href="/" className="hover:text-gray-800 cursor-pointer no-underline text-gray-500">
-                APPSSCHOLL
+                {branding.name}
               </Link>
               {breadcrumbs.map((crumb, i) => (
                 <React.Fragment key={i}>
