@@ -119,25 +119,17 @@ export async function assignTeacher(sectionSubjectId: string, staffId: string, t
     data: { staffId },
   });
 
-  // Usually would create ActivityEvent but schema might not support all these fields completely without user context
-  // Finding user admin to attach activity event if possible
-  const adminUser = await prisma.user.findFirst({
-    where: { email: 'admin@demo.com' }
+  await prisma.activityEvent.create({
+    data: {
+      tenantId: tenant.id,
+      actorUserId: session.user.id,
+      entityType: 'sectionSubject',
+      entityId: sectionSubjectId,
+      action: 'teacher_assigned',
+      metadata: JSON.stringify({ staffId }),
+      occurredAt: new Date(),
+    }
   });
-
-  if (adminUser) {
-    await prisma.activityEvent.create({
-      data: {
-        tenantId: tenant.id,
-        actorUserId: adminUser.id,
-        entityType: 'sectionSubject',
-        entityId: sectionSubjectId,
-        action: 'teacher_assigned',
-        metadata: JSON.stringify({ staffId }),
-        occurredAt: new Date(),
-      }
-    });
-  }
 
   return { success: true };
 }
