@@ -83,6 +83,7 @@ export default function ConceptsTab() {
         autoGenerateOnEnrollment: values.autoGenerateOnEnrollment || false,
         chargeType: values.chargeType || null,
         installmentCount: values.installmentCount ? Number(values.installmentCount) : null,
+        applySiblingDiscount: values.applySiblingDiscount || false,
       });
       message.success('Concepto creado');
       form.resetFields(['name']);
@@ -155,6 +156,10 @@ export default function ConceptsTab() {
                     disabled={form.getFieldValue('chargeType') !== 'monthly'}
                   />
                   <p className="text-xs text-gray-400 mt-1">Solo para mensualidades</p>
+                </Form.Item>
+
+                <Form.Item name="applySiblingDiscount" label={null} valuePropName="checked">
+                  <Switch checkedChildren="Descuento hermanos" unCheckedChildren="Sin descuento" />
                 </Form.Item>
               </div>
             )}

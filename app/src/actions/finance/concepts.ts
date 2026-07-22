@@ -14,6 +14,7 @@ export async function create(input: {
   autoGenerateOnEnrollment?: boolean;
   chargeType?: string | null;
   installmentCount?: number | null;
+  applySiblingDiscount?: boolean;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
@@ -34,6 +35,7 @@ export async function create(input: {
           autoGenerateOnEnrollment: input.autoGenerateOnEnrollment || false,
           chargeType: input.chargeType || null,
           installmentCount: input.installmentCount || null,
+          applySiblingDiscount: input.applySiblingDiscount || false,
         },
       });
 
@@ -75,6 +77,7 @@ export async function update(input: {
   autoGenerateOnEnrollment?: boolean;
   chargeType?: string | null;
   installmentCount?: number | null;
+  applySiblingDiscount?: boolean;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
@@ -93,6 +96,7 @@ export async function update(input: {
         autoGenerateOnEnrollment: typeof input.autoGenerateOnEnrollment === 'boolean' ? input.autoGenerateOnEnrollment : undefined,
         chargeType: input.chargeType !== undefined ? input.chargeType : undefined,
         installmentCount: typeof input.installmentCount === 'number' ? input.installmentCount : undefined,
+        applySiblingDiscount: typeof input.applySiblingDiscount === 'boolean' ? input.applySiblingDiscount : undefined,
       },
     });
 

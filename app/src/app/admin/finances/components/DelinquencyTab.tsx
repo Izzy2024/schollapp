@@ -8,6 +8,7 @@ import {
   getDelinquencySummary,
   updateOverdueStatuses,
   recordDunningEvent,
+  processOverdueReminders,
 } from '@/actions/finance/delinquency';
 import type { DelinquentStudent, DelinquencySummary } from '@/actions/finance-client-types';
 
@@ -46,6 +47,15 @@ export default function DelinquencyTab() {
       const result = await updateOverdueStatuses();
       message.success(`${result.updated} cargos marcados como vencidos`);
       load();
+    } catch (err: any) {
+      message.error(err.message || 'Error');
+    }
+  };
+
+  const handleProcessReminders = async () => {
+    try {
+      const result = await processOverdueReminders();
+      message.success(`${result.scheduled} recordatorios programados, ${result.sent} enviados`);
     } catch (err: any) {
       message.error(err.message || 'Error');
     }
@@ -172,6 +182,7 @@ export default function DelinquencyTab() {
         <p className="text-sm text-gray-500">Alumnos con pagos vencidos</p>
         <Space>
           <Button onClick={handleUpdateStatuses}>Actualizar estados</Button>
+          <Button onClick={handleProcessReminders}>Enviar recordatorios pendientes</Button>
           <Button onClick={load}>Actualizar</Button>
         </Space>
       </div>

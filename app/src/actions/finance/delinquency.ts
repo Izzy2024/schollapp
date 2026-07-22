@@ -403,3 +403,55 @@ export async function markReminderFailed(reminderId: string, errorMessage: strin
     },
   });
 }
+
+/**
+ * Manual reminder pipeline (no email/SMS provider is configured in this project,
+ * so delivery is limited to the in_app channel):
+ * 1. Ensure every currently overdue charge has an on_due_date reminder scheduled.
+ * 2. "Deliver" (mark sent) every pending reminder that is due.
+ * Returns counts so the UI can show what happened.
+ */
+export async function processOverdueReminders(): Promise<{ scheduled: number; sent: number }> {
+  const ctx = await getTenantIdFromSession();
+  await assertFinanceWriteAccess(ctx.user);
+
+  const overdueCharges = await prisma.financeCharge.findMany({
+    where: { tenantId: ctx.tenantId, status: 'overdue' },
+    select: { id: true },
+  });
+
+  let scheduled = 0;
+  for (const charge of overdueCharges) {
+    const existing = await prisma.financeReminder.findFirst({
+      where: { tenantId: ctx.tenantId, chargeId: charge.id, type: 'on_due_date' },
+    });
+    if (existing) continue;
+
+    await prisma.financeReminder.create({
+      data: {
+        tenantId: ctx.tenantId,
+        chargeId: charge.id,
+        type: 'on_due_date',
+        channel: 'in_app',
+        scheduledFor: new Date(),
+        status: 'pending',
+      },
+    });
+    scheduled++;
+  }
+
+  const due = await prisma.financeReminder.findMany({
+    where: { tenantId: ctx.tenantId, status: 'pending', channel: 'in_app', scheduledFor: { lte: new Date() } },
+    select: { id: true },
+    take: 200,
+  });
+
+  for (const reminder of due) {
+    await prisma.financeReminder.update({
+      where: { id: reminder.id },
+      data: { status: 'sent', sentAt: new Date() },
+    });
+  }
+
+  return { scheduled, sent: due.length };
+}

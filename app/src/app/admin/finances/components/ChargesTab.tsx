@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, Select, Table, Tag } from 'antd';
+import dayjs, { Dayjs } from 'dayjs';
+import { Button, Form, Input, InputNumber, DatePicker, Select, Table, Tag, Modal } from 'antd';
 import { App } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
 import * as financeCharge from '@/actions/finance/charges';
+import * as financeDiscount from '@/actions/finance/discounts';
+import * as financePaymentPlan from '@/actions/finance/payment-plans';
 import { generateInvoice } from '@/actions/finance/invoices';
 import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 import RecordPaymentModal from './RecordPaymentModal';
@@ -29,6 +32,16 @@ export default function ChargesTab() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordChargeId, setRecordChargeId] = useState<string | null>(null);
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
+
+  const [discounts, setDiscounts] = useState<Awaited<ReturnType<typeof financeDiscount.list>>>([]);
+  const [discountChargeId, setDiscountChargeId] = useState<string | null>(null);
+  const [discountId, setDiscountId] = useState<string | null>(null);
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  const [planChargeId, setPlanChargeId] = useState<string | null>(null);
+  const [planInstallmentCount, setPlanInstallmentCount] = useState<number>(3);
+  const [planStartDate, setPlanStartDate] = useState<Dayjs | null>(dayjs());
+  const [creatingPlan, setCreatingPlan] = useState(false);
 
   const loadConcepts = async () => {
     setConceptsLoading(true);
@@ -64,6 +77,7 @@ export default function ChargesTab() {
 
   useEffect(() => {
     loadConcepts();
+    financeDiscount.list().then((rows) => setDiscounts(rows.filter((d) => d.isActive && d.kind !== 'sibling')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -136,11 +150,31 @@ export default function ChargesTab() {
             >
               Factura
             </Button>
+            <Button
+              size="small"
+              onClick={() => {
+                setDiscountChargeId(r.id);
+                setDiscountId(null);
+              }}
+            >
+              Aplicar descuento
+            </Button>
+            <Button
+              size="small"
+              disabled={r.status === 'paid' || r.status === 'void'}
+              onClick={() => {
+                setPlanChargeId(r.id);
+                setPlanInstallmentCount(3);
+                setPlanStartDate(dayjs());
+              }}
+            >
+              Plan de pago
+            </Button>
           </div>
         ),
       },
     ],
-    []
+    [discounts]
   );
 
   const onGenerate = async () => {
@@ -240,6 +274,76 @@ export default function ChargesTab() {
           await refreshCharges();
         }}
       />
+
+      <Modal
+        title="Aplicar descuento al cargo"
+        open={!!discountChargeId}
+        confirmLoading={applyingDiscount}
+        onCancel={() => setDiscountChargeId(null)}
+        onOk={async () => {
+          if (!discountChargeId || !discountId) return;
+          setApplyingDiscount(true);
+          try {
+            await financeDiscount.applyToCharge(discountChargeId, discountId);
+            message.success('Descuento aplicado');
+            setDiscountChargeId(null);
+            await refreshCharges();
+          } catch (err) {
+            setStableError(toStableErrorDisplay(err));
+          } finally {
+            setApplyingDiscount(false);
+          }
+        }}
+        okButtonProps={{ disabled: !discountId }}
+      >
+        <Select
+          className="w-full"
+          placeholder="Selecciona un descuento"
+          value={discountId}
+          onChange={setDiscountId}
+          options={discounts.map((d) => ({
+            value: d.id,
+            label: `${d.name} (${d.percentage != null ? `${d.percentage}%` : `${((d.fixedCents || 0) / 100).toFixed(2)}`})`,
+          }))}
+        />
+      </Modal>
+
+      <Modal
+        title="Convertir cargo en plan de pago"
+        open={!!planChargeId}
+        confirmLoading={creatingPlan}
+        onCancel={() => setPlanChargeId(null)}
+        onOk={async () => {
+          if (!planChargeId || !planStartDate) return;
+          setCreatingPlan(true);
+          try {
+            await financePaymentPlan.createPaymentPlan({
+              chargeId: planChargeId,
+              installmentCount: planInstallmentCount,
+              startDate: planStartDate.toDate(),
+            });
+            message.success('Plan de pago creado');
+            setPlanChargeId(null);
+            await refreshCharges();
+          } catch (err) {
+            setStableError(toStableErrorDisplay(err));
+          } finally {
+            setCreatingPlan(false);
+          }
+        }}
+        okButtonProps={{ disabled: !planStartDate || planInstallmentCount < 2 }}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-500">Número de cuotas</label>
+            <InputNumber className="w-full" min={2} max={24} value={planInstallmentCount} onChange={(v) => setPlanInstallmentCount(v || 2)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500">Fecha de primera cuota</label>
+            <DatePicker className="w-full" value={planStartDate} onChange={setPlanStartDate} />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

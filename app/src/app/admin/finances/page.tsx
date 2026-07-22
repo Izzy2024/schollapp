@@ -8,6 +8,8 @@ import ChargesTab from './components/ChargesTab';
 import InvoicesTab from './components/InvoicesTab';
 import PaymentsTab from './components/PaymentsTab';
 import DelinquencyTab from './components/DelinquencyTab';
+import DiscountsTab from './components/DiscountsTab';
+import PlansTab from './components/PlansTab';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -55,6 +57,16 @@ export default function AdminFinancesPage() {
               key: 'concepts',
               label: 'Conceptos',
               children: <ConceptsTab />,
+            },
+            {
+              key: 'discounts',
+              label: 'Descuentos',
+              children: <DiscountsTab />,
+            },
+            {
+              key: 'plans',
+              label: 'Planes de pago',
+              children: <PlansTab />,
             },
           ]}
         />

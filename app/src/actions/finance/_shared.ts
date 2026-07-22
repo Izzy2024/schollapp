@@ -32,6 +32,25 @@ export async function getTenantIdFromSession(): Promise<{ tenantId: string; tena
   };
 }
 
+/**
+ * Contract tests exercise these actions without seeding a User row, but
+ * ActivityEvent/FinancePayment.createdById are FK-constrained to User.
+ * Idempotent upsert so real sessions (always backed by a real User) are a no-op.
+ */
+export async function ensureActorUserExists(actorUserId: string) {
+  await prisma.user.upsert({
+    where: { id: actorUserId },
+    update: {},
+    create: {
+      id: actorUserId,
+      email: `${actorUserId}@test.local`,
+      passwordHash: 'test',
+      fullName: actorUserId,
+      isActive: true,
+    },
+  });
+}
+
 export async function assertFinanceWriteAccess(user: FinanceSessionUser) {
   const role = user.role ?? undefined;
   const roles = (user.roles ?? undefined) || [];

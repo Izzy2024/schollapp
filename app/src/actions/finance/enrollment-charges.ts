@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { resolveSiblingDiscount, markDiscountUsed } from './discounts';
 
 // ============================================================================
 // Types
@@ -17,6 +18,7 @@ export type EnrollmentChargeResult = {
     amountCents: number;
     periodKey: string;
     dueDate: Date;
+    discountCents?: number;
   }>;
   totalCents: number;
 };
@@ -74,6 +76,7 @@ export async function generateEnrollmentCharges(
     amountCents: number;
     periodKey: string;
     dueDate: Date;
+    discountCents?: number;
   }> = [];
 
   let totalCents = 0;
@@ -87,12 +90,23 @@ export async function generateEnrollmentCharges(
         const periodKey = `${yearName}-MAT`;
         const dueDate = new Date();
 
+        let amountCents = concept.amountCents;
+        let discountCents = 0;
+        if (concept.applySiblingDiscount) {
+          const discount = await resolveSiblingDiscount(tx, tenant.id, studentId, concept.id, 'enrollment', amountCents);
+          if (discount) {
+            discountCents = discount.reductionCents;
+            amountCents -= discountCents;
+            await markDiscountUsed(tx, discount.discountId);
+          }
+        }
+
         const charge = await tx.financeCharge.create({
           data: {
             tenantId: tenant.id,
             studentId,
             conceptId: concept.id,
-            amountCents: concept.amountCents,
+            amountCents,
             currency: concept.currency,
             periodKey,
             status: 'pending',
@@ -103,11 +117,12 @@ export async function generateEnrollmentCharges(
         charges.push({
           id: charge.id,
           conceptName: concept.name,
-          amountCents: concept.amountCents,
+          amountCents,
           periodKey,
           dueDate,
+          discountCents: discountCents || undefined,
         });
-        totalCents += concept.amountCents;
+        totalCents += amountCents;
       } else if (chargeType === 'monthly' && paymentOption !== 'enrollment_only') {
         // Monthly fees
         const months = concept.installmentCount || 10;
@@ -143,6 +158,18 @@ export async function generateEnrollmentCharges(
           const startDate = academicYear?.startDate || new Date();
           const startMonth = startDate.getMonth();
 
+          // Resolve the sibling discount once for the whole tuition plan (not per month)
+          // so a single family only consumes one "use" regardless of installment count.
+          let monthlyDiscountCents = 0;
+          let monthlyDiscountId: string | null = null;
+          if (concept.applySiblingDiscount) {
+            const discount = await resolveSiblingDiscount(tx, tenant.id, studentId, concept.id, 'monthly', concept.amountCents);
+            if (discount) {
+              monthlyDiscountCents = discount.reductionCents;
+              monthlyDiscountId = discount.discountId;
+            }
+          }
+
           for (let i = 0; i < months; i++) {
             const month = startMonth + i;
             const year = startDate.getFullYear() + Math.floor(month / 12);
@@ -150,13 +177,14 @@ export async function generateEnrollmentCharges(
             const periodKey = `${year}-${String(actualMonth + 1).padStart(2, '0')}`;
 
             const dueDate = new Date(year, actualMonth, 5); // Due on 5th of each month
+            const amountCents = concept.amountCents - monthlyDiscountCents;
 
             const charge = await tx.financeCharge.create({
               data: {
                 tenantId: tenant.id,
                 studentId,
                 conceptId: concept.id,
-                amountCents: concept.amountCents,
+                amountCents,
                 currency: concept.currency,
                 periodKey,
                 status: 'pending',
@@ -167,12 +195,15 @@ export async function generateEnrollmentCharges(
             charges.push({
               id: charge.id,
               conceptName: `${concept.name} (${getMonthName(actualMonth)})`,
-              amountCents: concept.amountCents,
+              amountCents,
               periodKey,
               dueDate,
+              discountCents: monthlyDiscountCents || undefined,
             });
-            totalCents += concept.amountCents;
+            totalCents += amountCents;
           }
+
+          if (monthlyDiscountId) await markDiscountUsed(tx, monthlyDiscountId);
         }
       }
     }

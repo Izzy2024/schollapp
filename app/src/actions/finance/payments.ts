@@ -3,6 +3,23 @@
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { assertFinanceWriteAccess, getTenantIdFromSession } from './_shared';
+import type { Prisma } from '@prisma/client';
+
+/**
+ * Shared "paid iff sum(payments) >= amountCents" rule, used by both direct
+ * manual payments and payment-plan installment payments so the threshold
+ * logic only lives in one place.
+ */
+export async function settleChargeStatus(tx: Prisma.TransactionClient, tenantId: string, chargeId: string, amountCents: number) {
+  const agg = await tx.financePayment.aggregate({
+    where: { tenantId, chargeId },
+    _sum: { amountCents: true },
+  });
+  const paidCents = agg._sum.amountCents ?? 0;
+  const nextStatus = paidCents >= amountCents ? 'paid' : 'pending';
+  await tx.financeCharge.update({ where: { id: chargeId }, data: { status: nextStatus } });
+  return nextStatus;
+}
 
 export type RecordManualPaymentInput = {
   chargeId: string;
@@ -80,19 +97,8 @@ export async function recordManual(input: RecordManualPaymentInput) {
       },
     });
 
-    // Optional: update charge status deterministically (MVP: paid iff sum(payments) >= amountCents)
-    const agg = await tx.financePayment.aggregate({
-      where: { tenantId: ctx.tenantId, chargeId: charge.id },
-      _sum: { amountCents: true },
-    });
-
-    const paidCents = agg._sum.amountCents ?? 0;
-    const nextStatus = paidCents >= charge.amountCents ? 'paid' : 'pending';
-
-    await tx.financeCharge.update({
-      where: { id: charge.id },
-      data: { status: nextStatus },
-    });
+    // Update charge status deterministically (MVP: paid iff sum(payments) >= amountCents)
+    await settleChargeStatus(tx, ctx.tenantId, charge.id, charge.amountCents);
 
     return created;
   });

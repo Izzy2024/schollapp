@@ -29,3 +29,6 @@ import './actions/__tests__/messages.contract.test';
 
 // M004 communication -> activity contract suites
 import './actions/activity.__tests__/communication-activity.contract.test';
+
+// M010 sibling discounts + payment plans contract suite
+import './actions/finance/__tests__/finance.m010.contract.test';
