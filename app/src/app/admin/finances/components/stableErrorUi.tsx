@@ -46,7 +46,7 @@ export function StableErrorUi({ error, className }: { error: StableErrorDisplay 
       className={className}
       type="error"
       showIcon
-      message={
+      title={
         <div className="space-y-1">
           <div className="font-medium">Error</div>
           <div className="text-xs text-gray-600">Código: {error.code}</div>

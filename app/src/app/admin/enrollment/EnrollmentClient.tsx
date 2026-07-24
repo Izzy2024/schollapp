@@ -89,17 +89,15 @@ export default function EnrollmentClient() {
     setLoading(true);
     setNotice(null);
     try {
-      const [rows, studentOpts, sectionOpts, hasEligible, paymentOptsResult] = await Promise.all([
+      const [rows, studentOpts, sectionOpts, hasEligible] = await Promise.all([
         enrollmentGetEnrollments(),
         listEnrollmentUiStudents(),
         listEnrollmentUiSections(),
         hasEnrollmentUiEligibleStudents(),
-        getEnrollmentPaymentOptions('').catch(() => ({ options: [], concepts: [] })),
       ]);
       setEnrollments(rows);
       setStudents(studentOpts);
       setSections(sectionOpts);
-      setPaymentOptions(paymentOptsResult.options);
 
       if (!hasEligible) {
         setNotice({
@@ -125,6 +123,14 @@ export default function EnrollmentClient() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (selectedSectionId) {
+      getEnrollmentPaymentOptions(selectedSectionId)
+        .then((res) => setPaymentOptions(res.options))
+        .catch(() => setPaymentOptions([]));
+    }
+  }, [selectedSectionId]);
 
   const canSubmit = selectedStudentId && selectedSectionId && !submitting;
 

@@ -94,9 +94,29 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
     return { students: [], totals: { chargesCents: 0, paymentsCents: 0, balanceDueCents: 0 } };
   }
 
+  return buildStatementForStudents(ctx.tenantId, studentIds);
+}
+
+/**
+ * Admin/director-facing statement for a single student (estado de cuenta).
+ * Any authenticated tenant staff can read (mirrors the read-access convention
+ * used elsewhere in this module — writes are what's role-gated).
+ */
+export async function getForStudent(studentId: string): Promise<FinanceStatementStudentDTO | null> {
+  const ctx = await getTenantIdFromSession();
+
+  const student = await prisma.student.findFirst({ where: { id: studentId, tenantId: ctx.tenantId }, select: { id: true } });
+  if (!student) throw stableError(STABLE_ERROR.INVALID_TARGET);
+
+  const result = await buildStatementForStudents(ctx.tenantId, [studentId]);
+  return result.students[0] ?? null;
+}
+
+async function buildStatementForStudents(tenantId: string, studentIds: string[]): Promise<FinanceStatementDTO> {
   const [charges, payments] = await Promise.all([
     prisma.financeCharge.findMany({
-      where: { tenantId: ctx.tenantId, studentId: { in: studentIds } },
+      // Los cargos anulados no cuentan para el saldo del alumno.
+      where: { tenantId, studentId: { in: studentIds }, status: { not: 'void' } },
       select: {
         id: true,
         studentId: true,
@@ -112,7 +132,7 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     }),
     prisma.financePayment.findMany({
-      where: { tenantId: ctx.tenantId, studentId: { in: studentIds } },
+      where: { tenantId, studentId: { in: studentIds } },
       select: { id: true, studentId: true, chargeId: true, amountCents: true, currency: true, paidAt: true, method: true, note: true },
       orderBy: [{ paidAt: 'asc' }, { id: 'asc' }],
     }),

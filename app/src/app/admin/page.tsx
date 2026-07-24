@@ -85,6 +85,35 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Finance Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Link href="/admin/finances" className="stat-card no-underline hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <span className="material-symbols-outlined">payments</span>
+                </div>
+              </div>
+              <h3 className="text-sm font-medium text-gray-500">Cobrado este mes</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                ${(stats.financeCollectedThisMonthCents / 100).toLocaleString('es-PA', { minimumFractionDigits: 2 })}
+              </p>
+            </Link>
+            <Link href="/admin/finances" className="stat-card no-underline hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                  <span className="material-symbols-outlined">warning</span>
+                </div>
+              </div>
+              <h3 className="text-sm font-medium text-gray-500">Cartera vencida</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                ${(stats.financeOverdueCents / 100).toLocaleString('es-PA', { minimumFractionDigits: 2 })}
+                {stats.financeOverdueStudents > 0 && (
+                  <span className="text-sm font-medium text-gray-400 ml-2">({stats.financeOverdueStudents} alumnos)</span>
+                )}
+              </p>
+            </Link>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
               <div className="flex justify-between items-center mb-6">
@@ -132,6 +161,21 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-yellow-600">arrow_forward</span>
+                  </Link>
+                )}
+
+                {stats.financeOverdueStudents > 0 && (
+                  <Link href="/admin/finances" className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-600 shadow-sm">
+                        <span className="material-symbols-outlined">account_balance_wallet</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-red-900">Cartera Vencida</h4>
+                        <p className="text-sm text-red-800 opacity-80">{stats.financeOverdueStudents} alumno(s) con pagos vencidos.</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-red-600">arrow_forward</span>
                   </Link>
                 )}
 

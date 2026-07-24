@@ -90,6 +90,9 @@ export async function generateInvoice(input: GenerateInvoiceInput): Promise<Invo
   if (!charge) {
     throw stableError(STABLE_ERROR.FINANCE_CHARGE_NOT_FOUND);
   }
+  if (charge.status === 'void') {
+    throw new Error('Este cargo está anulado; no se puede facturar.');
+  }
 
   // Check if invoice already exists
   const existingInvoice = await prisma.financeInvoice.findFirst({

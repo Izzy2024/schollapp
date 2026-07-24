@@ -30,6 +30,8 @@ describe('overview KPIs integration contract (S05/R005/R004/R001)', () => {
         },
       },
       activityEvent: { findMany: async () => [] },
+      financePayment: { aggregate: async () => ({ _sum: { amountCents: 0 } }) },
+      financeCharge: { findMany: async () => [] },
     };
 
     const mod = await import('@/actions/admin');

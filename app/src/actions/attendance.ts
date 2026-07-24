@@ -282,13 +282,16 @@ export async function getAttendanceBySectionDate(
 
   const session = await prisma.attendanceSession.findFirst({
     where: { tenantId: tenant.id, sectionId, date },
-    include: { records: true }
+    include: { records: true, takenBy: { select: { fullName: true, roles: { where: { tenantId: tenant.id }, select: { role: { select: { name: true } } }, take: 1 } } } }
   });
 
   const recordMap = new Map(session?.records.map(r => [r.studentId, r]) ?? []);
 
   return {
     sessionId: session?.id ?? null,
+    takenBy: session?.takenBy
+      ? { name: session.takenBy.fullName, role: session.takenBy.roles[0]?.role.name ?? null }
+      : null,
     records: enrollments.map(e => ({
       studentId: e.student.id,
       studentName: `${e.student.firstName} ${e.student.lastName}`,

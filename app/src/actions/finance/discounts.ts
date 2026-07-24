@@ -176,6 +176,7 @@ export async function applyToCharge(chargeId: string, discountId: string) {
 
   const charge = await prisma.financeCharge.findFirst({ where: { id: chargeId, tenantId: ctx.tenantId } });
   if (!charge) throw stableError(STABLE_ERROR.FINANCE_CHARGE_NOT_FOUND);
+  if (charge.status === 'void') throw new Error('Este cargo está anulado; no admite descuentos.');
 
   const discount = await prisma.financeDiscount.findFirst({ where: { id: discountId, tenantId: ctx.tenantId, isActive: true } });
   if (!discount) throw stableError(STABLE_ERROR.FINANCE_DISCOUNT_NOT_FOUND);

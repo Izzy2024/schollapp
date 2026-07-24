@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Tabs } from 'antd';
 import ConceptsTab from './components/ConceptsTab';
 import ChargesTab from './components/ChargesTab';
+import StatementTab from './components/StatementTab';
 import InvoicesTab from './components/InvoicesTab';
 import PaymentsTab from './components/PaymentsTab';
 import DelinquencyTab from './components/DelinquencyTab';
@@ -33,6 +34,11 @@ export default function AdminFinancesPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
         <Tabs
           items={[
+            {
+              key: 'statement',
+              label: 'Estado de cuenta',
+              children: <StatementTab />,
+            },
             {
               key: 'invoices',
               label: 'Facturas',

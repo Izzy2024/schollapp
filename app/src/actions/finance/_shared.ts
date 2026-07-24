@@ -61,14 +61,18 @@ export async function assertFinanceWriteAccess(user: FinanceSessionUser) {
   throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
 }
 
-const PERIOD_KEY_RE = /^\d{4}-\d{2}$/;
+const PERIOD_KEY_RE = /^\d{4}(-[A-Z0-9]+)?$/i;
 
 export async function normalizeAndValidatePeriodKey(input: string): Promise<string> {
-  const v = (input ?? '').trim();
+  const v = (input ?? '').trim().toUpperCase();
   if (!PERIOD_KEY_RE.test(v)) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
 
-  const month = Number(v.slice(5, 7));
-  if (month < 1 || month > 12) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
+  // If it matches YYYY-MM, we optionally check valid month
+  const match = v.match(/^\d{4}-(\d{2})$/);
+  if (match) {
+    const month = Number(match[1]);
+    if (month < 1 || month > 12) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
+  }
 
   return v;
 }

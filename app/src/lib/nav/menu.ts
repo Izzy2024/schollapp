@@ -101,6 +101,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Académico',
       items: [
         { key: 'director-academic', icon: 'school', label: 'Rendimiento', href: '/director/academic' },
+        { key: 'director-attendance', icon: 'fact_check', label: 'Asistencia', href: '/director/attendance' },
         { key: 'director-staff', icon: 'badge', label: 'Desempeño Docente', href: '/director/staff' },
         { key: 'director-accreditation', icon: 'verified', label: 'Acreditación', href: '/director/accreditation' },
       ],

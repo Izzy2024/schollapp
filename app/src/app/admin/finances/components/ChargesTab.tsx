@@ -15,13 +15,14 @@ import RecordPaymentModal from './RecordPaymentModal';
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
 type Charge = Awaited<ReturnType<typeof financeCharge.listByPeriod>>[number];
 
-const PERIOD_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+const PERIOD_RE = /^\d{4}(-[A-Z0-9]+)?$/i;
 
 export default function ChargesTab() {
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [conceptsLoading, setConceptsLoading] = useState(false);
+  const [students, setStudents] = useState<{value: string, label: string}[]>([]);
 
   const [generating, setGenerating] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
@@ -31,12 +32,17 @@ export default function ChargesTab() {
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordChargeId, setRecordChargeId] = useState<string | null>(null);
+  const [recordStudentId, setRecordStudentId] = useState<string | null>(null);
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
 
   const [discounts, setDiscounts] = useState<Awaited<ReturnType<typeof financeDiscount.list>>>([]);
   const [discountChargeId, setDiscountChargeId] = useState<string | null>(null);
   const [discountId, setDiscountId] = useState<string | null>(null);
   const [applyingDiscount, setApplyingDiscount] = useState(false);
+
+  const [voidChargeId, setVoidChargeId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState('');
+  const [voiding, setVoiding] = useState(false);
 
   const [planChargeId, setPlanChargeId] = useState<string | null>(null);
   const [planInstallmentCount, setPlanInstallmentCount] = useState<number>(3);
@@ -77,6 +83,7 @@ export default function ChargesTab() {
 
   useEffect(() => {
     loadConcepts();
+    financeCharge.listStudentsForSelect().then(setStudents);
     financeDiscount.list().then((rows) => setDiscounts(rows.filter((d) => d.isActive && d.kind !== 'sibling')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -124,8 +131,10 @@ export default function ChargesTab() {
           <div className="flex gap-2">
             <Button
               size="small"
+              disabled={r.status === 'void'}
               onClick={() => {
                 setRecordChargeId(r.id);
+                setRecordStudentId(r.student.id);
                 setRecordOpen(true);
               }}
             >
@@ -133,6 +142,7 @@ export default function ChargesTab() {
             </Button>
             <Button
               size="small"
+              disabled={r.status === 'void'}
               loading={generatingInvoice === r.id}
               onClick={async () => {
                 setGeneratingInvoice(r.id);
@@ -152,6 +162,7 @@ export default function ChargesTab() {
             </Button>
             <Button
               size="small"
+              disabled={r.status === 'void'}
               onClick={() => {
                 setDiscountChargeId(r.id);
                 setDiscountId(null);
@@ -170,6 +181,17 @@ export default function ChargesTab() {
             >
               Plan de pago
             </Button>
+            <Button
+              size="small"
+              danger
+              disabled={r.status === 'void' || r.status === 'paid'}
+              onClick={() => {
+                setVoidChargeId(r.id);
+                setVoidReason('');
+              }}
+            >
+              Anular
+            </Button>
           </div>
         ),
       },
@@ -185,7 +207,7 @@ export default function ChargesTab() {
 
     // Light client validation (server is source of truth)
     if (!PERIOD_RE.test(values.periodKey)) {
-      setStableError(toStableErrorDisplay(new Error('Formato inválido. Usa YYYY-MM')));
+      setStableError(toStableErrorDisplay(new Error('Formato inválido. Usa YYYY-MM, YYYY-MAT o YYYY.')));
       return;
     }
 
@@ -194,6 +216,7 @@ export default function ChargesTab() {
       const result = await financeCharge.generateForPeriod({
         periodKey: values.periodKey,
         conceptId: values.conceptId,
+        studentIds: values.studentIds && values.studentIds.length > 0 ? values.studentIds : undefined,
       });
 
       // Must-have: idempotency should be visible but not an error.
@@ -230,10 +253,10 @@ export default function ChargesTab() {
             }
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Form.Item
               name="periodKey"
-              label="Periodo (YYYY-MM)"
+              label="Periodo (ej. 2026-03 o 2026-MAT)"
               rules={[{ required: true, message: 'Ingresa el periodo' }]}
             >
               <Input placeholder="2026-03" />
@@ -246,34 +269,88 @@ export default function ChargesTab() {
               />
             </Form.Item>
 
-            <div className="flex items-end gap-2">
-              <Button type="primary" onClick={onGenerate} loading={generating}>
+            <Form.Item name="studentIds" label="Alumnos (opcional)">
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="Todos los activos si se deja vacío"
+                options={students}
+                filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+              />
+            </Form.Item>
+
+            <div className="flex items-end">
+              <Button type="primary" onClick={onGenerate} loading={generating} block>
                 Generar cargos
-              </Button>
-              <Button onClick={() => refreshCharges()} disabled={tableLoading}>
-                Refrescar
-              </Button>
-              <Button onClick={loadConcepts} disabled={conceptsLoading}>
-                Refrescar conceptos
               </Button>
             </div>
           </div>
         </Form>
+        <div className="flex justify-end gap-2 mt-2">
+          <Button size="small" onClick={() => refreshCharges()} loading={tableLoading}>
+            Refrescar cargos
+          </Button>
+          <Button size="small" onClick={loadConcepts} loading={conceptsLoading}>
+            Refrescar conceptos
+          </Button>
+        </div>
       </div>
 
-      <Table rowKey="id" loading={tableLoading} dataSource={charges} columns={columns as any} pagination={{ pageSize: 10 }} />
+      <Table
+        rowKey="id"
+        loading={tableLoading}
+        dataSource={charges}
+        columns={columns as any}
+        rowClassName={(r: Charge) => (r.status === 'void' ? 'opacity-50 line-through' : '')}
+        pagination={{ pageSize: 10 }}
+      />
 
       <RecordPaymentModal
         open={recordOpen}
         chargeId={recordChargeId}
+        studentId={recordStudentId}
         onClose={() => {
           setRecordOpen(false);
           setRecordChargeId(null);
+          setRecordStudentId(null);
         }}
         onRecorded={async () => {
           await refreshCharges();
         }}
       />
+
+      <Modal
+        title="Anular cargo"
+        open={!!voidChargeId}
+        confirmLoading={voiding}
+        okText="Anular cargo"
+        okButtonProps={{ danger: true, disabled: !voidReason.trim() }}
+        onCancel={() => setVoidChargeId(null)}
+        onOk={async () => {
+          if (!voidChargeId) return;
+          setVoiding(true);
+          try {
+            await financeCharge.voidCharge({ chargeId: voidChargeId, reason: voidReason });
+            message.success('Cargo anulado');
+            setVoidChargeId(null);
+            await refreshCharges();
+          } catch (err) {
+            setStableError(toStableErrorDisplay(err));
+          } finally {
+            setVoiding(false);
+          }
+        }}
+      >
+        <p className="text-sm text-gray-500">
+          El cargo no se borra: queda marcado como anulado y deja de contar en el estado de cuenta del alumno.
+        </p>
+        <Input.TextArea
+          rows={3}
+          placeholder="Motivo (ej. cargo duplicado, monto equivocado)"
+          value={voidReason}
+          onChange={(e) => setVoidReason(e.target.value)}
+        />
+      </Modal>
 
       <Modal
         title="Aplicar descuento al cargo"

@@ -15,6 +15,7 @@ export async function create(input: {
   chargeType?: string | null;
   installmentCount?: number | null;
   applySiblingDiscount?: boolean;
+  gradeLevelId?: string | null;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
@@ -36,6 +37,7 @@ export async function create(input: {
           chargeType: input.chargeType || null,
           installmentCount: input.installmentCount || null,
           applySiblingDiscount: input.applySiblingDiscount || false,
+          gradeLevelId: input.gradeLevelId || null,
         },
       });
 
@@ -53,6 +55,7 @@ export async function create(input: {
             cadence: concept.kind,
             autoGenerate: concept.autoGenerateOnEnrollment,
             chargeType: concept.chargeType,
+            gradeLevelId: concept.gradeLevelId,
           }),
         },
       });
@@ -70,6 +73,7 @@ export async function create(input: {
 
 export async function update(input: {
   id: string;
+  name?: string;
   kind?: FinanceConceptKind;
   amountCents?: number;
   currency?: string;
@@ -78,6 +82,7 @@ export async function update(input: {
   chargeType?: string | null;
   installmentCount?: number | null;
   applySiblingDiscount?: boolean;
+  gradeLevelId?: string | null;
 }) {
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.user);
@@ -85,10 +90,14 @@ export async function update(input: {
   const concept = await prisma.financeConcept.findFirst({ where: { id: input.id, tenantId: ctx.tenantId } });
   if (!concept) throw new Error('Concepto no encontrado');
 
+  const name = input.name?.trim();
+  if (input.name !== undefined && !name) throw new Error('El nombre es requerido');
+
   const next = await prisma.$transaction(async (tx) => {
     const updated = await tx.financeConcept.update({
       where: { id: concept.id },
       data: {
+        name: name ?? undefined,
         kind: input.kind ?? undefined,
         amountCents: typeof input.amountCents === 'number' ? input.amountCents : undefined,
         currency: input.currency ?? undefined,
@@ -97,6 +106,7 @@ export async function update(input: {
         chargeType: input.chargeType !== undefined ? input.chargeType : undefined,
         installmentCount: typeof input.installmentCount === 'number' ? input.installmentCount : undefined,
         applySiblingDiscount: typeof input.applySiblingDiscount === 'boolean' ? input.applySiblingDiscount : undefined,
+        gradeLevelId: input.gradeLevelId !== undefined ? input.gradeLevelId : undefined,
       },
     });
 
@@ -114,11 +124,17 @@ export async function update(input: {
           cadence: updated.kind,
           autoGenerate: updated.autoGenerateOnEnrollment,
           chargeType: updated.chargeType,
+          gradeLevelId: updated.gradeLevelId,
         }),
       },
     });
 
     return updated;
+  }).catch((err) => {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new Error(`Ya existe un concepto llamado "${name}". Usa otro nombre.`);
+    }
+    throw err;
   });
 
   return next;
@@ -129,6 +145,7 @@ export async function list() {
 
   return prisma.financeConcept.findMany({
     where: { tenantId: ctx.tenantId },
+    include: { gradeLevel: { select: { name: true } } },
     orderBy: { createdAt: 'desc' },
   });
 }

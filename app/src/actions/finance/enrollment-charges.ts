@@ -50,12 +50,23 @@ export async function generateEnrollmentCharges(
     throw new Error('Tenant not found');
   }
 
+  // Get academic year info and section grade level
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { section: { select: { gradeLevelId: true } } }
+  });
+  const gradeLevelId = enrollment?.section.gradeLevelId;
+
   // Get auto-generate concepts
   const concepts = await prisma.financeConcept.findMany({
     where: {
       tenantId: tenant.id,
       autoGenerateOnEnrollment: true,
       isActive: true,
+      OR: [
+        { gradeLevelId: null },
+        { gradeLevelId }
+      ]
     },
   });
 
@@ -231,9 +242,9 @@ export async function generateEnrollmentCharges(
 }
 
 /**
- * Get available payment options for enrollment
+ * Get available payment options for enrollment based on the selected section
  */
-export async function getEnrollmentPaymentOptions(studentId: string): Promise<{
+export async function getEnrollmentPaymentOptions(sectionId?: string): Promise<{
   options: Array<{
     type: PaymentOption;
     label: string;
@@ -264,11 +275,26 @@ export async function getEnrollmentPaymentOptions(studentId: string): Promise<{
     throw new Error('Tenant not found');
   }
 
+  let gradeLevelId = undefined;
+  if (sectionId) {
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { gradeLevelId: true }
+    });
+    if (section) gradeLevelId = section.gradeLevelId;
+  }
+
   const concepts = await prisma.financeConcept.findMany({
     where: {
       tenantId: tenant.id,
       autoGenerateOnEnrollment: true,
       isActive: true,
+      ...(gradeLevelId ? {
+        OR: [
+          { gradeLevelId: null },
+          { gradeLevelId }
+        ]
+      } : { gradeLevelId: null }) // Default to global if no section provided
     },
   });
 

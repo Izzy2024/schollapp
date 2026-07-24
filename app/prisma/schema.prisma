@@ -227,6 +227,7 @@ model GradeLevel {
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sections Section[]
+  financeConcepts FinanceConcept[]
 
   @@unique([tenantId, code])
 }
@@ -663,6 +664,9 @@ model FinanceConcept {
   chargeType              String? // "enrollment" | "monthly" | "annual"
   installmentCount        Int?    @default(1) // Para mensualidades: cuántos meses (ej. 10)
   applySiblingDiscount   Boolean @default(false) // Aplicar descuento por hermano
+
+  gradeLevelId            String?
+  gradeLevel              GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
 
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt

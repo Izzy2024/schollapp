@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { App, Button, Spin, Table, Tag, DatePicker, Select, Input } from 'antd';
+import { App, Button, Spin, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import prisma from '@/lib/prisma';
+import { listAll } from '@/actions/finance/payments';
 
 type PaymentRecord = {
   id: string;
@@ -31,14 +31,9 @@ export default function PaymentsTab() {
   const load = async () => {
     setLoading(true);
     try {
-      // Fetch payments via server action - we'll use the existing statement data
-      const { listByPeriod } = await import('@/actions/finance/charges');
-      // For now, get all charges and their payments
-      const res = await fetch('/api/admin/payments');
-      if (!res.ok) throw new Error('Error cargando pagos');
-      const data = await res.json();
-      setPayments(data.payments || []);
-      setTotalCents(data.totalCents || 0);
+      const data = await listAll();
+      setPayments(data.payments);
+      setTotalCents(data.totalCents);
     } catch (err: any) {
       message.error(err.message || 'Error cargando pagos');
     } finally {

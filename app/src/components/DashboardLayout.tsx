@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { logOut } from '@/actions/authActions';
 import { getTenantProfile } from '@/actions/settings';
+import NotificationsBell from './NotificationsBell';
+import GlobalSearch from './GlobalSearch';
 
 interface NavItem {
   key: string;
@@ -172,18 +174,8 @@ export default function DashboardLayout({
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative hidden lg:block">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                <input
-                  className="pl-10 pr-4 py-2 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-gray-900 w-64 text-gray-900 placeholder-gray-400 outline-none"
-                  placeholder="Buscar..."
-                  type="text"
-                />
-              </div>
-              <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg relative">
-                <span className="material-symbols-outlined">notifications</span>
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-              </button>
+              <GlobalSearch />
+              <NotificationsBell />
               {headerAction}
             </div>
           </header>

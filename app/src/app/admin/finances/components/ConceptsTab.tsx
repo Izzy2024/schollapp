@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { App, Button, Form, Input, InputNumber, Select, Table, Switch, Tag } from 'antd';
 import * as financeConcept from '@/actions/finance/concepts';
+import { getGradeLevels } from '@/actions/academic';
 import { StableErrorUi, toStableErrorDisplay, type StableErrorDisplay } from './stableErrorUi';
 
 type Concept = Awaited<ReturnType<typeof financeConcept.list>>[number];
@@ -13,10 +14,13 @@ export default function ConceptsTab() {
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [gradeLevels, setGradeLevels] = useState<{ id: string; name: string }[]>([]);
   const [stableError, setStableError] = useState<StableErrorDisplay | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kind = Form.useWatch('kind', form);
   const autoGenerate = Form.useWatch('autoGenerateOnEnrollment', form);
+  const chargeType = Form.useWatch('chargeType', form);
 
   const load = async () => {
     setTableLoading(true);
@@ -32,8 +36,31 @@ export default function ConceptsTab() {
 
   useEffect(() => {
     load();
+    getGradeLevels().then(setGradeLevels).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const startEdit = (r: Concept) => {
+    setEditingId(r.id);
+    setStableError(null);
+    form.setFieldsValue({
+      name: r.name,
+      kind: r.kind,
+      amount: r.amountCents / 100,
+      currency: r.currency,
+      autoGenerateOnEnrollment: r.autoGenerateOnEnrollment,
+      chargeType: r.chargeType ?? undefined,
+      installmentCount: r.installmentCount ?? undefined,
+      applySiblingDiscount: r.applySiblingDiscount,
+      gradeLevelId: r.gradeLevelId ?? undefined,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    form.resetFields();
+  };
 
   const columns = useMemo(
     () => [
@@ -62,12 +89,49 @@ export default function ConceptsTab() {
           ),
       },
       {
+        title: 'Grado (opcional)',
+        key: 'gradeLevel',
+        render: (_: any, r: any) => r.gradeLevel?.name || 'Todos',
+      },
+      {
+        title: 'Cuotas',
+        key: 'installmentCount',
+        render: (_: any, r: Concept) => (r.chargeType === 'monthly' ? r.installmentCount ?? 10 : '—'),
+      },
+      {
         title: 'Activo',
         dataIndex: 'isActive',
         key: 'isActive',
         render: (v: boolean) => (v ? 'Sí' : 'No'),
       },
+      {
+        title: 'Acciones',
+        key: 'actions',
+        render: (_: any, r: Concept) => (
+          <div className="flex gap-2">
+            <Button size="small" onClick={() => startEdit(r)}>
+              Editar
+            </Button>
+            <Button
+              size="small"
+              danger={r.isActive}
+              onClick={async () => {
+                try {
+                  await financeConcept.update({ id: r.id, isActive: !r.isActive });
+                  message.success(r.isActive ? 'Concepto desactivado' : 'Concepto activado');
+                  await load();
+                } catch (err) {
+                  setStableError(toStableErrorDisplay(err));
+                }
+              }}
+            >
+              {r.isActive ? 'Desactivar' : 'Activar'}
+            </Button>
+          </div>
+        ),
+      },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -75,7 +139,7 @@ export default function ConceptsTab() {
     setLoading(true);
     setStableError(null);
     try {
-      await financeConcept.create({
+      const payload = {
         name: values.name,
         kind: values.kind,
         amountCents: Math.round(Number(values.amount) * 100),
@@ -84,9 +148,18 @@ export default function ConceptsTab() {
         chargeType: values.chargeType || null,
         installmentCount: values.installmentCount ? Number(values.installmentCount) : null,
         applySiblingDiscount: values.applySiblingDiscount || false,
-      });
-      message.success('Concepto creado');
-      form.resetFields(['name']);
+        gradeLevelId: values.gradeLevelId || null,
+      };
+
+      if (editingId) {
+        await financeConcept.update({ id: editingId, ...payload });
+        message.success('Concepto actualizado');
+        cancelEdit();
+      } else {
+        await financeConcept.create(payload);
+        message.success('Concepto creado');
+        form.resetFields(['name']);
+      }
       await load();
     } catch (err) {
       setStableError(toStableErrorDisplay(err));
@@ -99,7 +172,12 @@ export default function ConceptsTab() {
     <div className="space-y-6">
       <StableErrorUi error={stableError} />
 
-      <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+      <div className={`p-4 rounded-xl border ${editingId ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100'}`}>
+        {editingId ? (
+          <p className="text-sm font-medium text-amber-800 mb-3">
+            Editando concepto — los cargos ya generados no cambian, solo los futuros.
+          </p>
+        ) : null}
         <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ kind: 'monthly', currency: 'MXN', autoGenerateOnEnrollment: false }}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Form.Item name="name" label="Nombre" rules={[{ required: true, message: 'Ingresa el nombre' }]}>
@@ -147,19 +225,33 @@ export default function ConceptsTab() {
                   />
                 </Form.Item>
 
-                <Form.Item name="installmentCount" label="Número de cuotas">
-                  <InputNumber
-                    className="w-full"
-                    min={1}
-                    max={12}
-                    placeholder="10"
-                    disabled={form.getFieldValue('chargeType') !== 'monthly'}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Solo para mensualidades</p>
-                </Form.Item>
+                <div>
+                  <Form.Item name="installmentCount" label="Número de cuotas">
+                    <InputNumber
+                      className="w-full"
+                      min={1}
+                      max={12}
+                      placeholder="10"
+                      disabled={chargeType !== 'monthly'}
+                    />
+                  </Form.Item>
+                  <p className="text-xs text-gray-400 -mt-4">Solo para mensualidades</p>
+                </div>
 
                 <Form.Item name="applySiblingDiscount" label={null} valuePropName="checked">
                   <Switch checkedChildren="Descuento hermanos" unCheckedChildren="Sin descuento" />
+                </Form.Item>
+              </div>
+            )}
+            
+            {autoGenerate && (
+              <div className="mt-4">
+                <Form.Item name="gradeLevelId" label="Aplica a un grado específico (opcional)">
+                  <Select
+                    allowClear
+                    placeholder="Aplica a todos los grados"
+                    options={gradeLevels.map((g) => ({ value: g.id, label: g.name }))}
+                  />
                 </Form.Item>
               </div>
             )}
@@ -167,11 +259,15 @@ export default function ConceptsTab() {
 
           <div className="flex gap-2 mt-4">
             <Button type="primary" htmlType="submit" loading={loading}>
-              Crear concepto
+              {editingId ? 'Guardar cambios' : 'Crear concepto'}
             </Button>
-            <Button onClick={load} disabled={tableLoading}>
-              Refrescar
-            </Button>
+            {editingId ? (
+              <Button onClick={cancelEdit}>Cancelar edición</Button>
+            ) : (
+              <Button onClick={load} disabled={tableLoading}>
+                Refrescar
+              </Button>
+            )}
           </div>
         </Form>
       </div>
