@@ -52,7 +52,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - Admisiones: formulario de aspirante, examen, conversión a matrícula (`Enrollment.status` ya tiene `pre_enrolled` pero sin pipeline).
 - Promoción/rollover de año académico (pase masivo de sección al cierre de año).
 - Certificados y constancias oficiales generadas en PDF.
-- Recuperación de contraseña por email (reset con token, expira).
+- ~~Recuperación de contraseña por email~~ — **Hecho.** `passwordReset.ts` + modelo `PasswordResetToken` (expira en 1h, uso único); `/forgot-password` no revela si el email existe (previene enumeración de cuentas); `/reset-password?token=X` para establecer la nueva contraseña.
 - RBAC granular real (usar `Permission`/`RolePermission` en vez de string-matching de roles).
 
 ### P2 — ERP ampliado
@@ -65,7 +65,7 @@ Conducta/disciplina (incidentes, méritos/deméritos), biblioteca, transporte, c
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| NextAuth v5 credentials + bcryptjs, sesión JWT con `roles[]`/`tenantId`/`tenantSlug`; registro por código de invitación (`invitations.ts`, `/register`); `mustChangePassword` obligatorio tras provisioning | Reset de contraseña por email (sin token de recuperación) | Añadir modelo `PasswordResetToken` + envío por email (Resend) |
+| NextAuth v5 credentials + bcryptjs, sesión JWT con `roles[]`/`tenantId`/`tenantSlug`; registro por código de invitación (`invitations.ts`, `/register`); `mustChangePassword` obligatorio tras provisioning; recuperación de contraseña por email (`passwordReset.ts`, `/forgot-password`, `/reset-password`) | — | — |
 | RBAC por prefijo de ruta en `auth.config.ts`/`auth-guards.mjs` | Solo cubre `/admin`, `/teacher`, `/director` — `/student` y `/parent` sin gate de rol | Añadir estos prefijos al RBAC de rutas |
 | — | `AUTH_SECRET` con fallback hardcodeado (`'secret-for-dev-only-change-in-prod'`) | Obligatorio en producción, sin fallback silencioso |
 

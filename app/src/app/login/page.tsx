@@ -16,6 +16,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const justRegistered = searchParams.get('registered') === '1';
+  const justReset = searchParams.get('reset') === '1';
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
@@ -54,6 +55,11 @@ function LoginForm() {
           {justRegistered && (
             <div className="mb-6 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 text-center">
               Cuenta creada. Ya puedes iniciar sesión.
+            </div>
+          )}
+          {justReset && (
+            <div className="mb-6 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 text-center">
+              Contraseña actualizada. Ya puedes iniciar sesión.
             </div>
           )}
           <form className="space-y-6" action={formAction}>
@@ -98,6 +104,12 @@ function LoginForm() {
                 {errorMessage}
               </div>
             )}
+
+            <div className="text-right">
+              <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
 
             <div>
               <button

@@ -37,6 +37,11 @@ export const STABLE_ERROR = {
   // Assignments / submissions
   ASSIGNMENT_NOT_FOUND: 'ASSIGNMENT_NOT_FOUND',
   SUBMISSION_FORBIDDEN: 'SUBMISSION_FORBIDDEN',
+
+  // Password reset
+  RESET_TOKEN_NOT_FOUND: 'RESET_TOKEN_NOT_FOUND',
+  RESET_TOKEN_USED: 'RESET_TOKEN_USED',
+  RESET_TOKEN_EXPIRED: 'RESET_TOKEN_EXPIRED',
 } as const;
 
 export type StableErrorCode = (typeof STABLE_ERROR)[keyof typeof STABLE_ERROR];

@@ -51,3 +51,6 @@ import './lib/email/__tests__/email-adapter-selection.test';
 
 // Assignment submissions (deadline + file + feedback) contract suite
 import './actions/__tests__/submissions.contract.test';
+
+// Password reset by email contract suite
+import './actions/__tests__/passwordReset.contract.test';

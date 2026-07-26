@@ -53,6 +53,8 @@ export const authConfig = {
       const isPublicRoute =
         nextUrl.pathname.startsWith('/login') ||
         nextUrl.pathname.startsWith('/register') ||
+        nextUrl.pathname.startsWith('/forgot-password') ||
+        nextUrl.pathname.startsWith('/reset-password') ||
         nextUrl.pathname === '/';
       const isApiRoute = nextUrl.pathname.startsWith('/api');
       const isServerAction = isServerActionRequest(request);
