@@ -25,7 +25,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 |---|---|
 | Gradebook | El cálculo de promedios simples del propio gradebook del docente (`gradebook.ts`) sigue sin normalizar por `maxScore` ni ponderar — la ponderación real vive en `reportCards.tsx` (boleta), no se retroalimentó al gradebook para no arriesgar su UI/tests existentes |
 | Rol parent | Ya ve boleta de notas (`/parent/report-card`) y asistencia detallada (`/parent/attendance`); `parent/documents` sigue usando un scope de attachments hardcodeado (`'tenant','general'`) |
-| Attachments | `attachments.ts` guarda en filesystem local (`fs/promises`) — no escala en serverless ni multi-instancia |
+| Attachments | Abstracción lista (`src/lib/storage/`), pero sin `BLOB_READ_WRITE_TOKEN` sigue usando filesystem local en producción — falta provisionar el store |
 | RBAC granular | Modelos `Permission`/`RolePermission` existen y se siembran, pero el runtime enruta por nombre de rol string, no por permiso |
 | Páginas M009 recicladas | `director/resources` (deriva de `ClassSchedule.room`, sin modelo `Room`), `director/accreditation` (es el feed de `ActivityEvent` renombrado), `student/analytics`/`student/reports` (mismo `getStudentGrades()`, distinto render) |
 
@@ -42,7 +42,7 @@ Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones ex
 3. ~~**Boletas de calificaciones**~~ — **Hecho.** `reportCards.tsx`: ponderación configurable por tipo de evaluación, promedio por período, vistas admin/alumno/padre y export PDF.
 4. ~~**Portal del padre real**~~ — **Hecho.** `/parent/report-card` (boleta) y `/parent/attendance` (asistencia por hijo), ambos con verificación de vínculo `StudentGuardian`.
 5. **Migración SQLite → Postgres** — 9 modelos financieros con escritura concurrente multi-tenant no son seguros en SQLite en producción. Runbook listo en `docs/POSTGRES_MIGRATION.md`: el schema ya es portable (sin tipos nativos SQLite), solo falta provisionar la base y ejecutar los pasos (cambiar provider, regenerar migraciones, y sumar `mode: 'insensitive'` a las búsquedas `contains:` que hoy dependen del comportamiento case-insensitive de SQLite).
-6. **Attachments a object storage** (Vercel Blob / S3) — filesystem local no sobrevive a despliegues serverless multi-instancia.
+6. ~~**Attachments a object storage**~~ — **Preparado.** `src/lib/storage/` define `StorageAdapter` con adapter local (filesystem, default) y adapter Vercel Blob; `getStorageAdapter()` cambia automáticamente a Blob si existe `BLOB_READ_WRITE_TOKEN` en el entorno — solo falta provisionar el Blob store en Vercel y setear la variable.
 7. **Notificaciones por email** — sin esto, anuncios/mensajes/recordatorios de cobranza no llegan fuera de la app.
 
 ### P1 — para un SIS completo
@@ -84,7 +84,7 @@ Conducta/disciplina (incidentes, méritos/deméritos), biblioteca, transporte, c
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| Next.js build estándar | Sin CI/CD documentado, sin object storage, sin envío de email | Vercel + Postgres gestionado + Vercel Blob/S3 + Resend para email transaccional |
+| Next.js build estándar; adapter de storage listo para Vercel Blob (`src/lib/storage/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN` provisionado, sin envío de email | Vercel + Postgres gestionado + Vercel Blob (activar con el token) + Resend para email transaccional |
 
 ### Seguridad de datos de menores
 

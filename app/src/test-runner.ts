@@ -42,3 +42,6 @@ import './actions/__tests__/reportCards.contract.test';
 
 // Parent attendance access-control contract suite
 import './actions/__tests__/parentAttendance.contract.test';
+
+// Storage adapter selection (local vs Vercel Blob) suite
+import './lib/storage/__tests__/storage-adapter-selection.test';
