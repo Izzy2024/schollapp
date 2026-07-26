@@ -54,3 +54,6 @@ import './actions/__tests__/submissions.contract.test';
 
 // Password reset by email contract suite
 import './actions/__tests__/passwordReset.contract.test';
+
+// Granular RBAC (hasPermission) suite
+import './lib/__tests__/rbac.test';

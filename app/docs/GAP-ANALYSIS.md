@@ -27,7 +27,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Gradebook | El cálculo de promedios simples del propio gradebook del docente (`gradebook.ts`) sigue sin normalizar por `maxScore` ni ponderar — la ponderación real vive en `reportCards.tsx` (boleta), no se retroalimentó al gradebook para no arriesgar su UI/tests existentes |
 | Rol parent | Ya ve boleta de notas (`/parent/report-card`) y asistencia detallada (`/parent/attendance`); `parent/documents` sigue usando un scope de attachments hardcodeado (`'tenant','general'`) |
 | Attachments | Abstracción lista (`src/lib/storage/`), pero sin `BLOB_READ_WRITE_TOKEN` sigue usando filesystem local en producción — falta provisionar el store |
-| RBAC granular | Modelos `Permission`/`RolePermission` existen y se siembran, pero el runtime enruta por nombre de rol string, no por permiso |
+| RBAC granular | `hasPermission()` (`src/lib/rbac.ts`) ya consulta permisos reales y hay permisos granulares sembrados, pero ningún action file lo usa todavía — todos siguen autorizando por string de rol |
 | Páginas M009 recicladas | `director/resources` (deriva de `ClassSchedule.room`, sin modelo `Room`), `director/accreditation` (es el feed de `ActivityEvent` renombrado), `student/analytics`/`student/reports` (mismo `getStudentGrades()`, distinto render) |
 
 ### Inexistentes
@@ -53,7 +53,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - Promoción/rollover de año académico (pase masivo de sección al cierre de año).
 - Certificados y constancias oficiales generadas en PDF.
 - ~~Recuperación de contraseña por email~~ — **Hecho.** `passwordReset.ts` + modelo `PasswordResetToken` (expira en 1h, uso único); `/forgot-password` no revela si el email existe (previene enumeración de cuentas); `/reset-password?token=X` para establecer la nueva contraseña.
-- RBAC granular real (usar `Permission`/`RolePermission` en vez de string-matching de roles).
+- ~~RBAC granular real~~ — **Infraestructura lista, adopción parcial.** `src/lib/rbac.ts` (`hasPermission()`) consulta `Role → RolePermission → Permission` de verdad, con permisos granulares sembrados (`finance:write`, `students:manage`, `staff:manage`, `invitations:manage`, `grades:write`, `attendance:write`) además de los `app:*` legacy. **No se migraron** los ~40 archivos de `src/actions/**` que hoy autorizan por string de rol (`roles.includes('admin')`) — cada uno requeriría además actualizar sus contract tests (que crean sesiones de prueba con `roles: string[]` y tenants efímeros sin `Role`/`RolePermission` sembrados) para exercitar el chequeo real contra la DB. Migrar módulo por módulo es trabajo futuro incremental.
 
 ### P2 — ERP ampliado
 
