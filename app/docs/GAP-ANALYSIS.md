@@ -41,7 +41,7 @@ Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones ex
 2. ~~**Backdoor de login demo**~~ — **Hecho.** Gateado tras `ALLOW_DEMO_LOGIN=1` (solo `.env` de desarrollo); también se eliminó el fallback de roles por substring de email.
 3. ~~**Boletas de calificaciones**~~ — **Hecho.** `reportCards.tsx`: ponderación configurable por tipo de evaluación, promedio por período, vistas admin/alumno/padre y export PDF.
 4. ~~**Portal del padre real**~~ — **Hecho.** `/parent/report-card` (boleta) y `/parent/attendance` (asistencia por hijo), ambos con verificación de vínculo `StudentGuardian`.
-5. **Migración SQLite → Postgres** — 9 modelos financieros con escritura concurrente multi-tenant no son seguros en SQLite en producción.
+5. **Migración SQLite → Postgres** — 9 modelos financieros con escritura concurrente multi-tenant no son seguros en SQLite en producción. Runbook listo en `docs/POSTGRES_MIGRATION.md`: el schema ya es portable (sin tipos nativos SQLite), solo falta provisionar la base y ejecutar los pasos (cambiar provider, regenerar migraciones, y sumar `mode: 'insensitive'` a las búsquedas `contains:` que hoy dependen del comportamiento case-insensitive de SQLite).
 6. **Attachments a object storage** (Vercel Blob / S3) — filesystem local no sobrevive a despliegues serverless multi-instancia.
 7. **Notificaciones por email** — sin esto, anuncios/mensajes/recordatorios de cobranza no llegan fuera de la app.
 
@@ -72,7 +72,7 @@ Conducta/disciplina (incidentes, méritos/deméritos), biblioteca, transporte, c
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| SQLite (`dev.db`), Prisma `db push` sin migraciones | Sin concurrencia real, sin backups gestionados, sin migraciones versionadas | Postgres gestionado (Railway, Supabase o Neon) + `prisma migrate` para producción |
+| SQLite (`dev.db`), Prisma `db push` sin migraciones | Sin concurrencia real, sin backups gestionados, sin migraciones versionadas | Postgres gestionado (Railway, Supabase o Neon) + `prisma migrate` para producción — ver runbook en `docs/POSTGRES_MIGRATION.md` |
 
 ### Usuarios y tenancy
 
