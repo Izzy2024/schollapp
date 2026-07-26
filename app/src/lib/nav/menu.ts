@@ -136,6 +136,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'teacher-classes', icon: 'class', label: 'Mis Clases', href: '/teacher/classes' },
         { key: 'teacher-gradebook', icon: 'grading', label: 'Calificaciones', href: '/teacher/gradebook' },
+        { key: 'teacher-assignments', icon: 'assignment', label: 'Tareas', href: '/teacher/assignments' },
         { key: 'teacher-planning', icon: 'event_note', label: 'Planeación', href: '/teacher/planning' },
         { key: 'teacher-schedule', icon: 'schedule', label: 'Horario', href: '/teacher/schedule' },
         { key: 'teacher-students', icon: 'groups', label: 'Alumnos', href: '/teacher/students' },

@@ -76,6 +76,7 @@ model Tenant {
 
   invitations Invitation[]
   gradeWeightConfigs GradeWeightConfig[]
+  submissions Submission[]
 }
 
 // -----------------------------------------------------------------------------
@@ -335,6 +336,7 @@ model Student {
   gradeRecords      GradeRecord[]
   financeCharges    FinanceCharge[]
   financePayments   FinancePayment[]
+  submissions       Submission[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
@@ -399,6 +401,7 @@ model Attachment {
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   financePayments FinancePayment[]
+  submissions     Submission[]
 
   @@index([tenantId, ownerType, ownerId])
 }
@@ -521,22 +524,44 @@ model ActivityEvent {
 // -----------------------------------------------------------------------------
 
 model Evaluation {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
   sectionSubjectId String
   termId           String
   name             String
   type             String // Exam, Homework, Participation, etc.
   date             DateTime
-  maxScore         Float    @default(100)
-  createdAt        DateTime @default(now())
+  maxScore         Float     @default(100)
+  dueDate          DateTime? // set by the teacher to turn this evaluation into a submittable assignment
+  createdAt        DateTime  @default(now())
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sectionSubject SectionSubject @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
   term           Term           @relation(fields: [termId], references: [id], onDelete: Cascade)
   records        GradeRecord[]
+  submissions    Submission[]
 
   @@unique([tenantId, sectionSubjectId, termId, name])
+}
+
+model Submission {
+  id           String    @id @default(uuid())
+  tenantId     String
+  evaluationId String
+  studentId    String
+  submittedAt  DateTime?
+  attachmentId String?
+  feedback     String?
+  status       String    @default("pending") // pending/submitted/late/graded
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  evaluation Evaluation  @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attachment Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, evaluationId, studentId])
 }
 
 model GradeWeightConfig {

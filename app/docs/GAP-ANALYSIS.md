@@ -18,6 +18,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Registro por código de invitación | `invitations.ts` + `/register`: admin genera código ligado a Staff/Student/Guardian, la persona crea su cuenta; `mustChangePassword` fuerza cambio en el primer login con contraseña temporal |
 | Boletas de calificaciones | `reportCards.tsx`: ponderación configurable por tipo de evaluación (`admin/settings/grade-weights`), promedio por período y por materia, export PDF (`/api/report-cards/[studentId]/[termId]/pdf`), vistas en admin (tab del expediente), alumno y padre |
 | Portal del padre: notas y asistencia | `/parent/report-card` (boleta) y `/parent/attendance` (asistencia por hijo); `getChildAttendanceSummary` en `parent.ts` verifica el vínculo `StudentGuardian` antes de exponer datos |
+| Entrega de tareas | `submissions.ts` + modelo `Submission`: el docente marca una evaluación con `dueDate` para que acepte entregas; el alumno sube un archivo (vía `storage adapter`) en `/student/assignments`, se marca `late` si es tras la fecha límite; el docente ve las entregas y deja retroalimentación en `/teacher/assignments` |
 
 ### A medias
 
@@ -31,7 +32,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 
 ### Inexistentes
 
-Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones externas (email/SMS/push), admisiones (pipeline de aspirantes), conducta/disciplina, promoción/rollover de año académico, certificados y constancias oficiales, rúbricas y evaluación por competencias, reservas de aulas/recursos, biblioteca, transporte, cafetería, enfermería, RRHH/nómina de personal, inventario/activos, pasarela de pago online, integraciones externas (Google Classroom, SIS estatal), portal público del colegio, recuperación de contraseña por email.
+Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza por email), admisiones (pipeline de aspirantes), conducta/disciplina, promoción/rollover de año académico, certificados y constancias oficiales, rúbricas y evaluación por competencias, reservas de aulas/recursos, biblioteca, transporte, cafetería, enfermería, RRHH/nómina de personal, inventario/activos, pasarela de pago online, integraciones externas (Google Classroom, SIS estatal), portal público del colegio, recuperación de contraseña por email.
 
 ## 2. Brechas priorizadas
 
@@ -47,7 +48,7 @@ Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones ex
 
 ### P1 — para un SIS completo
 
-- Entrega de tareas (submission del alumno, fecha límite, archivo, feedback del docente).
+- ~~Entrega de tareas~~ — **Hecho.** `Evaluation.dueDate` opcional + modelo `Submission`; el docente pone fecha límite al crear la evaluación, el alumno sube un archivo en `/student/assignments` (marcado `late` si entrega tarde), el docente ve las entregas y deja retroalimentación en `/teacher/assignments`.
 - Admisiones: formulario de aspirante, examen, conversión a matrícula (`Enrollment.status` ya tiene `pre_enrolled` pero sin pipeline).
 - Promoción/rollover de año académico (pase masivo de sección al cierre de año).
 - Certificados y constancias oficiales generadas en PDF.

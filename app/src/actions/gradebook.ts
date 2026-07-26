@@ -117,7 +117,8 @@ export async function createEvaluation(
   type: string,
   dateIso: string,
   maxScore: number,
-  tenantSlug?: string
+  tenantSlug?: string,
+  dueDateIso?: string
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
@@ -142,7 +143,8 @@ export async function createEvaluation(
       name,
       type,
       date: new Date(dateIso),
-      maxScore
+      maxScore,
+      dueDate: dueDateIso ? new Date(dueDateIso) : undefined,
     }
   });
 

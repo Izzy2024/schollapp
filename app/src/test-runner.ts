@@ -48,3 +48,6 @@ import './lib/storage/__tests__/storage-adapter-selection.test';
 
 // Email adapter selection (console vs Resend) suite
 import './lib/email/__tests__/email-adapter-selection.test';
+
+// Assignment submissions (deadline + file + feedback) contract suite
+import './actions/__tests__/submissions.contract.test';
