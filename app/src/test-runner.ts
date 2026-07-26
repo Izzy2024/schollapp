@@ -45,3 +45,6 @@ import './actions/__tests__/parentAttendance.contract.test';
 
 // Storage adapter selection (local vs Vercel Blob) suite
 import './lib/storage/__tests__/storage-adapter-selection.test';
+
+// Email adapter selection (console vs Resend) suite
+import './lib/email/__tests__/email-adapter-selection.test';

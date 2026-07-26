@@ -43,7 +43,7 @@ Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones ex
 4. ~~**Portal del padre real**~~ — **Hecho.** `/parent/report-card` (boleta) y `/parent/attendance` (asistencia por hijo), ambos con verificación de vínculo `StudentGuardian`.
 5. **Migración SQLite → Postgres** — 9 modelos financieros con escritura concurrente multi-tenant no son seguros en SQLite en producción. Runbook listo en `docs/POSTGRES_MIGRATION.md`: el schema ya es portable (sin tipos nativos SQLite), solo falta provisionar la base y ejecutar los pasos (cambiar provider, regenerar migraciones, y sumar `mode: 'insensitive'` a las búsquedas `contains:` que hoy dependen del comportamiento case-insensitive de SQLite).
 6. ~~**Attachments a object storage**~~ — **Preparado.** `src/lib/storage/` define `StorageAdapter` con adapter local (filesystem, default) y adapter Vercel Blob; `getStorageAdapter()` cambia automáticamente a Blob si existe `BLOB_READ_WRITE_TOKEN` en el entorno — solo falta provisionar el Blob store en Vercel y setear la variable.
-7. **Notificaciones por email** — sin esto, anuncios/mensajes/recordatorios de cobranza no llegan fuera de la app.
+7. ~~**Notificaciones por email**~~ — **Preparado.** `src/lib/email/` define `EmailAdapter` con adapter de consola (default, solo loguea) y adapter Resend; `sendEmail()` cambia a Resend si existe `RESEND_API_KEY`. Ya integrado en `createInvitation` (envía el link de registro al email del Staff/Student/Guardian invitado, si tiene uno). Falta extenderlo a anuncios/recordatorios de cobranza y provisionar la cuenta de Resend.
 
 ### P1 — para un SIS completo
 
@@ -84,7 +84,7 @@ Conducta/disciplina (incidentes, méritos/deméritos), biblioteca, transporte, c
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| Next.js build estándar; adapter de storage listo para Vercel Blob (`src/lib/storage/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN` provisionado, sin envío de email | Vercel + Postgres gestionado + Vercel Blob (activar con el token) + Resend para email transaccional |
+| Next.js build estándar; adapters listos para Vercel Blob (`src/lib/storage/`) y Resend (`src/lib/email/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN` ni `RESEND_API_KEY` provisionados | Vercel + Postgres gestionado + Vercel Blob (activar con el token) + Resend (activar con la API key + `RESEND_FROM_EMAIL`) |
 
 ### Seguridad de datos de menores
 
@@ -97,6 +97,6 @@ Conducta/disciplina (incidentes, méritos/deméritos), biblioteca, transporte, c
 - **Hosting**: Vercel para el frontend/API routes de Next.js.
 - **Base de datos**: Postgres gestionado (Railway/Supabase/Neon), no SQLite en producción.
 - **Storage de archivos**: Vercel Blob o S3 en vez de filesystem local.
-- **Email transaccional**: Resend (o similar) para invitaciones, recuperación de contraseña, notificaciones.
-- **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
+- **Email transaccional**: Resend — ya integrado en `src/lib/email/`; solo falta `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado en Resend) para activarlo.
+- **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback), `APP_URL` (dominio real, usado en los links de invitación), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
 - **Seed**: `db:seed` y usuarios demo solo corren en desarrollo/staging, nunca contra la base de producción.

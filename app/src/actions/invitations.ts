@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { ensureMembershipAndRole, type ProvisionRole } from '@/lib/accountProvisioning';
+import { sendEmail } from '@/lib/email';
 
 type InvitationTargetType = 'staff' | 'student' | 'guardian';
 
@@ -41,6 +42,17 @@ async function getAdminTenantSession() {
   if (!tenant) throw new Error('Tenant not found');
 
   return { tenantId: tenant.id, actorUserId: session.user.id };
+}
+
+async function sendInvitationEmail(tenantId: string, email: string, invitedName: string, code: string): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
+  const registerUrl = `${process.env.APP_URL ?? ''}/register?code=${code}`;
+
+  await sendEmail({
+    to: email,
+    subject: `Invitación para crear tu cuenta en ${tenant?.name ?? 'la escuela'}`,
+    html: `<p>Hola ${invitedName},</p><p>Crea tu cuenta en ${tenant?.name ?? 'la escuela'} con el siguiente enlace:</p><p><a href="${registerUrl}">${registerUrl}</a></p><p>Este enlace expira en 7 días.</p>`,
+  });
 }
 
 async function resolveTargetName(
@@ -88,6 +100,12 @@ export async function createInvitation(input: { targetType: InvitationTargetType
 
   safeRevalidate('/admin/staff');
   safeRevalidate('/admin/students');
+
+  if (target.email) {
+    void sendInvitationEmail(tenantId, target.email, target.name, code).catch((err) =>
+      console.error('Error sending invitation email (invite still usable via the code shown to admin):', err)
+    );
+  }
 
   return { code, expiresAt, invitedName: target.name };
 }
