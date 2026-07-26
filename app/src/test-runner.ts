@@ -57,3 +57,6 @@ import './actions/__tests__/passwordReset.contract.test';
 
 // Granular RBAC (hasPermission) suite
 import './lib/__tests__/rbac.test';
+
+// Admissions pipeline (public application -> exam -> convert) contract suite
+import './actions/__tests__/admissions.contract.test';

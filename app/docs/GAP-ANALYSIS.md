@@ -49,7 +49,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 ### P1 — para un SIS completo
 
 - ~~Entrega de tareas~~ — **Hecho.** `Evaluation.dueDate` opcional + modelo `Submission`; el docente pone fecha límite al crear la evaluación, el alumno sube un archivo en `/student/assignments` (marcado `late` si entrega tarde), el docente ve las entregas y deja retroalimentación en `/teacher/assignments`.
-- Admisiones: formulario de aspirante, examen, conversión a matrícula (`Enrollment.status` ya tiene `pre_enrolled` pero sin pipeline).
+- ~~Admisiones~~ — **Hecho.** Modelo `Applicant` + `admissions.ts`: formulario público sin login en `/apply/[tenantSlug]`, pipeline en `/admin/admissions` (examen → decisión → conversión a `Student`, con `Guardian` vinculado si se registró). La conversión crea el alumno pero no lo inscribe a una sección — eso sigue el flujo existente de `/admin/enrollment` a propósito, para no duplicar su lógica de capacidad/validación.
 - Promoción/rollover de año académico (pase masivo de sección al cierre de año).
 - Certificados y constancias oficiales generadas en PDF.
 - ~~Recuperación de contraseña por email~~ — **Hecho.** `passwordReset.ts` + modelo `PasswordResetToken` (expira en 1h, uso único); `/forgot-password` no revela si el email existe (previene enumeración de cuentas); `/reset-password?token=X` para establecer la nueva contraseña.

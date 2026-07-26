@@ -4,5 +4,5 @@ import { authConfig } from './auth.config'; // We need to create a config withou
 export default NextAuth(authConfig).auth;
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login|register|forgot-password|reset-password).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login|register|forgot-password|reset-password|apply).*)'],
 };

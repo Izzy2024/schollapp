@@ -77,6 +77,7 @@ model Tenant {
   invitations Invitation[]
   gradeWeightConfigs GradeWeightConfig[]
   submissions Submission[]
+  applicants Applicant[]
 }
 
 // -----------------------------------------------------------------------------
@@ -265,8 +266,33 @@ model GradeLevel {
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sections Section[]
   financeConcepts FinanceConcept[]
+  applicants Applicant[]
 
   @@unique([tenantId, code])
+}
+
+model Applicant {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  firstName          String
+  lastName           String
+  dob                DateTime?
+  gradeLevelId       String?
+  guardianName       String?
+  guardianEmail      String?
+  guardianPhone      String?
+  status             String    @default("submitted") // submitted/exam_scheduled/exam_passed/exam_failed/accepted/rejected/enrolled
+  examScore          Float?
+  examNotes          String?
+  notes              String?
+  convertedStudentId String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
 }
 
 model Section {

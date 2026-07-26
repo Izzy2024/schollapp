@@ -66,6 +66,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'admin-students', icon: 'groups', label: 'Estudiantes', href: '/admin/students' },
         { key: 'admin-staff', icon: 'badge', label: 'Staff', href: '/admin/staff' },
+        { key: 'admin-admissions', icon: 'assignment_ind', label: 'Admisiones', href: '/admin/admissions' },
         { key: 'admin-enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
         { key: 'admin-class-requests', icon: 'task', label: 'Solicitudes de clase', href: '/admin/class-requests' },
         { key: 'admin-schedule-requests', icon: 'calendar_month', label: 'Solicitudes de horario', href: '/admin/schedule-requests' },
