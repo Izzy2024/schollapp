@@ -60,3 +60,6 @@ import './lib/__tests__/rbac.test';
 
 // Admissions pipeline (public application -> exam -> convert) contract suite
 import './actions/__tests__/admissions.contract.test';
+
+// Academic year promotion/rollover contract suite
+import './actions/__tests__/promotion.contract.test';

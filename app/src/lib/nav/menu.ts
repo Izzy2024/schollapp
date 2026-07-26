@@ -56,6 +56,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Académico',
       items: [
         { key: 'admin-academic', icon: 'school', label: 'Académico', href: '/admin/academic' },
+        { key: 'admin-promotion', icon: 'move_up', label: 'Promoción de año', href: '/admin/academic/promotion' },
         { key: 'admin-subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
         { key: 'admin-classes', icon: 'class', label: 'Clases', href: '/admin/classes' },
         { key: 'admin-attendance', icon: 'fact_check', label: 'Asistencia', href: '/admin/attendance' },
