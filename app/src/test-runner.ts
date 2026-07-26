@@ -39,3 +39,6 @@ import './actions/__tests__/invitations.contract.test';
 
 // Report cards (weighted averages + access control) contract suite
 import './actions/__tests__/reportCards.contract.test';
+
+// Parent attendance access-control contract suite
+import './actions/__tests__/parentAttendance.contract.test';

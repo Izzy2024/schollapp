@@ -3,6 +3,33 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { getForParent } from '@/actions/finance/statements';
+import { getStudentAttendanceSummary } from '@/actions/attendance';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+
+/** Resolves the guardian linked to the current session and confirms they are actually linked to studentId. */
+async function assertGuardianOfStudent(tenantId: string, studentId: string, guardianEmail: string | null | undefined) {
+  const guardian = guardianEmail
+    ? await prisma.guardian.findFirst({ where: { tenantId, email: guardianEmail } })
+    : null;
+  if (!guardian) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+
+  const link = await prisma.studentGuardian.findUnique({
+    where: { tenantId_studentId_guardianId: { tenantId, studentId, guardianId: guardian.id } },
+  });
+  if (!link) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
+
+export async function getChildAttendanceSummary(studentId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: session.user.tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  await assertGuardianOfStudent(tenant.id, studentId, session.user.email);
+
+  return getStudentAttendanceSummary(studentId);
+}
 
 export async function getParentDashboardData(tenantSlug?: string) {
   const session = await auth();

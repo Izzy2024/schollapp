@@ -159,6 +159,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'parent-calendar', icon: 'event', label: 'Calendario', href: '/parent/calendar' },
         { key: 'parent-finances', icon: 'payments', label: 'Finanzas', href: '/parent/finances' },
         { key: 'parent-report-card', icon: 'grading', label: 'Boleta', href: '/parent/report-card' },
+        { key: 'parent-attendance', icon: 'fact_check', label: 'Asistencia', href: '/parent/attendance' },
         { key: 'parent-messages', icon: 'chat', label: 'Mensajes', href: '/parent/messages' },
         { key: 'parent-documents', icon: 'description', label: 'Documentos', href: '/parent/documents' },
         { key: 'parent-news', icon: 'newspaper', label: 'Noticias', href: '/parent/news' },
