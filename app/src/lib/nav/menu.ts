@@ -84,6 +84,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'admin-news', icon: 'newspaper', label: 'Noticias', href: '/admin/news' },
         { key: 'admin-settings', icon: 'settings', label: 'Configuración', href: '/admin/settings' },
+        { key: 'admin-grade-weights', icon: 'grading', label: 'Ponderación de notas', href: '/admin/settings/grade-weights' },
       ],
     },
   ],
@@ -157,6 +158,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'parent-home', icon: 'home', label: 'Inicio', href: '/parent' },
         { key: 'parent-calendar', icon: 'event', label: 'Calendario', href: '/parent/calendar' },
         { key: 'parent-finances', icon: 'payments', label: 'Finanzas', href: '/parent/finances' },
+        { key: 'parent-report-card', icon: 'grading', label: 'Boleta', href: '/parent/report-card' },
         { key: 'parent-messages', icon: 'chat', label: 'Mensajes', href: '/parent/messages' },
         { key: 'parent-documents', icon: 'description', label: 'Documentos', href: '/parent/documents' },
         { key: 'parent-news', icon: 'newspaper', label: 'Noticias', href: '/parent/news' },
@@ -174,6 +176,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'student-schedule', icon: 'schedule', label: 'Horarios', href: '/student/schedule' },
         { key: 'student-assignments', icon: 'assignment', label: 'Tareas', href: '/student/assignments' },
         { key: 'student-reports', icon: 'insights', label: 'Reportes', href: '/student/reports' },
+        { key: 'student-report-card', icon: 'grading', label: 'Boleta', href: '/student/report-card' },
         { key: 'student-messages', icon: 'chat', label: 'Mensajes', href: '/student/messages' },
         { key: 'student-news', icon: 'newspaper', label: 'Novedades', href: '/student/whats-new' },
         { key: 'student-settings', icon: 'settings', label: 'Configuración', href: '/student/settings' },

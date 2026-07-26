@@ -16,20 +16,21 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Calendario escolar | `calendar.ts` + `SchoolCalendarEvent`, CRUD y vistas por rol |
 | Audit trail | `ActivityEvent` vía `activity.ts`/`activity-emit.ts`, feeds admin/director |
 | Registro por código de invitación | `invitations.ts` + `/register`: admin genera código ligado a Staff/Student/Guardian, la persona crea su cuenta; `mustChangePassword` fuerza cambio en el primer login con contraseña temporal |
+| Boletas de calificaciones | `reportCards.tsx`: ponderación configurable por tipo de evaluación (`admin/settings/grade-weights`), promedio por período y por materia, export PDF (`/api/report-cards/[studentId]/[termId]/pdf`), vistas en admin (tab del expediente), alumno y padre |
 
 ### A medias
 
 | Módulo | Qué falta |
 |---|---|
-| Gradebook | Captura notas (`gradebook.ts`) pero sin ponderación por tipo de evaluación, sin escala configurable, sin cálculo de promedio por período |
-| Rol parent | 7 páginas, pero no ve notas ni asistencia del hijo; `parent/documents` usa un scope de attachments hardcodeado (`'tenant','general'`) |
+| Gradebook | El cálculo de promedios simples del propio gradebook del docente (`gradebook.ts`) sigue sin normalizar por `maxScore` ni ponderar — la ponderación real vive en `reportCards.tsx` (boleta), no se retroalimentó al gradebook para no arriesgar su UI/tests existentes |
+| Rol parent | Ya ve boleta de notas (`/parent/report-card`); sigue sin ver asistencia detallada del hijo (solo el resumen del dashboard); `parent/documents` usa un scope de attachments hardcodeado (`'tenant','general'`) |
 | Attachments | `attachments.ts` guarda en filesystem local (`fs/promises`) — no escala en serverless ni multi-instancia |
 | RBAC granular | Modelos `Permission`/`RolePermission` existen y se siembran, pero el runtime enruta por nombre de rol string, no por permiso |
 | Páginas M009 recicladas | `director/resources` (deriva de `ClassSchedule.room`, sin modelo `Room`), `director/accreditation` (es el feed de `ActivityEvent` renombrado), `student/analytics`/`student/reports` (mismo `getStudentGrades()`, distinto render) |
 
 ### Inexistentes
 
-Boletas de calificaciones (report cards) con promedio y PDF, entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones externas (email/SMS/push), admisiones (pipeline de aspirantes), conducta/disciplina, promoción/rollover de año académico, certificados y constancias oficiales, rúbricas y evaluación por competencias, reservas de aulas/recursos, biblioteca, transporte, cafetería, enfermería, RRHH/nómina de personal, inventario/activos, pasarela de pago online, integraciones externas (Google Classroom, SIS estatal), portal público del colegio, recuperación de contraseña por email.
+Entrega de tareas por el alumno (deadline, archivo, feedback), notificaciones externas (email/SMS/push), admisiones (pipeline de aspirantes), conducta/disciplina, promoción/rollover de año académico, certificados y constancias oficiales, rúbricas y evaluación por competencias, reservas de aulas/recursos, biblioteca, transporte, cafetería, enfermería, RRHH/nómina de personal, inventario/activos, pasarela de pago online, integraciones externas (Google Classroom, SIS estatal), portal público del colegio, recuperación de contraseña por email.
 
 ## 2. Brechas priorizadas
 
@@ -37,8 +38,8 @@ Boletas de calificaciones (report cards) con promedio y PDF, entrega de tareas p
 
 1. ~~**Registro por código de invitación**~~ — **Hecho.** `invitations.ts` + `/register`; admin genera código por persona (Staff/Student/Guardian), `mustChangePassword` fuerza cambio en el primer login con contraseña temporal.
 2. ~~**Backdoor de login demo**~~ — **Hecho.** Gateado tras `ALLOW_DEMO_LOGIN=1` (solo `.env` de desarrollo); también se eliminó el fallback de roles por substring de email.
-3. **Boletas de calificaciones** con ponderación, promedio por período y export PDF — el gradebook actual no calcula promedios.
-4. **Portal del padre real** — ver notas y asistencia del hijo, no solo finanzas/mensajes/documentos.
+3. ~~**Boletas de calificaciones**~~ — **Hecho.** `reportCards.tsx`: ponderación configurable por tipo de evaluación, promedio por período, vistas admin/alumno/padre y export PDF.
+4. **Portal del padre real** — ya ve la boleta de notas (`/parent/report-card`); falta asistencia detallada del hijo (solo hay resumen en el dashboard).
 5. **Migración SQLite → Postgres** — 9 modelos financieros con escritura concurrente multi-tenant no son seguros en SQLite en producción.
 6. **Attachments a object storage** (Vercel Blob / S3) — filesystem local no sobrevive a despliegues serverless multi-instancia.
 7. **Notificaciones por email** — sin esto, anuncios/mensajes/recordatorios de cobranza no llegan fuera de la app.

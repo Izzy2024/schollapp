@@ -75,6 +75,7 @@ model Tenant {
   schoolCalendarEvents SchoolCalendarEvent[]
 
   invitations Invitation[]
+  gradeWeightConfigs GradeWeightConfig[]
 }
 
 // -----------------------------------------------------------------------------
@@ -536,6 +537,17 @@ model Evaluation {
   records        GradeRecord[]
 
   @@unique([tenantId, sectionSubjectId, termId, name])
+}
+
+model GradeWeightConfig {
+  id            String @id @default(uuid())
+  tenantId      String
+  type          String // matches Evaluation.type
+  weightPercent Int
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, type])
 }
 
 model GradeRecord {

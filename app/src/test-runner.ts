@@ -36,3 +36,6 @@ import './actions/finance/__tests__/void-and-multi-payment.actions.test';
 
 // Invitation-based registration + change password contract suite
 import './actions/__tests__/invitations.contract.test';
+
+// Report cards (weighted averages + access control) contract suite
+import './actions/__tests__/reportCards.contract.test';
