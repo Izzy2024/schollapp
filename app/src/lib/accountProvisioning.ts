@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import type { Prisma } from '@prisma/client';
 
 export type ProvisionRole = 'teacher' | 'student' | 'parent';
 
@@ -13,6 +14,38 @@ export type ProvisionResult = {
 
 function generateTempPassword(): string {
   return crypto.randomBytes(6).toString('base64url');
+}
+
+type PrismaClientOrTx = typeof prisma | Prisma.TransactionClient;
+
+/**
+ * Ensures the tenant membership + role assignment for a user, upserting the Role
+ * itself if it doesn't exist yet for the tenant. Shared by admin-provisioned
+ * accounts and self-service registration via invitation.
+ */
+export async function ensureMembershipAndRole(
+  tenantId: string,
+  userId: string,
+  role: ProvisionRole,
+  client: PrismaClientOrTx = prisma
+): Promise<void> {
+  await client.userMembership.upsert({
+    where: { tenantId_userId: { tenantId, userId } },
+    update: {},
+    create: { tenantId, userId, status: 'active' },
+  });
+
+  const roleRow = await client.role.upsert({
+    where: { tenantId_name: { tenantId, name: role } },
+    update: {},
+    create: { tenantId, name: role },
+  });
+
+  await client.userRole.upsert({
+    where: { tenantId_userId_roleId: { tenantId, userId, roleId: roleRow.id } },
+    update: {},
+    create: { tenantId, userId, roleId: roleRow.id },
+  });
 }
 
 /**
@@ -36,27 +69,11 @@ export async function provisionUserAccount(params: {
     tempPassword = generateTempPassword();
     const passwordHash = await bcrypt.hash(tempPassword, 10);
     user = await prisma.user.create({
-      data: { email, fullName: params.fullName, passwordHash, isActive: true },
+      data: { email, fullName: params.fullName, passwordHash, isActive: true, mustChangePassword: true },
     });
   }
 
-  await prisma.userMembership.upsert({
-    where: { tenantId_userId: { tenantId: params.tenantId, userId: user.id } },
-    update: {},
-    create: { tenantId: params.tenantId, userId: user.id, status: 'active' },
-  });
-
-  const role = await prisma.role.upsert({
-    where: { tenantId_name: { tenantId: params.tenantId, name: params.role } },
-    update: {},
-    create: { tenantId: params.tenantId, name: params.role },
-  });
-
-  await prisma.userRole.upsert({
-    where: { tenantId_userId_roleId: { tenantId: params.tenantId, userId: user.id, roleId: role.id } },
-    update: {},
-    create: { tenantId: params.tenantId, userId: user.id, roleId: role.id },
-  });
+  await ensureMembershipAndRole(params.tenantId, user.id, params.role);
 
   return { userId: user.id, email, tempPassword };
 }

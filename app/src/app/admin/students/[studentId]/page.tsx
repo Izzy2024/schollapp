@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getStudentById } from '@/actions/students';
 import { createGuardianAndLink, removeGuardianLink } from '@/actions/guardians';
+import { createInvitation } from '@/actions/invitations';
 import { getStudentAttendanceSummary } from '@/actions/attendance';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
@@ -25,6 +26,20 @@ export default function StudentRecordPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [guardianForm, setGuardianForm] = useState({ fullName: '', relationship: '', email: '', phone: '', isPrimary: false });
   const [newCredentials, setNewCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [inviteInfo, setInviteInfo] = useState<{ code: string; expiresAt: Date; invitedName: string } | null>(null);
+
+  const handleCreateGuardianInvitation = async (guardianId: string) => {
+    try {
+      const res = await createInvitation({ targetType: 'guardian', targetId: guardianId });
+      if ('error' in res) {
+        message.error(res.error);
+      } else {
+        setInviteInfo(res);
+      }
+    } catch (error: any) {
+      message.error(error.message || 'Error al generar el código');
+    }
+  };
 
   const loadStudent = async () => {
     try {
@@ -230,8 +245,15 @@ export default function StudentRecordPage() {
                     )}
                   </div>
                   
-                  <div className="pt-3 border-t border-gray-100 flex justify-end">
-                    <button 
+                  <div className="pt-3 border-t border-gray-100 flex justify-end gap-3">
+                    <button
+                      onClick={() => handleCreateGuardianInvitation(g.guardian.id)}
+                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">key</span>
+                      Código de invitación
+                    </button>
+                    <button
                       onClick={() => handleRemoveGuardian(g.guardian.id)}
                       className="text-xs font-medium text-red-600 hover:text-red-800 transition-colors flex items-center gap-1"
                     >
@@ -549,6 +571,36 @@ export default function StudentRecordPage() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
               <button
                 onClick={() => setNewCredentials(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Código de invitación generado */}
+      {inviteInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Código de invitación</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-600">
+                Comparte este código o link con <strong>{inviteInfo.invitedName}</strong> para que cree su cuenta.
+                El email del perfil se actualizará al que use al registrarse.
+              </p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-1 font-mono text-sm break-all">
+                <div><span className="text-gray-500">Código:</span> {inviteInfo.code}</div>
+                <div><span className="text-gray-500">Link:</span> {`${typeof window !== 'undefined' ? window.location.origin : ''}/register?code=${inviteInfo.code}`}</div>
+                <div><span className="text-gray-500">Expira:</span> {new Date(inviteInfo.expiresAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
+              <button
+                onClick={() => setInviteInfo(null)}
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Entendido

@@ -39,7 +39,11 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         }
 
         let isPasswordValid = false;
-        if (user.passwordHash === 'demo-hash-123' && credentials.password === 'demo-hash-123') {
+        if (
+          process.env.ALLOW_DEMO_LOGIN === '1' &&
+          user.passwordHash === 'demo-hash-123' &&
+          credentials.password === 'demo-hash-123'
+        ) {
           isPasswordValid = true;
         } else {
           isPasswordValid = await bcrypt.compare(
@@ -58,17 +62,12 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         }
 
         // Gather roles for this specific tenant
-        let userRolesForTenant = user.roles
+        const userRolesForTenant = user.roles
           .filter(ur => ur.tenantId === mainMembership.tenantId)
           .map(ur => ur.role.name);
 
-        // Fallback for demo users if DB roles aren't seeded yet
         if (userRolesForTenant.length === 0) {
-          if (user.email.includes('admin')) userRolesForTenant = ['admin'];
-          else if (user.email.includes('director')) userRolesForTenant = ['director'];
-          else if (user.email.includes('docente')) userRolesForTenant = ['teacher'];
-          else if (user.email.includes('alumno')) userRolesForTenant = ['student'];
-          else if (user.email.includes('padre')) userRolesForTenant = ['parent'];
+          throw new Error('Usuario sin rol asignado');
         }
 
         return {
@@ -78,6 +77,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
           tenantId: mainMembership.tenantId,
           tenantSlug: mainMembership.tenant.slug,
           roles: userRolesForTenant,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -87,10 +87,11 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
       if (user) {
         // Initial sign-in
         token.id = user.id;
-        const u = user as { tenantId: string; tenantSlug: string; roles: string[] };
+        const u = user as { tenantId: string; tenantSlug: string; roles: string[]; mustChangePassword: boolean };
         token.tenantId = u.tenantId;
         token.tenantSlug = u.tenantSlug;
         token.roles = u.roles;
+        token.mustChangePassword = u.mustChangePassword;
       }
       return token;
     },
@@ -101,10 +102,12 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
           tenantId?: string;
           tenantSlug?: string;
           roles?: string[];
+          mustChangePassword?: boolean;
         };
         su.tenantId = token.tenantId as string;
         su.tenantSlug = token.tenantSlug as string;
         su.roles = token.roles as string[];
+        su.mustChangePassword = Boolean(token.mustChangePassword);
       }
       return session;
     },

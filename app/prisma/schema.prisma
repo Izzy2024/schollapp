@@ -73,6 +73,8 @@ model Tenant {
   messages             Message[]
 
   schoolCalendarEvents SchoolCalendarEvent[]
+
+  invitations Invitation[]
 }
 
 // -----------------------------------------------------------------------------
@@ -99,14 +101,15 @@ model SchoolCalendarEvent {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  fullName     String
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String
+  fullName           String
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   memberships              UserMembership[]
   roles                    UserRole[]
@@ -123,6 +126,26 @@ model User {
   sentMessages        Message[]
 
   createdCalendarEvents SchoolCalendarEvent[] @relation("CreatedCalendarEvents")
+  invitationsUsed       Invitation[]          @relation("InvitationUsedBy")
+}
+
+model Invitation {
+  id           String    @id @default(uuid())
+  tenantId     String
+  code         String    @unique
+  targetType   String // staff/student/guardian
+  targetId     String
+  expiresAt    DateTime
+  usedAt       DateTime?
+  usedByUserId String?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usedByUser User?  @relation("InvitationUsedBy", fields: [usedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, usedAt])
+  @@index([tenantId, targetType, targetId])
 }
 
 model UserMembership {

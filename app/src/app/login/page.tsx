@@ -1,11 +1,21 @@
 'use client';
 
-import React, { useActionState, useEffect, useState } from 'react';
+import React, { Suspense, useActionState, useEffect, useState } from 'react';
 import { authenticate } from '@/actions/authActions';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justRegistered = searchParams.get('registered') === '1';
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
@@ -41,6 +51,11 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {justRegistered && (
+            <div className="mb-6 text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 text-center">
+              Cuenta creada. Ya puedes iniciar sesión.
+            </div>
+          )}
           <form className="space-y-6" action={formAction}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">

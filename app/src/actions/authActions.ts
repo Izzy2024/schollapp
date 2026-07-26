@@ -1,13 +1,23 @@
 'use server';
 
-import { signIn, signOut } from '@/auth';
+import { auth, signIn, signOut } from '@/auth';
 import { AuthError } from 'next-auth';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { resolveHomePath } from '@/lib/auth-guards.mjs';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 async function clearAuthCookies() {
-  const store = await cookies();
+  // ponytail: cookies() needs a Next.js request context; contract tests call
+  // changePassword() outside one, so this is a no-op there (no cookies to clear anyway).
+  let store;
+  try {
+    store = await cookies();
+  } catch {
+    return;
+  }
+
   const cookieNames = [
     'authjs.session-token',
     '__Secure-authjs.session-token',
@@ -118,4 +128,29 @@ export async function logOut() {
   } finally {
     await clearAuthCookies();
   }
+}
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ success: true } | { error: string }> {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
+  if (input.newPassword.length < 8) return { error: STABLE_ERROR.WEAK_PASSWORD };
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) throw new Error('Unauthorized');
+
+  const isCurrentValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+  if (!isCurrentValid) return { error: STABLE_ERROR.INVALID_CURRENT_PASSWORD };
+
+  const passwordHash = await bcrypt.hash(input.newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, mustChangePassword: false },
+  });
+
+  await clearAuthCookies();
+  return { success: true };
 }
