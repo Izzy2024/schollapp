@@ -385,9 +385,19 @@ export default function StudentRecordPage() {
                         </p>
                       </div>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusClass}`}>
-                      {statusLabel}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusClass}`}>
+                        {statusLabel}
+                      </span>
+                      <a
+                        href={`/api/certificates/enrollment/${studentId}/${e.academicYearId}/pdf`}
+                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        title="Descargar constancia de estudios"
+                      >
+                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                        Constancia
+                      </a>
+                    </div>
                   </div>
                 );
               })}
