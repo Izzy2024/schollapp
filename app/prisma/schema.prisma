@@ -79,6 +79,8 @@ model Tenant {
   submissions Submission[]
   applicants Applicant[]
   conductRecords ConductRecord[]
+  books Book[]
+  bookLoans BookLoan[]
 }
 
 // -----------------------------------------------------------------------------
@@ -377,9 +379,46 @@ model Student {
   financePayments   FinancePayment[]
   submissions       Submission[]
   conductRecords    ConductRecord[]
+  bookLoans         BookLoan[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model Book {
+  id               String   @id @default(uuid())
+  tenantId         String
+  title            String
+  author           String?
+  isbn             String?
+  category         String?
+  totalCopies      Int      @default(1)
+  availableCopies  Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loans  BookLoan[]
+
+  @@index([tenantId, title])
+}
+
+model BookLoan {
+  id         String    @id @default(uuid())
+  tenantId   String
+  bookId     String
+  studentId  String
+  borrowedAt DateTime  @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  book    Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, bookId, returnedAt])
 }
 
 model ConductRecord {

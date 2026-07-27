@@ -74,6 +74,12 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       ],
     },
     {
+      title: 'Vida Escolar',
+      items: [
+        { key: 'admin-library', icon: 'menu_book', label: 'Biblioteca', href: '/admin/library' },
+      ],
+    },
+    {
       title: 'Finanzas',
       items: [{ key: 'admin-finances', icon: 'payments', label: 'Finanzas', href: '/admin/finances' }],
     },
@@ -220,6 +226,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Vida Escolar',
       items: [
         { key: 'student-conduct', icon: 'verified_user', label: 'Conducta', href: '/student/conduct' },
+        { key: 'student-library', icon: 'menu_book', label: 'Biblioteca', href: '/student/library' },
       ],
     },
     {

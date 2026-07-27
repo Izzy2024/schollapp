@@ -20,6 +20,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Portal del padre: notas y asistencia | `/parent/report-card` (boleta) y `/parent/attendance` (asistencia por hijo); `getChildAttendanceSummary` en `parent.ts` verifica el vínculo `StudentGuardian` antes de exponer datos |
 | Entrega de tareas | `submissions.ts` + modelo `Submission`: el docente marca una evaluación con `dueDate` para que acepte entregas; el alumno sube un archivo (vía `storage adapter`) en `/student/assignments`, se marca `late` si es tras la fecha límite; el docente ve las entregas y deja retroalimentación en `/teacher/assignments` |
 | Conducta/disciplina | `conduct.ts` + modelo `ConductRecord`: méritos/deméritos/incidentes con puntos; docente solo para sus propias clases, admin/director para cualquier alumno, alumno/padre en modo lectura con puntaje acumulado |
+| Biblioteca | `library.ts` + modelos `Book`/`BookLoan`: catálogo con disponibilidad, préstamo/devolución con control de copias, historial por alumno |
 
 ### A medias
 
@@ -59,7 +60,8 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 ### P2 — ERP ampliado
 
 - ~~Conducta/disciplina~~ — **Hecho.** Modelo `ConductRecord` (mérito/demérito/incidente, con puntos y categoría) + `conduct.ts`: el docente registra conducta solo para alumnos de sus propias clases (`/teacher/conduct`), admin/director para cualquier alumno (tab "Conducta" en el expediente), alumno y padre ven su propio historial y puntaje acumulado (`/student/conduct`, `/parent/conduct`).
-- Biblioteca, transporte, cafetería/comedor, enfermería/salud, RRHH/nómina de personal, inventario de activos, pasarela de pago online, integraciones (Google Classroom, SIS estatal).
+- ~~Biblioteca~~ — **Hecho.** Modelos `Book`/`BookLoan` + `library.ts`: catálogo con copias disponibles, préstamo/devolución (admin/director en `/admin/library`, con control de disponibilidad y bloqueo de borrado si el libro tiene préstamos activos), alumno ve sus propios préstamos activos e historial en `/student/library`.
+- Transporte, cafetería/comedor, enfermería/salud, RRHH/nómina de personal, inventario de activos, pasarela de pago online, integraciones (Google Classroom, SIS estatal).
 
 ## 3. Checklist técnico por componente
 
