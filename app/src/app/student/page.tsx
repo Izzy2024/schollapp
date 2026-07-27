@@ -16,7 +16,7 @@ function EventCard({ title, time, color }: any) {
     orange: { bg: 'bg-orange-50', text: 'text-orange-800', icon: 'assignment_late' },
     red: { bg: 'bg-red-50', text: 'text-red-800', icon: 'edit' },
     cyan: { bg: 'bg-cyan-50', text: 'text-cyan-800', icon: 'visibility' },
-    purple: { bg: 'bg-purple-50', text: 'text-purple-800', icon: 'download' },
+    purple: { bg: 'bg-purple-50', text: 'text-purple-800', icon: 'grading' },
     green: { bg: 'bg-green-50', text: 'text-green-800', icon: 'check_circle_outline' },
   };
   const c = colorMap[color] || colorMap.blue;
