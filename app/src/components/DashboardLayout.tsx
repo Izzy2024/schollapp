@@ -86,7 +86,7 @@ export default function DashboardLayout({
 
           {/* Navigation Groups */}
           <div className="flex-1 space-y-6">
-            {menuGroups.map((group, gi) => (
+            {menuGroups.filter((group) => group.items.length > 0).map((group, gi) => (
               <div key={gi} className="space-y-1">
                 {sidebarOpen && (
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">

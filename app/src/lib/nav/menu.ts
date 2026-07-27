@@ -139,10 +139,15 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'teacher-classes', icon: 'class', label: 'Mis Clases', href: '/teacher/classes' },
         { key: 'teacher-gradebook', icon: 'grading', label: 'Calificaciones', href: '/teacher/gradebook' },
         { key: 'teacher-assignments', icon: 'assignment', label: 'Tareas', href: '/teacher/assignments' },
-        { key: 'teacher-conduct', icon: 'verified_user', label: 'Conducta', href: '/teacher/conduct' },
         { key: 'teacher-planning', icon: 'event_note', label: 'Planeación', href: '/teacher/planning' },
         { key: 'teacher-schedule', icon: 'schedule', label: 'Horario', href: '/teacher/schedule' },
         { key: 'teacher-students', icon: 'groups', label: 'Alumnos', href: '/teacher/students' },
+      ],
+    },
+    {
+      title: 'Vida Escolar',
+      items: [
+        { key: 'teacher-conduct', icon: 'verified_user', label: 'Conducta', href: '/teacher/conduct' },
       ],
     },
     {
@@ -161,15 +166,36 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'parent-home', icon: 'home', label: 'Inicio', href: '/parent' },
         { key: 'parent-calendar', icon: 'event', label: 'Calendario', href: '/parent/calendar' },
-        { key: 'parent-finances', icon: 'payments', label: 'Finanzas', href: '/parent/finances' },
+      ],
+    },
+    {
+      title: 'Académico',
+      items: [
         { key: 'parent-report-card', icon: 'grading', label: 'Boleta', href: '/parent/report-card' },
         { key: 'parent-attendance', icon: 'fact_check', label: 'Asistencia', href: '/parent/attendance' },
+      ],
+    },
+    {
+      title: 'Vida Escolar',
+      items: [
         { key: 'parent-conduct', icon: 'verified_user', label: 'Conducta', href: '/parent/conduct' },
+      ],
+    },
+    {
+      title: 'Finanzas',
+      items: [{ key: 'parent-finances', icon: 'payments', label: 'Finanzas', href: '/parent/finances' }],
+    },
+    {
+      title: 'Comunicación',
+      items: [
         { key: 'parent-messages', icon: 'chat', label: 'Mensajes', href: '/parent/messages' },
         { key: 'parent-documents', icon: 'description', label: 'Documentos', href: '/parent/documents' },
         { key: 'parent-news', icon: 'newspaper', label: 'Noticias', href: '/parent/news' },
-        { key: 'parent-settings', icon: 'settings', label: 'Configuración', href: '/parent/settings' },
       ],
+    },
+    {
+      title: 'Sistema',
+      items: [{ key: 'parent-settings', icon: 'settings', label: 'Configuración', href: '/parent/settings' }],
     },
   ],
 
@@ -178,16 +204,34 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Alumno',
       items: [
         { key: 'student-home', icon: 'home', label: 'Inicio', href: '/student' },
-        { key: 'student-attendance', icon: 'fact_check', label: 'Asistencia', href: '/student/attendance' },
         { key: 'student-schedule', icon: 'schedule', label: 'Horarios', href: '/student/schedule' },
+      ],
+    },
+    {
+      title: 'Académico',
+      items: [
+        { key: 'student-attendance', icon: 'fact_check', label: 'Asistencia', href: '/student/attendance' },
         { key: 'student-assignments', icon: 'assignment', label: 'Tareas', href: '/student/assignments' },
         { key: 'student-reports', icon: 'insights', label: 'Reportes', href: '/student/reports' },
         { key: 'student-report-card', icon: 'grading', label: 'Boleta', href: '/student/report-card' },
+      ],
+    },
+    {
+      title: 'Vida Escolar',
+      items: [
         { key: 'student-conduct', icon: 'verified_user', label: 'Conducta', href: '/student/conduct' },
+      ],
+    },
+    {
+      title: 'Comunicación',
+      items: [
         { key: 'student-messages', icon: 'chat', label: 'Mensajes', href: '/student/messages' },
         { key: 'student-news', icon: 'newspaper', label: 'Novedades', href: '/student/whats-new' },
-        { key: 'student-settings', icon: 'settings', label: 'Configuración', href: '/student/settings' },
       ],
+    },
+    {
+      title: 'Sistema',
+      items: [{ key: 'student-settings', icon: 'settings', label: 'Configuración', href: '/student/settings' }],
     },
   ],
 };
