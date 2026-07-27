@@ -92,6 +92,8 @@ model Tenant {
   staffContracts StaffContract[]
   payrollPeriods PayrollPeriod[]
   payrollEntries PayrollEntry[]
+  assets Asset[]
+  assetLogs AssetLog[]
 }
 
 // -----------------------------------------------------------------------------
@@ -401,6 +403,42 @@ model Student {
   @@index([tenantId, lastName, firstName])
 }
 
+model Asset {
+  id               String    @id @default(uuid())
+  tenantId         String
+  name             String
+  category         String?
+  serialNumber     String?
+  location         String?
+  purchaseDate     DateTime?
+  purchaseCostCents Int?
+  status           String    @default("available") // available/assigned/maintenance/retired
+  assignedToStaffId String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedToStaff Staff?      @relation(fields: [assignedToStaffId], references: [id], onDelete: SetNull)
+  logs           AssetLog[]
+
+  @@index([tenantId, status])
+}
+
+model AssetLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  assetId    String
+  action     String // assigned/returned/maintenance/retired
+  notes      String?
+  occurredAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  asset  Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, assetId, occurredAt(sort: Desc)])
+}
+
 model StaffContract {
   id           String    @id @default(uuid())
   tenantId     String
@@ -690,6 +728,7 @@ model Staff {
   healthIncidentsReported HealthIncident[]
   contracts StaffContract[]
   payrollEntries PayrollEntry[]
+  assignedAssets Asset[]
 }
 
 model Attachment {
