@@ -26,6 +26,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Enfermería/salud | `health.ts` + modelos `HealthRecord`/`HealthIncident`: expediente médico e incidentes, tab en el expediente del alumno (admin), lectura para alumno/padre |
 | RRHH/nómina | `hr.ts` + modelos `StaffContract`/`PayrollPeriod`/`PayrollEntry`: contratos, períodos de nómina y recibos con deducciones manuales (sin cálculo automático de impuestos/seguridad social — deliberado, ver checklist); cada docente ve sus propios recibos |
 | Inventario de activos | `inventory.ts` + modelos `Asset`/`AssetLog`: ciclo de vida completo (disponible/asignado/mantenimiento/baja) con bitácora |
+| Pasarela de pago online | `src/lib/payment/` (adapter Stripe) + `finance/onlinePayments.ts`: checkout por el saldo pendiente de un cargo, webhook idempotente que registra el `FinancePayment` y liquida el cargo; listo para activar con `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` |
 
 ### A medias
 
@@ -71,7 +72,8 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - ~~Enfermería/salud~~ — **Hecho.** Modelos `HealthRecord`/`HealthIncident` + `health.ts`: expediente médico (tipo de sangre, alergias, condiciones crónicas, medicamentos, contacto de emergencia) e incidentes de salud (enfermedad/lesión/otro, tratamiento dado, si se envió a casa). Gestionado por admin/director en el tab "Salud" del expediente del alumno (sin ítem de nav nuevo); alumno y padre ven su propio expediente en modo lectura. No hay rol de "enfermería" dedicado todavía — cuando se adopte RBAC granular (`src/lib/rbac.ts`), este módulo es buen candidato para un permiso `health:manage` en vez de depender de admin/director.
 - ~~RRHH/nómina de personal~~ — **Hecho (con alcance deliberadamente acotado).** Modelos `StaffContract`/`PayrollPeriod`/`PayrollEntry` + `hr.ts`: contratos por empleado (puesto, salario, tipo, activo/finalizado), períodos de nómina con recibos (bruto − deducciones = neto capturados manualmente por el admin, sin cálculo automático de impuestos/CSS — no se fabricaron reglas de ley laboral panameña sin verificarlas), marcar como pagado. Admin/director gestionan en `/admin/hr`; cada docente ve sus propios recibos en `/teacher/payroll`.
 - ~~Inventario de activos~~ — **Hecho.** Modelos `Asset`/`AssetLog` + `inventory.ts`: activos con categoría/número de serie/ubicación, ciclo de vida completo (disponible → asignado a empleado → mantenimiento → dado de baja) con bitácora de cada cambio de estado. Gestionado en `/admin/inventory`.
-- Pasarela de pago online, integraciones (Google Classroom, SIS estatal).
+- ~~Pasarela de pago online~~ — **Hecho (adapter Stripe, listo para activar).** `src/lib/payment/` define `PaymentGateway` (checkout + verificación de webhook); `getPaymentGateway()` devuelve `null` si no hay `STRIPE_SECRET_KEY` (a diferencia de storage/email, no existe un "fallback local" razonable para dinero real — el padre ve "pago en línea no disponible" y sigue usando el registro manual existente). Integrado en el módulo de finanzas ya existente (`finance/onlinePayments.ts`), no como dominio nuevo: botón "Pagar en línea" en `/parent/finances` crea un Stripe Checkout Session por el saldo pendiente del cargo; `/api/payments/webhook` confirma el pago y crea el `FinancePayment` (idempotente por referencia externa, actor "Sistema de Pagos" para el registro automático). Falta provisionar `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` para activarlo.
+- Integraciones (Google Classroom, SIS estatal).
 
 ## 3. Checklist técnico por componente
 
@@ -99,7 +101,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| Next.js build estándar; adapters listos para Vercel Blob (`src/lib/storage/`) y Resend (`src/lib/email/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN` ni `RESEND_API_KEY` provisionados | Vercel + Postgres gestionado + Vercel Blob (activar con el token) + Resend (activar con la API key + `RESEND_FROM_EMAIL`) |
+| Next.js build estándar; adapters listos para Vercel Blob (`src/lib/storage/`), Resend (`src/lib/email/`) y Stripe (`src/lib/payment/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY` ni `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` provisionados | Vercel + Postgres gestionado + Vercel Blob + Resend + Stripe (crear el webhook apuntando a `/api/payments/webhook` una vez desplegado) |
 
 ### Seguridad de datos de menores
 
@@ -113,5 +115,6 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - **Base de datos**: Postgres gestionado (Railway/Supabase/Neon), no SQLite en producción.
 - **Storage de archivos**: Vercel Blob o S3 en vez de filesystem local.
 - **Email transaccional**: Resend — ya integrado en `src/lib/email/`; solo falta `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado en Resend) para activarlo.
+- **Pagos en línea**: Stripe — ya integrado en `src/lib/payment/`; falta `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, y configurar en el dashboard de Stripe un webhook hacia `https://<dominio>/api/payments/webhook` suscrito al evento `checkout.session.completed`.
 - **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback), `APP_URL` (dominio real, usado en los links de invitación), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
 - **Seed**: `db:seed` y usuarios demo solo corren en desarrollo/staging, nunca contra la base de producción.

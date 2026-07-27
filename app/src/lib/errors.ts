@@ -84,6 +84,10 @@ export const STABLE_ERROR = {
 
   // Inventory
   ASSET_NOT_FOUND: 'ASSET_NOT_FOUND',
+
+  // Online payments
+  PAYMENT_GATEWAY_NOT_CONFIGURED: 'PAYMENT_GATEWAY_NOT_CONFIGURED',
+  CHARGE_NOT_PAYABLE: 'CHARGE_NOT_PAYABLE',
 } as const;
 
 export type StableErrorCode = (typeof STABLE_ERROR)[keyof typeof STABLE_ERROR];

@@ -87,3 +87,6 @@ import './actions/__tests__/hr.contract.test';
 
 // Asset inventory lifecycle contract suite
 import './actions/__tests__/inventory.contract.test';
+
+// Online payments (checkout + webhook) contract suite
+import './actions/finance/__tests__/onlinePayments.contract.test';

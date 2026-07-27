@@ -2,6 +2,7 @@
 
 import { Button, Spin, App, Tag } from 'antd';
 import { useState } from 'react';
+import { createCheckoutSessionForCharge } from '@/actions/finance/onlinePayments';
 
 type ChargeItem = {
   id: string;
@@ -30,6 +31,27 @@ export default function ChargesWithInvoice({ charges }: Props) {
   const { message } = App.useApp();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [invoiceIds, setInvoiceIds] = useState<Record<string, string>>({});
+  const [payingId, setPayingId] = useState<string | null>(null);
+
+  const handlePayOnline = async (chargeId: string) => {
+    setPayingId(chargeId);
+    try {
+      const res = await createCheckoutSessionForCharge(chargeId);
+      if ('error' in res) {
+        if (res.error === 'PAYMENT_GATEWAY_NOT_CONFIGURED') {
+          message.info('El pago en línea no está disponible todavía. Consulta con la escuela otras formas de pago.');
+        } else {
+          message.error(res.error);
+        }
+        return;
+      }
+      window.location.href = res.url;
+    } catch (err: any) {
+      message.error(err.message || 'Error al iniciar el pago');
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const handleDownload = async (chargeId: string) => {
     setLoadingId(chargeId);
@@ -104,6 +126,16 @@ export default function ChargesWithInvoice({ charges }: Props) {
             <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
               {formatCents(c.amountCents, c.currency)}
             </div>
+            {(c.status === 'pending' || c.status === 'overdue') && (
+              <Button
+                size="small"
+                type="primary"
+                loading={payingId === c.id}
+                onClick={() => handlePayOnline(c.id)}
+              >
+                Pagar en línea
+              </Button>
+            )}
             {c.status !== 'void' && (
               <Button
                 size="small"
