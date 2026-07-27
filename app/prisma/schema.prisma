@@ -78,6 +78,7 @@ model Tenant {
   gradeWeightConfigs GradeWeightConfig[]
   submissions Submission[]
   applicants Applicant[]
+  conductRecords ConductRecord[]
 }
 
 // -----------------------------------------------------------------------------
@@ -375,9 +376,29 @@ model Student {
   financeCharges    FinanceCharge[]
   financePayments   FinancePayment[]
   submissions       Submission[]
+  conductRecords    ConductRecord[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model ConductRecord {
+  id          String   @id @default(uuid())
+  tenantId    String
+  studentId   String
+  reportedById String? // Staff.id of the teacher/admin who logged it
+  type        String   // merit/demerit/incident
+  category    String?  // e.g. "Falta leve", "Falta grave", "Reconocimiento académico"
+  description String
+  points      Int      @default(0) // positive for merit, negative for demerit; 0 for neutral incidents
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reportedBy Staff?  @relation(fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, occurredAt(sort: Desc)])
 }
 
 model Guardian {
@@ -424,6 +445,7 @@ model Staff {
   sectionSubjects  SectionSubject[]
   classRequests    ClassRequest[]
   scheduleRequests ScheduleRequest[]
+  conductRecordsReported ConductRecord[]
 }
 
 model Attachment {

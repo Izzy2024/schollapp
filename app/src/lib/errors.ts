@@ -50,6 +50,10 @@ export const STABLE_ERROR = {
 
   // Certificates
   ENROLLMENT_NOT_FOUND: 'ENROLLMENT_NOT_FOUND',
+
+  // Conduct
+  CONDUCT_FORBIDDEN: 'CONDUCT_FORBIDDEN',
+  CONDUCT_RECORD_NOT_FOUND: 'CONDUCT_RECORD_NOT_FOUND',
 } as const;
 
 export type StableErrorCode = (typeof STABLE_ERROR)[keyof typeof STABLE_ERROR];

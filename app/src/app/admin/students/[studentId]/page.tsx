@@ -8,6 +8,7 @@ import { createGuardianAndLink, removeGuardianLink } from '@/actions/guardians';
 import { createInvitation } from '@/actions/invitations';
 import { getStudentAttendanceSummary } from '@/actions/attendance';
 import { getTermsForTenant, getStudentReportCard, type ReportCard } from '@/actions/reportCards';
+import { getStudentConductRecords, createConductRecord, deleteConductRecord, type ConductRecordRow } from '@/actions/conduct';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
@@ -20,7 +21,7 @@ export default function StudentRecordPage() {
   const router = useRouter();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments' | 'attendance' | 'reportCard'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments' | 'attendance' | 'reportCard' | 'conduct'>('overview');
   const [attSummary, setAttSummary] = useState<any>(null);
   const [attLoading, setAttLoading] = useState(false);
 
@@ -53,6 +54,67 @@ export default function StudentRecordPage() {
       }
     } else if (selectedTermId) {
       loadReportCard(selectedTermId);
+    }
+  };
+
+  const [conductRecords, setConductRecords] = useState<ConductRecordRow[]>([]);
+  const [conductTotalPoints, setConductTotalPoints] = useState(0);
+  const [conductLoading, setConductLoading] = useState(false);
+  const [conductFormOpen, setConductFormOpen] = useState(false);
+  const [conductForm, setConductForm] = useState({ type: 'demerit' as 'merit' | 'demerit' | 'incident', category: '', description: '', points: '-1' });
+
+  const loadConduct = async () => {
+    setConductLoading(true);
+    try {
+      const data = await getStudentConductRecords(studentId as string);
+      setConductRecords(data.records);
+      setConductTotalPoints(data.totalPoints);
+    } catch (error: any) {
+      message.error(error.message || 'Error al cargar conducta');
+    } finally {
+      setConductLoading(false);
+    }
+  };
+
+  const openConductTab = () => {
+    setActiveTab('conduct');
+    loadConduct();
+  };
+
+  const handleCreateConductRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!conductForm.description.trim()) {
+      message.error('La descripción es requerida');
+      return;
+    }
+    try {
+      const res = await createConductRecord(studentId as string, {
+        type: conductForm.type,
+        category: conductForm.category || undefined,
+        description: conductForm.description,
+        points: Number(conductForm.points) || 0,
+      });
+      if ('error' in res) {
+        message.error(res.error);
+      } else {
+        message.success('Registro guardado');
+        setConductFormOpen(false);
+        setConductForm({ type: 'demerit', category: '', description: '', points: '-1' });
+        loadConduct();
+      }
+    } catch (error: any) {
+      message.error(error.message || 'Error al guardar');
+    }
+  };
+
+  const handleDeleteConductRecord = async (id: string) => {
+    if (!confirm('¿Eliminar este registro de conducta?')) return;
+    try {
+      await deleteConductRecord(id);
+      message.success('Registro eliminado');
+      loadConduct();
+    } catch (error: any) {
+      message.error(error.message || 'Error al eliminar');
     }
   };
 
@@ -207,6 +269,12 @@ export default function StudentRecordPage() {
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reportCard' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Boleta
+        </button>
+        <button
+          onClick={openConductTab}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'conduct' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+        >
+          Conducta
         </button>
       </div>
 
@@ -591,6 +659,130 @@ export default function StudentRecordPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === 'conduct' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Conducta y Disciplina</h3>
+              <p className={`text-sm mt-1 font-semibold ${conductTotalPoints < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                Puntaje acumulado: {conductTotalPoints > 0 ? '+' : ''}{conductTotalPoints}
+              </p>
+            </div>
+            <button
+              onClick={() => setConductFormOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              Registrar
+            </button>
+          </div>
+
+          {conductLoading ? (
+            <div className="py-12 text-center text-gray-400">Cargando...</div>
+          ) : conductRecords.length === 0 ? (
+            <div className="py-10 text-center bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+              <span className="material-symbols-outlined text-4xl text-gray-300 mb-3 block">verified_user</span>
+              <p className="text-gray-500">Sin registros de conducta.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {conductRecords.map((r) => (
+                <div key={r.id} className="flex items-start justify-between gap-4 p-4 border border-gray-100 rounded-xl">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          r.type === 'merit' ? 'bg-green-100 text-green-800' : r.type === 'demerit' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {r.type === 'merit' ? 'Mérito' : r.type === 'demerit' ? 'Demérito' : 'Incidente'}
+                      </span>
+                      {r.category && <span className="text-xs text-gray-500">{r.category}</span>}
+                      <span className={`text-xs font-bold ${r.points < 0 ? 'text-red-600' : r.points > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                        {r.points > 0 ? '+' : ''}{r.points} pts
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-900 mt-1">{r.description}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(r.occurredAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {r.reportedByName ? ` · ${r.reportedByName}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={() => handleDeleteConductRecord(r.id)} className="text-gray-300 hover:text-red-600 transition-colors">
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal Registrar Conducta */}
+      {conductFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Registrar Conducta</h3>
+              <button onClick={() => setConductFormOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleCreateConductRecord} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <select
+                  value={conductForm.type}
+                  onChange={(e) => setConductForm({ ...conductForm, type: e.target.value as typeof conductForm.type })}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="demerit">Demérito</option>
+                  <option value="merit">Mérito</option>
+                  <option value="incident">Incidente (neutral)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría (opcional)</label>
+                <input
+                  type="text"
+                  value={conductForm.category}
+                  onChange={(e) => setConductForm({ ...conductForm, category: e.target.value })}
+                  placeholder="Ej. Falta leve, Reconocimiento académico"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+                <textarea
+                  required
+                  value={conductForm.description}
+                  onChange={(e) => setConductForm({ ...conductForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Puntos (negativo para demérito)</label>
+                <input
+                  type="number"
+                  value={conductForm.points}
+                  onChange={(e) => setConductForm({ ...conductForm, points: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setConductFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

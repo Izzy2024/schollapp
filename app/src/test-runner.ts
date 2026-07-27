@@ -66,3 +66,6 @@ import './actions/__tests__/promotion.contract.test';
 
 // Enrollment certificate PDF contract suite
 import './actions/__tests__/certificates.contract.test';
+
+// Conduct/discipline records contract suite
+import './actions/__tests__/conduct.contract.test';
