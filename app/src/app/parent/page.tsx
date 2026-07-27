@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getParentDashboardData } from '@/actions/parent';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import Link from 'next/link';
 
 const menuGroups = getMenuGroupsForRoles(['parent']);
 
@@ -75,10 +76,10 @@ export default function ParentDashboard() {
                     <span className="block text-xs text-gray-400 font-medium uppercase tracking-wide">Asistencia Mensual</span>
                     <span className="font-bold text-gray-900 text-lg">{child.attendance}</span>
                   </div>
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto transition-colors">
+                  <Link href="/parent/report-card" className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto transition-colors no-underline">
                     <span className="material-symbols-outlined text-base">visibility</span>
                     Ver Calificaciones
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))
@@ -138,18 +139,18 @@ export default function ParentDashboard() {
           <div className="stat-card p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
             <div className="space-y-3">
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              <Link href="/parent/calendar" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">calendar_month</span>
                 <span className="text-sm font-medium text-gray-700">Ver Calendario Escolar</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              </Link>
+              <Link href="/parent/documents" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">description</span>
                 <span className="text-sm font-medium text-gray-700">Subir Documentos</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              </Link>
+              <Link href="/parent/messages" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">support_agent</span>
                 <span className="text-sm font-medium text-gray-700">Contactar Administración</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>

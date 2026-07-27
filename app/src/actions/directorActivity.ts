@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import { getRecentActivities } from '@/actions/activity';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { getPrimaryRole } from '@/lib/nav/menu';
 
 export async function getDirectorRecentActivities(
   tenantSlug?: string,
@@ -16,7 +17,7 @@ export async function getDirectorRecentActivities(
     throw new Error('Unauthorized');
   }
 
-  if ((session.user as { role?: string | null }).role !== 'DIRECTOR') {
+  if (getPrimaryRole((session.user as { roles?: string[] }).roles ?? []) !== 'director') {
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
 
