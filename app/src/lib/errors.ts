@@ -71,6 +71,9 @@ export const STABLE_ERROR = {
   // Cafeteria
   MENU_ITEM_NOT_FOUND: 'MENU_ITEM_NOT_FOUND',
   INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
+
+  // Health
+  HEALTH_FORBIDDEN: 'HEALTH_FORBIDDEN',
 } as const;
 
 export type StableErrorCode = (typeof STABLE_ERROR)[keyof typeof STABLE_ERROR];

@@ -87,6 +87,8 @@ model Tenant {
   cafeteriaMenuItems CafeteriaMenuItem[]
   cafeteriaAccounts CafeteriaAccount[]
   cafeteriaTransactions CafeteriaTransaction[]
+  healthRecords HealthRecord[]
+  healthIncidents HealthIncident[]
 }
 
 // -----------------------------------------------------------------------------
@@ -389,9 +391,48 @@ model Student {
   transportAssignments TransportAssignment[]
   cafeteriaAccount     CafeteriaAccount[]
   cafeteriaTransactions CafeteriaTransaction[]
+  healthRecord         HealthRecord?
+  healthIncidents      HealthIncident[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model HealthRecord {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  studentId             String   @unique
+  bloodType             String?
+  allergies             String?
+  chronicConditions     String?
+  medications           String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model HealthIncident {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  reportedById   String? // Staff.id
+  type           String // illness/injury/other
+  description    String
+  treatmentGiven String?
+  sentHome       Boolean  @default(false)
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reportedBy Staff?  @relation(fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, occurredAt(sort: Desc)])
 }
 
 model CafeteriaMenuItem {
@@ -589,6 +630,7 @@ model Staff {
   classRequests    ClassRequest[]
   scheduleRequests ScheduleRequest[]
   conductRecordsReported ConductRecord[]
+  healthIncidentsReported HealthIncident[]
 }
 
 model Attachment {

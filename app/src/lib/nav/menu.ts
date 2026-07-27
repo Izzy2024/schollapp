@@ -189,6 +189,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'parent-conduct', icon: 'verified_user', label: 'Conducta', href: '/parent/conduct' },
         { key: 'parent-transport', icon: 'directions_bus', label: 'Transporte', href: '/parent/transport' },
         { key: 'parent-cafeteria', icon: 'restaurant', label: 'Cafetería', href: '/parent/cafeteria' },
+        { key: 'parent-health', icon: 'health_and_safety', label: 'Salud', href: '/parent/health' },
       ],
     },
     {
@@ -233,6 +234,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'student-library', icon: 'menu_book', label: 'Biblioteca', href: '/student/library' },
         { key: 'student-transport', icon: 'directions_bus', label: 'Transporte', href: '/student/transport' },
         { key: 'student-cafeteria', icon: 'restaurant', label: 'Cafetería', href: '/student/cafeteria' },
+        { key: 'student-health', icon: 'health_and_safety', label: 'Salud', href: '/student/health' },
       ],
     },
     {

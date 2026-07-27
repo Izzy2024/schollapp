@@ -78,3 +78,6 @@ import './actions/__tests__/transport.contract.test';
 
 // Cafeteria menu/top-up/purchase contract suite
 import './actions/__tests__/cafeteria.contract.test';
+
+// Health records and incidents contract suite
+import './actions/__tests__/health.contract.test';

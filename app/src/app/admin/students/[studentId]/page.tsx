@@ -9,6 +9,7 @@ import { createInvitation } from '@/actions/invitations';
 import { getStudentAttendanceSummary } from '@/actions/attendance';
 import { getTermsForTenant, getStudentReportCard, type ReportCard } from '@/actions/reportCards';
 import { getStudentConductRecords, createConductRecord, deleteConductRecord, type ConductRecordRow } from '@/actions/conduct';
+import { getHealthRecord, upsertHealthRecord, getHealthIncidents, createHealthIncident, type HealthRecordData, type HealthIncidentRow } from '@/actions/health';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
@@ -21,7 +22,7 @@ export default function StudentRecordPage() {
   const router = useRouter();
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments' | 'attendance' | 'reportCard' | 'conduct'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'guardians' | 'enrollments' | 'attendance' | 'reportCard' | 'conduct' | 'health'>('overview');
   const [attSummary, setAttSummary] = useState<any>(null);
   const [attLoading, setAttLoading] = useState(false);
 
@@ -115,6 +116,67 @@ export default function StudentRecordPage() {
       loadConduct();
     } catch (error: any) {
       message.error(error.message || 'Error al eliminar');
+    }
+  };
+
+  const [healthRecord, setHealthRecord] = useState<HealthRecordData | null>(null);
+  const [healthIncidents, setHealthIncidents] = useState<HealthIncidentRow[]>([]);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthForm, setHealthForm] = useState<Partial<HealthRecordData>>({});
+  const [incidentFormOpen, setIncidentFormOpen] = useState(false);
+  const [incidentForm, setIncidentForm] = useState({ type: 'illness' as 'illness' | 'injury' | 'other', description: '', treatmentGiven: '', sentHome: false });
+
+  const loadHealth = async () => {
+    setHealthLoading(true);
+    try {
+      const [record, incidents] = await Promise.all([
+        getHealthRecord(studentId as string),
+        getHealthIncidents(studentId as string),
+      ]);
+      setHealthRecord(record);
+      setHealthForm(record ?? {});
+      setHealthIncidents(incidents);
+    } catch (error: any) {
+      message.error(error.message || 'Error al cargar salud');
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const openHealthTab = () => {
+    setActiveTab('health');
+    loadHealth();
+  };
+
+  const handleSaveHealthRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await upsertHealthRecord(studentId as string, healthForm);
+      message.success('Expediente médico guardado');
+      loadHealth();
+    } catch (error: any) {
+      message.error(error.message || 'Error al guardar');
+    }
+  };
+
+  const handleCreateIncident = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!incidentForm.description.trim()) {
+      message.error('La descripción es requerida');
+      return;
+    }
+    try {
+      const res = await createHealthIncident(studentId as string, incidentForm);
+      if ('error' in res) {
+        message.error(res.error);
+      } else {
+        message.success('Incidente registrado');
+        setIncidentFormOpen(false);
+        setIncidentForm({ type: 'illness', description: '', treatmentGiven: '', sentHome: false });
+        loadHealth();
+      }
+    } catch (error: any) {
+      message.error(error.message || 'Error al guardar');
     }
   };
 
@@ -275,6 +337,12 @@ export default function StudentRecordPage() {
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'conduct' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Conducta
+        </button>
+        <button
+          onClick={openHealthTab}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'health' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+        >
+          Salud
         </button>
       </div>
 
@@ -775,6 +843,176 @@ export default function StudentRecordPage() {
               </div>
               <div className="pt-2 flex justify-end gap-3">
                 <button type="button" onClick={() => setConductFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'health' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-6">Expediente Médico</h3>
+            {healthLoading ? (
+              <div className="py-8 text-center text-gray-400">Cargando...</div>
+            ) : (
+              <form onSubmit={handleSaveHealthRecord} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de sangre</label>
+                  <input
+                    value={healthForm.bloodType ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, bloodType: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alergias</label>
+                  <input
+                    value={healthForm.allergies ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, allergies: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Condiciones crónicas</label>
+                  <input
+                    value={healthForm.chronicConditions ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, chronicConditions: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Medicamentos</label>
+                  <input
+                    value={healthForm.medications ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, medications: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contacto de emergencia</label>
+                  <input
+                    value={healthForm.emergencyContactName ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, emergencyContactName: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono de emergencia</label>
+                  <input
+                    value={healthForm.emergencyContactPhone ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, emergencyContactPhone: e.target.value })}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                  <textarea
+                    value={healthForm.notes ?? ''}
+                    onChange={(e) => setHealthForm({ ...healthForm, notes: e.target.value })}
+                    rows={2}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                  />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                    Guardar expediente
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Incidentes de Salud</h3>
+              <button onClick={() => setIncidentFormOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
+                <span className="material-symbols-outlined text-sm">add</span>
+                Registrar incidente
+              </button>
+            </div>
+            {healthIncidents.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">Sin incidentes registrados.</p>
+            ) : (
+              <div className="space-y-3">
+                {healthIncidents.map((i) => (
+                  <div key={i.id} className="p-4 border border-gray-100 rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800">
+                        {i.type === 'illness' ? 'Enfermedad' : i.type === 'injury' ? 'Lesión' : 'Otro'}
+                      </span>
+                      {i.sentHome && <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">Enviado a casa</span>}
+                    </div>
+                    <p className="text-sm text-gray-900">{i.description}</p>
+                    {i.treatmentGiven && <p className="text-xs text-gray-500 mt-1">Tratamiento: {i.treatmentGiven}</p>}
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(i.occurredAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {i.reportedByName ? ` · ${i.reportedByName}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Registrar Incidente de Salud */}
+      {incidentFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Registrar Incidente</h3>
+              <button onClick={() => setIncidentFormOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleCreateIncident} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <select
+                  value={incidentForm.type}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, type: e.target.value as typeof incidentForm.type })}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="illness">Enfermedad</option>
+                  <option value="injury">Lesión</option>
+                  <option value="other">Otro</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción *</label>
+                <textarea
+                  required
+                  value={incidentForm.description}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tratamiento dado</label>
+                <input
+                  value={incidentForm.treatmentGiven}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, treatmentGiven: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={incidentForm.sentHome}
+                  onChange={(e) => setIncidentForm({ ...incidentForm, sentHome: e.target.checked })}
+                />
+                Se envió al alumno a casa
+              </label>
+              <div className="pt-2 flex justify-end gap-3">
+                <button type="button" onClick={() => setIncidentFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
                 <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">

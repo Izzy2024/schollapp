@@ -23,6 +23,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | Biblioteca | `library.ts` + modelos `Book`/`BookLoan`: catálogo con disponibilidad, préstamo/devolución con control de copias, historial por alumno |
 | Transporte escolar | `transport.ts` + modelos `TransportRoute`/`TransportStop`/`TransportAssignment`: rutas con capacidad, paradas con horario, asignación por alumno visible para el propio alumno/padre |
 | Cafetería/comedor | `cafeteria.ts` + modelos `CafeteriaMenuItem`/`CafeteriaAccount`/`CafeteriaTransaction`: saldo prepago por alumno, recarga y cobro con validación de saldo suficiente |
+| Enfermería/salud | `health.ts` + modelos `HealthRecord`/`HealthIncident`: expediente médico e incidentes, tab en el expediente del alumno (admin), lectura para alumno/padre |
 
 ### A medias
 
@@ -65,7 +66,8 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - ~~Biblioteca~~ — **Hecho.** Modelos `Book`/`BookLoan` + `library.ts`: catálogo con copias disponibles, préstamo/devolución (admin/director en `/admin/library`, con control de disponibilidad y bloqueo de borrado si el libro tiene préstamos activos), alumno ve sus propios préstamos activos e historial en `/student/library`.
 - ~~Transporte escolar~~ — **Hecho.** Modelos `TransportRoute`/`TransportStop`/`TransportAssignment` + `transport.ts`: rutas con conductor/placa/capacidad, paradas con horario de recogida/entrega, asignación de alumnos (respeta la capacidad de la ruta, bloquea borrado de ruta con alumnos asignados). Admin gestiona en `/admin/transport`; alumno y padre ven su propia ruta/parada/horario en `/student/transport` y `/parent/transport`.
 - ~~Cafetería/comedor~~ — **Hecho.** Modelos `CafeteriaMenuItem`/`CafeteriaAccount`/`CafeteriaTransaction` + `cafeteria.ts`: menú de productos, cuenta prepago por alumno, recarga y cobro de consumo (rechaza el cobro si el saldo no alcanza) gestionados por admin/director en `/admin/cafeteria`; alumno y padre ven su saldo e historial en modo lectura.
-- Enfermería/salud, RRHH/nómina de personal, inventario de activos, pasarela de pago online, integraciones (Google Classroom, SIS estatal).
+- ~~Enfermería/salud~~ — **Hecho.** Modelos `HealthRecord`/`HealthIncident` + `health.ts`: expediente médico (tipo de sangre, alergias, condiciones crónicas, medicamentos, contacto de emergencia) e incidentes de salud (enfermedad/lesión/otro, tratamiento dado, si se envió a casa). Gestionado por admin/director en el tab "Salud" del expediente del alumno (sin ítem de nav nuevo); alumno y padre ven su propio expediente en modo lectura. No hay rol de "enfermería" dedicado todavía — cuando se adopte RBAC granular (`src/lib/rbac.ts`), este módulo es buen candidato para un permiso `health:manage` en vez de depender de admin/director.
+- RRHH/nómina de personal, inventario de activos, pasarela de pago online, integraciones (Google Classroom, SIS estatal).
 
 ## 3. Checklist técnico por componente
 
