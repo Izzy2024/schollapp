@@ -7,10 +7,20 @@ import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 const menuGroups = getMenuGroupsForRoles(['student']);
 
+type Material = { id: string; fileName: string; fileKey: string; contentType: string | null };
 type SubjectPrep = {
   id: string; subjectName: string; teacherName: string;
-  units: { id: string; title: string; startDate: string | null; endDate: string | null; topics: { id: string; title: string; date: string | null }[] }[];
+  units: { id: string; title: string; startDate: string | null; endDate: string | null; topics: { id: string; title: string; date: string | null; materials: Material[] }[] }[];
 };
+
+function materialIcon(contentType: string | null) {
+  if (!contentType) return 'insert_drive_file';
+  if (contentType.includes('pdf')) return 'picture_as_pdf';
+  if (contentType.includes('word') || contentType.includes('document')) return 'description';
+  if (contentType.includes('presentation') || contentType.includes('powerpoint')) return 'slideshow';
+  if (contentType.includes('image')) return 'image';
+  return 'insert_drive_file';
+}
 
 export default function StudentClassPrepPage() {
   const { message } = App.useApp();
@@ -71,12 +81,30 @@ export default function StudentClassPrepPage() {
                         {u.startDate && <span className="text-xs text-gray-400">{new Date(u.startDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>}
                       </div>
                       {u.topics.length > 0 && (
-                        <ul className="mt-2 space-y-1">
+                        <ul className="mt-2 space-y-2">
                           {u.topics.map(t => (
-                            <li key={t.id} className="text-sm text-gray-600 flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
-                              {t.title}
-                              {t.date && <span className="text-xs text-gray-400 ml-auto">{new Date(t.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>}
+                            <li key={t.id} className="text-sm text-gray-600">
+                              <div className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 flex-shrink-0" />
+                                {t.title}
+                                {t.date && <span className="text-xs text-gray-400 ml-auto">{new Date(t.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>}
+                              </div>
+                              {t.materials.length > 0 && (
+                                <div className="mt-1 ml-3.5 flex flex-col gap-1">
+                                  {t.materials.map(m => (
+                                    <a
+                                      key={m.id}
+                                      href={m.fileKey}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 hover:underline w-fit"
+                                    >
+                                      <span className="material-symbols-outlined text-[14px]">{materialIcon(m.contentType)}</span>
+                                      {m.fileName}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
                             </li>
                           ))}
                         </ul>

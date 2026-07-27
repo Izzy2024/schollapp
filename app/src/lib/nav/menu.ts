@@ -229,6 +229,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'student-assignments', icon: 'assignment', label: 'Tareas', href: '/student/assignments' },
         { key: 'student-reports', icon: 'insights', label: 'Reportes', href: '/student/reports' },
         { key: 'student-report-card', icon: 'grading', label: 'Boleta', href: '/student/report-card' },
+        { key: 'student-class-prep', icon: 'topic', label: 'Preparación de Clase', href: '/student/class-prep' },
       ],
     },
     {

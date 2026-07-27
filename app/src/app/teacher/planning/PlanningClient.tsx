@@ -123,7 +123,7 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
             </button>
           </div>
 
-          <div className="p-8 flex-1 bg-gray-50/30">
+          <div className="p-8 flex-1 bg-gray-50/30 overflow-y-auto">
             {loading ? (
               <div className="text-center text-gray-400 font-medium py-12">Cargando planificación...</div>
             ) : units.length === 0 ? (

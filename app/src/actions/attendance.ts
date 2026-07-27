@@ -45,12 +45,18 @@ async function getAttendanceWriteContext(tenantSlug?: string): Promise<Attendanc
   const tenant = await prisma.tenant.findUnique({ where: { slug: authSession.user.tenantSlug ?? tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  // ponytail: session never carries staffId (not set by auth.ts), so resolve it
+  // from the Staff table each call instead of trusting a field that's always undefined.
+  const staff = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, userId: authSession.user.id },
+  });
+
   return {
     userId: authSession.user.id,
     roles: Array.isArray((authSession.user as { roles?: string[] }).roles)
       ? (authSession.user as { roles?: string[] }).roles ?? []
       : [],
-    staffId: (authSession.user as { staffId?: string | null }).staffId,
+    staffId: staff?.id ?? null,
     tenantId: tenant.id,
   };
 }

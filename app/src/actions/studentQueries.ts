@@ -195,6 +195,17 @@ export async function getStudentClassPrep() {
     },
   });
 
+  const topicIds = sectionSubjects.flatMap(ss => ss.curricularUnits.flatMap(u => u.topics.map(t => t.id)));
+  const attachments = topicIds.length
+    ? await prisma.attachment.findMany({ where: { tenantId: tenant.id, ownerType: 'topic', ownerId: { in: topicIds } } })
+    : [];
+  const attachmentsByTopic = new Map<string, typeof attachments>();
+  for (const a of attachments) {
+    const list = attachmentsByTopic.get(a.ownerId) ?? [];
+    list.push(a);
+    attachmentsByTopic.set(a.ownerId, list);
+  }
+
   return sectionSubjects.map(ss => ({
     id: ss.id,
     subjectName: ss.subject.name,
@@ -204,7 +215,17 @@ export async function getStudentClassPrep() {
       title: u.name,
       startDate: u.startDate?.toISOString() || null,
       endDate: u.endDate?.toISOString() || null,
-      topics: u.topics.map(t => ({ id: t.id, title: t.name, date: t.date?.toISOString() || null })),
+      topics: u.topics.map(t => ({
+        id: t.id,
+        title: t.name,
+        date: t.date?.toISOString() || null,
+        materials: (attachmentsByTopic.get(t.id) ?? []).map(a => ({
+          id: a.id,
+          fileName: a.fileName,
+          fileKey: a.fileKey,
+          contentType: a.contentType,
+        })),
+      })),
     })),
   }));
 }
