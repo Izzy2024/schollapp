@@ -94,6 +94,7 @@ model Tenant {
   payrollEntries PayrollEntry[]
   assets Asset[]
   assetLogs AssetLog[]
+  externalIntegrations ExternalIntegration[]
 }
 
 // -----------------------------------------------------------------------------
@@ -401,6 +402,25 @@ model Student {
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model ExternalIntegration {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  provider            String // e.g. "google_classroom"
+  status              String    @default("disconnected") // disconnected/connected
+  externalAccountEmail String?
+  pendingState        String?   @unique
+  accessToken         String?
+  refreshToken        String?
+  tokenExpiresAt      DateTime?
+  connectedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
 }
 
 model Asset {

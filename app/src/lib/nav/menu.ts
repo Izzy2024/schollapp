@@ -97,6 +97,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
         { key: 'admin-news', icon: 'newspaper', label: 'Noticias', href: '/admin/news' },
         { key: 'admin-settings', icon: 'settings', label: 'Configuración', href: '/admin/settings' },
         { key: 'admin-grade-weights', icon: 'grading', label: 'Ponderación de notas', href: '/admin/settings/grade-weights' },
+        { key: 'admin-integrations', icon: 'hub', label: 'Integraciones', href: '/admin/integrations' },
       ],
     },
   ],

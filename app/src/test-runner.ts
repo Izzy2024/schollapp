@@ -90,3 +90,6 @@ import './actions/__tests__/inventory.contract.test';
 
 // Online payments (checkout + webhook) contract suite
 import './actions/finance/__tests__/onlinePayments.contract.test';
+
+// External integrations (Google Classroom connect status) contract suite
+import './actions/__tests__/integrations.contract.test';

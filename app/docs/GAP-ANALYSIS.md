@@ -27,6 +27,7 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 | RRHH/nómina | `hr.ts` + modelos `StaffContract`/`PayrollPeriod`/`PayrollEntry`: contratos, períodos de nómina y recibos con deducciones manuales (sin cálculo automático de impuestos/seguridad social — deliberado, ver checklist); cada docente ve sus propios recibos |
 | Inventario de activos | `inventory.ts` + modelos `Asset`/`AssetLog`: ciclo de vida completo (disponible/asignado/mantenimiento/baja) con bitácora |
 | Pasarela de pago online | `src/lib/payment/` (adapter Stripe) + `finance/onlinePayments.ts`: checkout por el saldo pendiente de un cargo, webhook idempotente que registra el `FinancePayment` y liquida el cargo; listo para activar con `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` |
+| Integraciones externas | `integrations.ts` + modelo `ExternalIntegration`: OAuth2 real con Google Classroom (conectar/listar cursos), gateado por `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`; SIS estatal sin adapter (sin API pública verificable que integrar) |
 
 ### A medias
 
@@ -40,11 +41,17 @@ Auditoría del estado actual del proyecto (2026-07) frente a lo que necesita un 
 
 ### Inexistentes
 
-Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza por email), admisiones (pipeline de aspirantes), conducta/disciplina, promoción/rollover de año académico, certificados y constancias oficiales, rúbricas y evaluación por competencias, reservas de aulas/recursos, biblioteca, transporte, cafetería, enfermería, RRHH/nómina de personal, inventario/activos, pasarela de pago online, integraciones externas (Google Classroom, SIS estatal), portal público del colegio, recuperación de contraseña por email.
+Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1/P2 abajo). Lo que queda genuinamente sin construir:
+
+- Rúbricas y evaluación por competencias.
+- Reservas de aulas/recursos (no hay modelo `Room` — `director/resources` sigue siendo una vista derivada de `ClassSchedule.room`).
+- Portal público del colegio (más allá del formulario de admisión en `/apply/[tenantSlug]`).
+- Notificaciones por SMS/push, y extender el envío por email más allá de invitaciones/reset de contraseña (anuncios, recordatorios de cobranza).
+- Adapter de integración con un SIS estatal (sin especificación de API disponible).
 
 ## 2. Brechas priorizadas
 
-### P0 — bloqueantes para uso real
+### P0 — bloqueantes para uso real (todo hecho o preparado)
 
 1. ~~**Registro por código de invitación**~~ — **Hecho.** `invitations.ts` + `/register`; admin genera código por persona (Staff/Student/Guardian), `mustChangePassword` fuerza cambio en el primer login con contraseña temporal.
 2. ~~**Backdoor de login demo**~~ — **Hecho.** Gateado tras `ALLOW_DEMO_LOGIN=1` (solo `.env` de desarrollo); también se eliminó el fallback de roles por substring de email.
@@ -54,7 +61,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 6. ~~**Attachments a object storage**~~ — **Preparado.** `src/lib/storage/` define `StorageAdapter` con adapter local (filesystem, default) y adapter Vercel Blob; `getStorageAdapter()` cambia automáticamente a Blob si existe `BLOB_READ_WRITE_TOKEN` en el entorno — solo falta provisionar el Blob store en Vercel y setear la variable.
 7. ~~**Notificaciones por email**~~ — **Preparado.** `src/lib/email/` define `EmailAdapter` con adapter de consola (default, solo loguea) y adapter Resend; `sendEmail()` cambia a Resend si existe `RESEND_API_KEY`. Ya integrado en `createInvitation` (envía el link de registro al email del Staff/Student/Guardian invitado, si tiene uno). Falta extenderlo a anuncios/recordatorios de cobranza y provisionar la cuenta de Resend.
 
-### P1 — para un SIS completo
+### P1 — para un SIS completo (todo hecho)
 
 - ~~Entrega de tareas~~ — **Hecho.** `Evaluation.dueDate` opcional + modelo `Submission`; el docente pone fecha límite al crear la evaluación, el alumno sube un archivo en `/student/assignments` (marcado `late` si entrega tarde), el docente ve las entregas y deja retroalimentación en `/teacher/assignments`.
 - ~~Admisiones~~ — **Hecho.** Modelo `Applicant` + `admissions.ts`: formulario público sin login en `/apply/[tenantSlug]`, pipeline en `/admin/admissions` (examen → decisión → conversión a `Student`, con `Guardian` vinculado si se registró). La conversión crea el alumno pero no lo inscribe a una sección — eso sigue el flujo existente de `/admin/enrollment` a propósito, para no duplicar su lógica de capacidad/validación.
@@ -63,7 +70,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - ~~Recuperación de contraseña por email~~ — **Hecho.** `passwordReset.ts` + modelo `PasswordResetToken` (expira en 1h, uso único); `/forgot-password` no revela si el email existe (previene enumeración de cuentas); `/reset-password?token=X` para establecer la nueva contraseña.
 - ~~RBAC granular real~~ — **Infraestructura lista, adopción parcial.** `src/lib/rbac.ts` (`hasPermission()`) consulta `Role → RolePermission → Permission` de verdad, con permisos granulares sembrados (`finance:write`, `students:manage`, `staff:manage`, `invitations:manage`, `grades:write`, `attendance:write`) además de los `app:*` legacy. **No se migraron** los ~40 archivos de `src/actions/**` que hoy autorizan por string de rol (`roles.includes('admin')`) — cada uno requeriría además actualizar sus contract tests (que crean sesiones de prueba con `roles: string[]` y tenants efímeros sin `Role`/`RolePermission` sembrados) para exercitar el chequeo real contra la DB. Migrar módulo por módulo es trabajo futuro incremental.
 
-### P2 — ERP ampliado
+### P2 — ERP ampliado (todo hecho, ver alcance deliberado de cada uno)
 
 - ~~Conducta/disciplina~~ — **Hecho.** Modelo `ConductRecord` (mérito/demérito/incidente, con puntos y categoría) + `conduct.ts`: el docente registra conducta solo para alumnos de sus propias clases (`/teacher/conduct`), admin/director para cualquier alumno (tab "Conducta" en el expediente), alumno y padre ven su propio historial y puntaje acumulado (`/student/conduct`, `/parent/conduct`).
 - ~~Biblioteca~~ — **Hecho.** Modelos `Book`/`BookLoan` + `library.ts`: catálogo con copias disponibles, préstamo/devolución (admin/director en `/admin/library`, con control de disponibilidad y bloqueo de borrado si el libro tiene préstamos activos), alumno ve sus propios préstamos activos e historial en `/student/library`.
@@ -73,7 +80,7 @@ Notificaciones externas más allá de invitaciones (SMS/push, anuncios/cobranza 
 - ~~RRHH/nómina de personal~~ — **Hecho (con alcance deliberadamente acotado).** Modelos `StaffContract`/`PayrollPeriod`/`PayrollEntry` + `hr.ts`: contratos por empleado (puesto, salario, tipo, activo/finalizado), períodos de nómina con recibos (bruto − deducciones = neto capturados manualmente por el admin, sin cálculo automático de impuestos/CSS — no se fabricaron reglas de ley laboral panameña sin verificarlas), marcar como pagado. Admin/director gestionan en `/admin/hr`; cada docente ve sus propios recibos en `/teacher/payroll`.
 - ~~Inventario de activos~~ — **Hecho.** Modelos `Asset`/`AssetLog` + `inventory.ts`: activos con categoría/número de serie/ubicación, ciclo de vida completo (disponible → asignado a empleado → mantenimiento → dado de baja) con bitácora de cada cambio de estado. Gestionado en `/admin/inventory`.
 - ~~Pasarela de pago online~~ — **Hecho (adapter Stripe, listo para activar).** `src/lib/payment/` define `PaymentGateway` (checkout + verificación de webhook); `getPaymentGateway()` devuelve `null` si no hay `STRIPE_SECRET_KEY` (a diferencia de storage/email, no existe un "fallback local" razonable para dinero real — el padre ve "pago en línea no disponible" y sigue usando el registro manual existente). Integrado en el módulo de finanzas ya existente (`finance/onlinePayments.ts`), no como dominio nuevo: botón "Pagar en línea" en `/parent/finances` crea un Stripe Checkout Session por el saldo pendiente del cargo; `/api/payments/webhook` confirma el pago y crea el `FinancePayment` (idempotente por referencia externa, actor "Sistema de Pagos" para el registro automático). Falta provisionar `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` para activarlo.
-- Integraciones (Google Classroom, SIS estatal).
+- ~~Integraciones externas~~ — **Hecho (Google Classroom real, SIS estatal documentado como pendiente).** Modelo `ExternalIntegration` genérico (provider, tokens, estado) + `integrations.ts`: flujo OAuth2 completo con Google (conectar/desconectar/listar cursos vía la API real de Classroom), gateado por `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. **No se fabricó un adapter de "SIS estatal"** — Panamá no tiene (hasta donde se pudo verificar) una API pública documentada de un sistema estatal de información escolar; se deja como tarjeta "no disponible" en `/admin/integrations` en vez de inventar un contrato de API. El modelo `ExternalIntegration` ya está preparado para acomodarlo el día que exista una especificación real.
 
 ## 3. Checklist técnico por componente
 
