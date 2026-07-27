@@ -84,6 +84,9 @@ model Tenant {
   transportRoutes TransportRoute[]
   transportStops TransportStop[]
   transportAssignments TransportAssignment[]
+  cafeteriaMenuItems CafeteriaMenuItem[]
+  cafeteriaAccounts CafeteriaAccount[]
+  cafeteriaTransactions CafeteriaTransaction[]
 }
 
 // -----------------------------------------------------------------------------
@@ -384,9 +387,57 @@ model Student {
   conductRecords    ConductRecord[]
   bookLoans         BookLoan[]
   transportAssignments TransportAssignment[]
+  cafeteriaAccount     CafeteriaAccount[]
+  cafeteriaTransactions CafeteriaTransaction[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model CafeteriaMenuItem {
+  id        String  @id @default(uuid())
+  tenantId  String
+  name      String
+  priceCents Int
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions CafeteriaTransaction[]
+
+  @@index([tenantId])
+}
+
+model CafeteriaAccount {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  balanceCents Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, studentId])
+}
+
+model CafeteriaTransaction {
+  id          String   @id @default(uuid())
+  tenantId    String
+  studentId   String
+  menuItemId  String?
+  type        String // topup/purchase
+  amountCents Int // positive for topup, positive magnitude for purchase (sign implied by type)
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student  Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  menuItem CafeteriaMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, createdAt(sort: Desc)])
 }
 
 model TransportRoute {

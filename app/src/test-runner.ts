@@ -75,3 +75,6 @@ import './actions/__tests__/library.contract.test';
 
 // School transport routes/stops/assignments contract suite
 import './actions/__tests__/transport.contract.test';
+
+// Cafeteria menu/top-up/purchase contract suite
+import './actions/__tests__/cafeteria.contract.test';
