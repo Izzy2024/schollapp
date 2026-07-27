@@ -89,6 +89,9 @@ model Tenant {
   cafeteriaTransactions CafeteriaTransaction[]
   healthRecords HealthRecord[]
   healthIncidents HealthIncident[]
+  staffContracts StaffContract[]
+  payrollPeriods PayrollPeriod[]
+  payrollEntries PayrollEntry[]
 }
 
 // -----------------------------------------------------------------------------
@@ -398,6 +401,60 @@ model Student {
   @@index([tenantId, lastName, firstName])
 }
 
+model StaffContract {
+  id           String    @id @default(uuid())
+  tenantId     String
+  staffId      String
+  position     String
+  salaryCents  Int
+  contractType String // full_time/part_time/contract
+  startDate    DateTime
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, staffId])
+}
+
+model PayrollPeriod {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("draft") // draft/paid
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entries PayrollEntry[]
+
+  @@index([tenantId])
+}
+
+model PayrollEntry {
+  id              String    @id @default(uuid())
+  tenantId        String
+  payrollPeriodId String
+  staffId         String
+  grossCents      Int
+  deductionsCents Int       @default(0)
+  netCents        Int
+  notes           String?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollPeriod PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  staff         Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([payrollPeriodId, staffId])
+  @@index([tenantId, staffId])
+}
+
 model HealthRecord {
   id                    String   @id @default(uuid())
   tenantId              String
@@ -631,6 +688,8 @@ model Staff {
   scheduleRequests ScheduleRequest[]
   conductRecordsReported ConductRecord[]
   healthIncidentsReported HealthIncident[]
+  contracts StaffContract[]
+  payrollEntries PayrollEntry[]
 }
 
 model Attachment {

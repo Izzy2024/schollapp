@@ -67,6 +67,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'admin-students', icon: 'groups', label: 'Estudiantes', href: '/admin/students' },
         { key: 'admin-staff', icon: 'badge', label: 'Staff', href: '/admin/staff' },
+        { key: 'admin-hr', icon: 'work', label: 'RRHH', href: '/admin/hr' },
         { key: 'admin-admissions', icon: 'assignment_ind', label: 'Admisiones', href: '/admin/admissions' },
         { key: 'admin-enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
         { key: 'admin-class-requests', icon: 'task', label: 'Solicitudes de clase', href: '/admin/class-requests' },
@@ -156,6 +157,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Vida Escolar',
       items: [
         { key: 'teacher-conduct', icon: 'verified_user', label: 'Conducta', href: '/teacher/conduct' },
+        { key: 'teacher-payroll', icon: 'work', label: 'Mi Nómina', href: '/teacher/payroll' },
       ],
     },
     {
