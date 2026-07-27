@@ -72,3 +72,6 @@ import './actions/__tests__/conduct.contract.test';
 
 // Library catalog + loans contract suite
 import './actions/__tests__/library.contract.test';
+
+// School transport routes/stops/assignments contract suite
+import './actions/__tests__/transport.contract.test';

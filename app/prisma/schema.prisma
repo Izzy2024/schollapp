@@ -81,6 +81,9 @@ model Tenant {
   conductRecords ConductRecord[]
   books Book[]
   bookLoans BookLoan[]
+  transportRoutes TransportRoute[]
+  transportStops TransportStop[]
+  transportAssignments TransportAssignment[]
 }
 
 // -----------------------------------------------------------------------------
@@ -380,9 +383,59 @@ model Student {
   submissions       Submission[]
   conductRecords    ConductRecord[]
   bookLoans         BookLoan[]
+  transportAssignments TransportAssignment[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model TransportRoute {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  driverName   String?
+  vehiclePlate String?
+  capacity     Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stops       TransportStop[]
+  assignments TransportAssignment[]
+
+  @@index([tenantId])
+}
+
+model TransportStop {
+  id           String  @id @default(uuid())
+  tenantId     String
+  routeId      String
+  name         String
+  order        Int     @default(0)
+  pickupTime   String? // HH:mm
+  dropoffTime  String? // HH:mm
+
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  route       TransportRoute        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  assignments TransportAssignment[]
+
+  @@index([tenantId, routeId])
+}
+
+model TransportAssignment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  studentId String
+  routeId   String
+  stopId    String?
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  route   TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop    TransportStop? @relation(fields: [stopId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, studentId])
 }
 
 model Book {

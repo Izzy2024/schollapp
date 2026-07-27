@@ -77,6 +77,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Vida Escolar',
       items: [
         { key: 'admin-library', icon: 'menu_book', label: 'Biblioteca', href: '/admin/library' },
+        { key: 'admin-transport', icon: 'directions_bus', label: 'Transporte', href: '/admin/transport' },
       ],
     },
     {
@@ -185,6 +186,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       title: 'Vida Escolar',
       items: [
         { key: 'parent-conduct', icon: 'verified_user', label: 'Conducta', href: '/parent/conduct' },
+        { key: 'parent-transport', icon: 'directions_bus', label: 'Transporte', href: '/parent/transport' },
       ],
     },
     {
@@ -227,6 +229,7 @@ const MENU_BY_ROLE: Record<RoleKey, MenuGroup[]> = {
       items: [
         { key: 'student-conduct', icon: 'verified_user', label: 'Conducta', href: '/student/conduct' },
         { key: 'student-library', icon: 'menu_book', label: 'Biblioteca', href: '/student/library' },
+        { key: 'student-transport', icon: 'directions_bus', label: 'Transporte', href: '/student/transport' },
       ],
     },
     {
