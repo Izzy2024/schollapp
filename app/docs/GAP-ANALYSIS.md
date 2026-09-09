@@ -88,15 +88,16 @@ Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| NextAuth v5 credentials + bcryptjs, sesión JWT con `roles[]`/`tenantId`/`tenantSlug`; registro por código de invitación (`invitations.ts`, `/register`); `mustChangePassword` obligatorio tras provisioning; recuperación de contraseña por email (`passwordReset.ts`, `/forgot-password`, `/reset-password`) | — | — |
-| RBAC por prefijo de ruta en `auth.config.ts`/`auth-guards.mjs` | Solo cubre `/admin`, `/teacher`, `/director` — `/student` y `/parent` sin gate de rol | Añadir estos prefijos al RBAC de rutas |
-| — | `AUTH_SECRET` con fallback hardcodeado (`'secret-for-dev-only-change-in-prod'`) | Obligatorio en producción, sin fallback silencioso |
+| NextAuth v5 credentials + bcryptjs, sesión JWT con `roles[]`/`tenantId`/`tenantSlug`; registro por código de invitación (`invitations.ts`, `/register`); `mustChangePassword` obligatorio tras provisioning; recuperación de contraseña por email (`passwordReset.ts`, `/forgot-password`, `/reset-password`); rate limiting en `/login`/`/forgot-password` (`src/lib/rate-limit.ts`) | — | — |
+| RBAC por prefijo de ruta en `auth.config.ts`/`auth-guards.mjs`, ahora cubre `/admin`, `/teacher`, `/director`, `/student` y `/parent` | — | — |
+| `AUTH_SECRET` sin fallback en producción (falla duro si no está seteado) | — | — |
+| RBAC granular (`hasPermission()`) migrado en `finance/*`, `invitations.ts`, `students.ts`, `admissions.ts`, `promotion.ts` | `staff.ts`/`hr.ts`/`guardians.ts` siguen por string de rol (`staff:manage` ya está sembrado para director, migrarlos ahora es seguro); `health/cafeteria/inventory/library/transport/conduct/integrations/scheduleRequests` sin permission code sembrado | Migrar los primeros 3; para el resto, decidir los nuevos permission codes (decisión de producto) antes de migrar |
 
 ### Base de datos
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| SQLite (`dev.db`), Prisma `db push` sin migraciones | Sin concurrencia real, sin backups gestionados, sin migraciones versionadas | Postgres gestionado (Railway, Supabase o Neon) + `prisma migrate` para producción — ver runbook en `docs/POSTGRES_MIGRATION.md` |
+| Postgres (provider migrado, `mode: 'insensitive'` aplicado, migración inicial generada — ver `docs/POSTGRES_MIGRATION.md`), verificado de punta a punta contra una instancia local | **PENDIENTE: provisionar Postgres gestionado real de producción (Railway/Supabase/Neon) y apuntar `DATABASE_URL` ahí** — hoy solo corrió contra Postgres local, no hay instancia de producción | Provisionar, correr `prisma migrate deploy`, sembrar solo si aplica (nunca `db:seed` demo contra producción) |
 
 ### Usuarios y tenancy
 
@@ -108,7 +109,7 @@ Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| Next.js build estándar; adapters listos para Vercel Blob (`src/lib/storage/`), Resend (`src/lib/email/`) y Stripe (`src/lib/payment/`) | Sin CI/CD documentado, sin `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY` ni `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` provisionados | Vercel + Postgres gestionado + Vercel Blob + Resend + Stripe (crear el webhook apuntando a `/api/payments/webhook` una vez desplegado) |
+| Next.js build limpio (`npm run build` sin errores); adapters listos para Vercel Blob (`src/lib/storage/`), Resend (`src/lib/email/`) y Stripe (`src/lib/payment/`) | Sin CI/CD documentado. **PENDIENTE: `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY` ni `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` sin provisionar** — el código ya soporta los tres, solo falta la cuenta de cada proveedor | Vercel + Postgres gestionado + Vercel Blob + Resend + Stripe (crear el webhook apuntando a `/api/payments/webhook` una vez desplegado); documentar un workflow de CI (lint/typecheck/test/build) |
 
 ### Seguridad de datos de menores
 
@@ -119,9 +120,10 @@ Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1
 ## 4. Guía de despliegue recomendada (breve)
 
 - **Hosting**: Vercel para el frontend/API routes de Next.js.
-- **Base de datos**: Postgres gestionado (Railway/Supabase/Neon), no SQLite en producción.
-- **Storage de archivos**: Vercel Blob o S3 en vez de filesystem local.
-- **Email transaccional**: Resend — ya integrado en `src/lib/email/`; solo falta `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado en Resend) para activarlo.
-- **Pagos en línea**: Stripe — ya integrado en `src/lib/payment/`; falta `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, y configurar en el dashboard de Stripe un webhook hacia `https://<dominio>/api/payments/webhook` suscrito al evento `checkout.session.completed`.
-- **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback), `APP_URL` (dominio real, usado en los links de invitación), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
+- **Base de datos**: Postgres gestionado (Railway/Supabase/Neon), no SQLite en producción. **PENDIENTE** — el schema ya está migrado a `postgresql` y verificado contra una instancia local (ver `docs/POSTGRES_MIGRATION.md`), pero falta provisionar la instancia real y apuntar `DATABASE_URL` de producción ahí.
+- **Storage de archivos**: Vercel Blob o S3 en vez de filesystem local. **PENDIENTE** — falta `BLOB_READ_WRITE_TOKEN`.
+- **Email transaccional**: Resend — ya integrado en `src/lib/email/`. **PENDIENTE** — falta `RESEND_API_KEY` y `RESEND_FROM_EMAIL` (dominio verificado en Resend) para activarlo.
+- **Pagos en línea**: Stripe — ya integrado en `src/lib/payment/`. **PENDIENTE** — falta `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, y configurar en el dashboard de Stripe un webhook hacia `https://<dominio>/api/payments/webhook` suscrito al evento `checkout.session.completed`.
+- **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback — ya lo exige el código), `APP_URL` (dominio real, usado en los links de invitación), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
 - **Seed**: `db:seed` y usuarios demo solo corren en desarrollo/staging, nunca contra la base de producción.
+- **CI/CD**: sin documentar todavía — pendiente un workflow (ej. GitHub Actions) que corra lint/typecheck/test/build en cada PR.
