@@ -109,7 +109,7 @@ Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1
 
 | Qué hay | Qué falta | Recomendación |
 |---|---|---|
-| Next.js build limpio (`npm run build` sin errores); adapters listos para Vercel Blob (`src/lib/storage/`), Resend (`src/lib/email/`) y Stripe (`src/lib/payment/`) | Sin CI/CD documentado. **PENDIENTE: `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY` ni `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` sin provisionar** — el código ya soporta los tres, solo falta la cuenta de cada proveedor | Vercel + Postgres gestionado + Vercel Blob + Resend + Stripe (crear el webhook apuntando a `/api/payments/webhook` una vez desplegado); documentar un workflow de CI (lint/typecheck/test/build) |
+| Next.js build limpio (`npm run build` sin errores); adapters listos para Vercel Blob (`src/lib/storage/`), Resend (`src/lib/email/`) y Stripe (`src/lib/payment/`); workflow de CI en `.github/workflows/ci.yml` (push/PR: Postgres 16 de servicio + `prisma generate`, `lint`, typecheck de producción, `npm test`, `build`) | **PENDIENTE: `BLOB_READ_WRITE_TOKEN`, `RESEND_API_KEY` ni `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` sin provisionar** — el código ya soporta los tres, solo falta la cuenta de cada proveedor | Vercel + Postgres gestionado + Vercel Blob + Resend + Stripe (crear el webhook apuntando a `/api/payments/webhook` una vez desplegado) |
 
 ### Seguridad de datos de menores
 
@@ -126,4 +126,4 @@ Todo lo que estaba en esta lista original ya se implementó (ver secciones P0/P1
 - **Pagos en línea**: Stripe — ya integrado en `src/lib/payment/`. **PENDIENTE** — falta `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, y configurar en el dashboard de Stripe un webhook hacia `https://<dominio>/api/payments/webhook` suscrito al evento `checkout.session.completed`.
 - **Variables de entorno obligatorias en producción**: `AUTH_SECRET` (valor real, sin fallback — ya lo exige el código), `APP_URL` (dominio real, usado en los links de invitación), sin `ALLOW_DEMO_LOGIN` (solo se define en `.env` de desarrollo).
 - **Seed**: `db:seed` y usuarios demo solo corren en desarrollo/staging, nunca contra la base de producción.
-- **CI/CD**: sin documentar todavía — pendiente un workflow (ej. GitHub Actions) que corra lint/typecheck/test/build en cada PR.
+- **CI/CD**: resuelto — `.github/workflows/ci.yml` corre en cada push/PR: servicio `postgres:16`, `pnpm install --frozen-lockfile`, `prisma generate`, `npm run lint`, `tsc --noEmit -p tsconfig.ci.json` (typecheck de producción; los ~100 errores preexistentes de suites de test legacy se excluyen a propósito, ver comentario en el workflow), `npm test` (los scripts `pretest`/`test` respetan `DATABASE_URL` externo con default local), y `npm run build` con `AUTH_SECRET` dummy.
