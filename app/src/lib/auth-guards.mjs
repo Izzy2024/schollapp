@@ -37,5 +37,25 @@ export function resolveFallbackPath(path, roles) {
     return '/admin';
   }
 
+  if (
+    path.startsWith('/student') &&
+    !roles.includes('student') &&
+    !roles.includes('alumno') &&
+    !roles.includes('admin') &&
+    !roles.includes('director')
+  ) {
+    return '/parent';
+  }
+
+  if (
+    path.startsWith('/parent') &&
+    !roles.includes('parent') &&
+    !roles.includes('padre') &&
+    !roles.includes('admin') &&
+    !roles.includes('director')
+  ) {
+    return '/admin';
+  }
+
   return null;
 }

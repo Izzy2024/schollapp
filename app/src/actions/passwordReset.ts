@@ -40,7 +40,8 @@ export async function requestPasswordReset(email: string): Promise<{ success: tr
 }
 
 export async function resetPassword(input: { token: string; newPassword: string }): Promise<{ success: true } | { error: string }> {
-  if (input.newPassword.length < 8) return { error: STABLE_ERROR.WEAK_PASSWORD };
+  if (typeof input.newPassword !== 'string' || input.newPassword.length < 8)
+    return { error: STABLE_ERROR.WEAK_PASSWORD };
 
   const resetToken = await prisma.passwordResetToken.findUnique({ where: { token: input.token } });
   if (!resetToken) return { error: STABLE_ERROR.RESET_TOKEN_NOT_FOUND };

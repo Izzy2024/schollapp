@@ -179,7 +179,8 @@ export async function registerWithInvitation(input: {
   password: string;
 }): Promise<{ success: true } | { error: string }> {
   const email = input.email.trim().toLowerCase();
-  if (input.password.length < 8) return { error: STABLE_ERROR.WEAK_PASSWORD };
+  if (typeof input.password !== 'string' || input.password.length < 8)
+    return { error: STABLE_ERROR.WEAK_PASSWORD };
 
   try {
     await prisma.$transaction(async (tx) => {

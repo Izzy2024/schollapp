@@ -4,6 +4,14 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
 
+function resolveAuthSecret(): string {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET must be set in production');
+  }
+  return 'secret-for-dev-only-change-in-prod';
+}
+
 export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
   ...authConfig,
   providers: [
@@ -115,7 +123,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
+  secret: resolveAuthSecret(),
 });
 
 // Test override seam: some contract tests run under tsx where node:test mock.module is not available.

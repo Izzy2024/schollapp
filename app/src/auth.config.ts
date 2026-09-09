@@ -2,6 +2,14 @@
 import type { NextAuthConfig } from 'next-auth';
 import { extractRoles, isServerActionRequest, resolveFallbackPath, resolveHomePath } from '@/lib/auth-guards.mjs';
 
+function resolveAuthSecret(): string {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET must be set in production');
+  }
+  return 'secret-for-dev-only-change-in-prod';
+}
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -95,5 +103,5 @@ export const authConfig = {
     },
   },
   providers: [], // Add providers with an empty array for now
-  secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
+  secret: resolveAuthSecret(),
 } satisfies NextAuthConfig;

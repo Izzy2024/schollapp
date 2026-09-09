@@ -137,7 +137,8 @@ export async function changePassword(input: {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
 
-  if (input.newPassword.length < 8) return { error: STABLE_ERROR.WEAK_PASSWORD };
+  if (typeof input.newPassword !== 'string' || input.newPassword.length < 8)
+    return { error: STABLE_ERROR.WEAK_PASSWORD };
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) throw new Error('Unauthorized');
