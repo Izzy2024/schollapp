@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,13 +30,9 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertInventoryAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertInventoryAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'inventory:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 export type AssetRow = {
@@ -51,8 +48,8 @@ export type AssetRow = {
 export async function getAssets(search?: string): Promise<AssetRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const assets = await prisma.asset.findMany({
     where: {
@@ -83,8 +80,8 @@ export async function createAsset(data: {
 }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   if (!data.name.trim()) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -110,8 +107,8 @@ async function logAssetAction(tenantId: string, assetId: string, action: string,
 export async function assignAsset(assetId: string, staffId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const asset = await prisma.asset.findFirst({ where: { id: assetId, tenantId: tenant.id } });
   if (!asset) return { error: STABLE_ERROR.ASSET_NOT_FOUND };
@@ -129,8 +126,8 @@ export async function assignAsset(assetId: string, staffId: string): Promise<{ s
 export async function returnAsset(assetId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const asset = await prisma.asset.findFirst({ where: { id: assetId, tenantId: tenant.id } });
   if (!asset) return { error: STABLE_ERROR.ASSET_NOT_FOUND };
@@ -145,8 +142,8 @@ export async function returnAsset(assetId: string): Promise<{ success: true } | 
 export async function sendToMaintenance(assetId: string, notes?: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const asset = await prisma.asset.findFirst({ where: { id: assetId, tenantId: tenant.id } });
   if (!asset) return { error: STABLE_ERROR.ASSET_NOT_FOUND };
@@ -161,8 +158,8 @@ export async function sendToMaintenance(assetId: string, notes?: string): Promis
 export async function retireAsset(assetId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const asset = await prisma.asset.findFirst({ where: { id: assetId, tenantId: tenant.id } });
   if (!asset) return { error: STABLE_ERROR.ASSET_NOT_FOUND };
@@ -179,8 +176,8 @@ export type AssetLogRow = { id: string; action: string; notes: string | null; oc
 export async function getAssetLog(assetId: string): Promise<AssetLogRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertInventoryAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertInventoryAdmin(tenant.id, session.user.id);
 
   const logs = await prisma.assetLog.findMany({
     where: { tenantId: tenant.id, assetId },

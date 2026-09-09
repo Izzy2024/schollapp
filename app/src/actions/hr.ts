@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,16 +30,12 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertHrAdmin(session: Session) {
-  // ponytail: no dedicated "HR" role exists yet; admin/director manage payroll
-  // for now (same interim pattern as health.ts). Migrate to a granular
-  // hr:manage permission (src/lib/rbac.ts) when this module needs its own role.
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.HR_FORBIDDEN);
+async function assertHrAdmin(tenantId: string, userId: string) {
+  // ponytail: HR comparte el permiso staff:manage con staff/guardians hasta que
+  // el módulo necesite su propio rol (ver hr:manage en el comentario original).
+  // Admin y director lo tienen sembrado por igual, así que el mapeo es 1:1.
+  const ok = await hasPermission(tenantId, userId, 'staff:manage');
+  if (!ok) throw stableError(STABLE_ERROR.HR_FORBIDDEN);
 }
 
 export type ContractRow = {
@@ -56,8 +53,8 @@ export type ContractRow = {
 export async function getContracts(): Promise<ContractRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const contracts = await prisma.staffContract.findMany({
     where: { tenantId: tenant.id },
@@ -87,8 +84,8 @@ export async function createContract(data: {
 }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   if (!data.position.trim() || data.salaryCents < 0) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -113,8 +110,8 @@ export async function createContract(data: {
 export async function endContract(contractId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const contract = await prisma.staffContract.findFirst({ where: { id: contractId, tenantId: tenant.id } });
   if (!contract) return { error: STABLE_ERROR.CONTRACT_NOT_FOUND };
@@ -129,8 +126,8 @@ export type PayrollPeriodRow = { id: string; name: string; startDate: string; en
 export async function getPayrollPeriods(): Promise<PayrollPeriodRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const periods = await prisma.payrollPeriod.findMany({
     where: { tenantId: tenant.id },
@@ -151,8 +148,8 @@ export async function getPayrollPeriods(): Promise<PayrollPeriodRow[]> {
 export async function createPayrollPeriod(data: { name: string; startDateIso: string; endDateIso: string }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   if (!data.name.trim()) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -178,8 +175,8 @@ export type PayrollEntryRow = {
 export async function getPayrollEntries(periodId: string): Promise<PayrollEntryRow[] | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const period = await prisma.payrollPeriod.findFirst({ where: { id: periodId, tenantId: tenant.id } });
   if (!period) return { error: STABLE_ERROR.PAYROLL_PERIOD_NOT_FOUND };
@@ -208,8 +205,8 @@ export async function addPayrollEntry(
 ): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const period = await prisma.payrollPeriod.findFirst({ where: { id: periodId, tenantId: tenant.id } });
   if (!period) return { error: STABLE_ERROR.PAYROLL_PERIOD_NOT_FOUND };
@@ -238,8 +235,8 @@ export async function addPayrollEntry(
 export async function markEntryPaid(entryId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHrAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHrAdmin(tenant.id, session.user.id);
 
   const entry = await prisma.payrollEntry.findFirst({ where: { id: entryId, tenantId: tenant.id } });
   if (!entry) return { error: STABLE_ERROR.PAYROLL_ENTRY_NOT_FOUND };

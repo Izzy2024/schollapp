@@ -5,21 +5,11 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { provisionUserAccount } from '@/lib/accountProvisioning';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
-type Session = {
-  id: string;
-  email?: string | null;
-  tenantSlug?: string | null;
-  roles?: string[] | null;
-};
-
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertGuardiansAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertGuardiansAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'staff:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 export async function createGuardianAndLink(
@@ -29,13 +19,13 @@ export async function createGuardianAndLink(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertGuardiansAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertGuardiansAdmin(tenant.id, session.user.id);
 
   const guardian = await prisma.$transaction(async (tx) => {
     // 1. Create Guardian
@@ -80,13 +70,13 @@ export async function createGuardianAndLink(
 export async function removeGuardianLink(studentId: string, guardianId: string, tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertGuardiansAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertGuardiansAdmin(tenant.id, session.user.id);
 
   await prisma.studentGuardian.delete({
     where: {

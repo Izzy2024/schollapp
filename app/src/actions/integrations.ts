@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 import * as googleClassroom from '@/lib/integrations/googleClassroom';
 
 type Session = {
@@ -13,13 +14,13 @@ type Session = {
 };
 
 async function getAdminTenant(session: Session) {
-  const roles = session.roles ?? [];
-  if (!roles.includes('admin') && !roles.includes('director')) {
-    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
-  }
   if (!session.tenantSlug) throw new Error('Tenant not found');
   const tenant = await prisma.tenant.findUnique({ where: { slug: session.tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+  const ok = await hasPermission(tenant.id, session.id, 'integrations:manage');
+  if (!ok) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
   return tenant;
 }
 

@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,21 +30,14 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertHealthAdmin(session: Session) {
-  // ponytail: no dedicated "nurse" role exists yet; admin/director manage health
-  // records for now. When RBAC granular adoption (src/lib/rbac.ts) reaches this
-  // module, gate by a health:manage permission instead of role name.
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.HEALTH_FORBIDDEN);
+async function assertHealthAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'health:manage');
+  if (!ok) throw stableError(STABLE_ERROR.HEALTH_FORBIDDEN);
 }
 
 /** Admin/director can see any student's health info; a student can see their own; a guardian can see their linked children's. */
 async function assertHealthReadAccess(tenantId: string, studentId: string, session: Session): Promise<void> {
-  if (isAdminOrDirector(session)) return;
+  if (await hasPermission(tenantId, session.id, 'health:manage')) return;
 
   const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
   if (student?.email && student.email === session.email) return;
@@ -92,8 +86,8 @@ export async function getHealthRecord(studentId: string): Promise<HealthRecordDa
 export async function upsertHealthRecord(studentId: string, data: Partial<HealthRecordData>): Promise<{ success: true }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHealthAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHealthAdmin(tenant.id, session.user.id);
 
   await prisma.healthRecord.upsert({
     where: { studentId },
@@ -144,8 +138,8 @@ export async function createHealthIncident(
 ): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertHealthAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertHealthAdmin(tenant.id, session.user.id);
 
   if (!data.description.trim()) return { error: STABLE_ERROR.INVALID_TARGET };
 

@@ -13,6 +13,21 @@ function clearTestSession() {
   delete (globalThis as any).__TEST_SESSION__;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+// Solo se siembra para el admin que debe pasar; los paths de docente usan el
+// chequeo por rol string (isTeacherOfStudent) y quedan sin seed a propósito.
+async function seedConductManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'conduct:manage' },
+    update: {},
+    create: { code: 'conduct:manage', description: 'test seed: conduct manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `conduct-manager-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function makeSetup() {
   const now = Date.now();
   const tenant = await prisma.tenant.create({
@@ -114,6 +129,7 @@ describe('Conduct records contract (merits/demerits, access control) — NO mock
 
   it('admin can delete a record', async () => {
     const { tenant, admin, teacherUser, student } = await makeSetup();
+    await seedConductManage(tenant.id, admin.id);
 
     setTestSession({ id: teacherUser.id, tenantSlug: tenant.slug, roles: ['teacher'] });
     await createConductRecord(student.id, { type: 'demerit', description: 'x', points: -1 });

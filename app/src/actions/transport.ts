@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,17 +30,13 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertTransportAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertTransportAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'transport:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 async function assertStudentAccess(tenantId: string, studentId: string, session: Session): Promise<void> {
-  if (isAdminOrDirector(session)) return;
+  if (await hasPermission(tenantId, session.id, 'transport:manage')) return;
 
   const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
   if (student?.email && student.email === session.email) return;
@@ -68,8 +65,8 @@ export type RouteRow = {
 export async function getRoutes(): Promise<RouteRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const routes = await prisma.transportRoute.findMany({
     where: { tenantId: tenant.id },
@@ -91,8 +88,8 @@ export async function getRoutes(): Promise<RouteRow[]> {
 export async function createRoute(data: { name: string; driverName?: string; vehiclePlate?: string; capacity?: number }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   if (!data.name.trim()) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -107,8 +104,8 @@ export async function createRoute(data: { name: string; driverName?: string; veh
 export async function deleteRoute(routeId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const route = await prisma.transportRoute.findFirst({ where: { id: routeId, tenantId: tenant.id } });
   if (!route) return { error: STABLE_ERROR.ROUTE_NOT_FOUND };
@@ -137,8 +134,8 @@ export type RouteDetail = {
 export async function getRouteDetail(routeId: string): Promise<RouteDetail | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const route = await prisma.transportRoute.findFirst({
     where: { id: routeId, tenantId: tenant.id },
@@ -169,8 +166,8 @@ export async function getRouteDetail(routeId: string): Promise<RouteDetail | { e
 export async function addStop(routeId: string, data: { name: string; order: number; pickupTime?: string; dropoffTime?: string }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const route = await prisma.transportRoute.findFirst({ where: { id: routeId, tenantId: tenant.id } });
   if (!route) return { error: STABLE_ERROR.ROUTE_NOT_FOUND };
@@ -187,8 +184,8 @@ export async function addStop(routeId: string, data: { name: string; order: numb
 export async function deleteStop(stopId: string): Promise<{ success: true }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const stop = await prisma.transportStop.findFirst({ where: { id: stopId, tenantId: tenant.id } });
   if (!stop) throw stableError(STABLE_ERROR.STOP_NOT_FOUND);
@@ -201,8 +198,8 @@ export async function deleteStop(stopId: string): Promise<{ success: true }> {
 export async function assignStudentToRoute(studentId: string, routeId: string, stopId?: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   const route = await prisma.transportRoute.findFirst({ where: { id: routeId, tenantId: tenant.id }, include: { assignments: true } });
   if (!route) return { error: STABLE_ERROR.ROUTE_NOT_FOUND };
@@ -228,8 +225,8 @@ export async function assignStudentToRoute(studentId: string, routeId: string, s
 export async function unassignStudent(studentId: string): Promise<{ success: true }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertTransportAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertTransportAdmin(tenant.id, session.user.id);
 
   await prisma.transportAssignment.deleteMany({ where: { tenantId: tenant.id, studentId } });
   safeRevalidate('/admin/transport');

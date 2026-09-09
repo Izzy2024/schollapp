@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 import type { Prisma } from '@prisma/client';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
@@ -30,17 +31,13 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertCafeteriaAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertCafeteriaAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'cafeteria:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 async function assertStudentAccess(tenantId: string, studentId: string, session: Session): Promise<void> {
-  if (isAdminOrDirector(session)) return;
+  if (await hasPermission(tenantId, session.id, 'cafeteria:manage')) return;
 
   const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
   if (student?.email && student.email === session.email) return;
@@ -72,8 +69,8 @@ export async function getMenuItems(): Promise<MenuItemRow[]> {
 export async function createMenuItem(data: { name: string; priceCents: number }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertCafeteriaAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertCafeteriaAdmin(tenant.id, session.user.id);
 
   if (!data.name.trim() || data.priceCents < 0) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -85,8 +82,8 @@ export async function createMenuItem(data: { name: string; priceCents: number })
 export async function deactivateMenuItem(itemId: string): Promise<{ success: true }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertCafeteriaAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertCafeteriaAdmin(tenant.id, session.user.id);
 
   await prisma.cafeteriaMenuItem.updateMany({ where: { id: itemId, tenantId: tenant.id }, data: { isActive: false } });
   safeRevalidate('/admin/cafeteria');
@@ -141,8 +138,8 @@ export async function getAccountInfo(studentId: string): Promise<AccountInfo> {
 export async function topUpAccount(studentId: string, amountCents: number, description?: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertCafeteriaAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertCafeteriaAdmin(tenant.id, session.user.id);
 
   if (amountCents <= 0) return { error: STABLE_ERROR.INVALID_TARGET };
 
@@ -168,8 +165,8 @@ export async function topUpAccount(studentId: string, amountCents: number, descr
 export async function recordPurchase(studentId: string, menuItemId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertCafeteriaAdmin(session.user);
   const tenant = await getTenant(session.user);
+  await assertCafeteriaAdmin(tenant.id, session.user.id);
 
   const menuItem = await prisma.cafeteriaMenuItem.findFirst({ where: { id: menuItemId, tenantId: tenant.id } });
   if (!menuItem) return { error: STABLE_ERROR.MENU_ITEM_NOT_FOUND };

@@ -6,21 +6,11 @@ import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { provisionUserAccount } from '@/lib/accountProvisioning';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
-type Session = {
-  id: string;
-  email?: string | null;
-  tenantSlug?: string | null;
-  roles?: string[] | null;
-};
-
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertStaffAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertStaffAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'staff:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 export async function getStaffList(
@@ -31,13 +21,13 @@ export async function getStaffList(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStaffAdmin(tenant.id, session.user.id);
 
   const where: Prisma.StaffWhereInput = { tenantId: tenant.id, isActive: true };
 
@@ -83,13 +73,13 @@ export async function createStaff(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStaffAdmin(tenant.id, session.user.id);
 
   const staff = await prisma.staff.create({
     data: {

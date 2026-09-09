@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,11 +30,6 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
 async function findTeacherStaffId(tenantId: string, userId: string): Promise<string | null> {
   const staff = await prisma.staff.findFirst({ where: { tenantId, userId } });
   return staff?.id ?? null;
@@ -51,9 +47,9 @@ async function isTeacherOfStudent(tenantId: string, staffId: string, studentId: 
   return teaches !== null;
 }
 
-/** Admin/director: any student. Teacher: only students in one of their classes. Student: only themself. Guardian: only their linked children. */
+/** Admin/director (conduct:manage): any student. Teacher: only students in one of their classes. Student: only themself. Guardian: only their linked children. */
 async function assertConductAccess(tenantId: string, studentId: string, session: Session): Promise<void> {
-  if (isAdminOrDirector(session)) return;
+  if (await hasPermission(tenantId, session.id, 'conduct:manage')) return;
 
   const staffId = await findTeacherStaffId(tenantId, session.id);
   if (staffId && (await isTeacherOfStudent(tenantId, staffId, studentId))) return;
@@ -121,8 +117,10 @@ export async function createConductRecord(
   const roles = session.user.roles ?? [];
   const staffId = await findTeacherStaffId(tenant.id, session.user.id);
 
+  // conduct:manage (admin/director) puede reportar cualquier conducta; un docente
+  // solo la de sus propias clases — esa lógica se deja intacta a propósito.
   const canReport =
-    isAdminOrDirector(session.user) || (roles.includes('teacher') && staffId && (await isTeacherOfStudent(tenant.id, staffId, studentId)));
+    (await hasPermission(tenant.id, session.user.id, 'conduct:manage')) || (roles.includes('teacher') && staffId && (await isTeacherOfStudent(tenant.id, staffId, studentId)));
   if (!canReport) throw stableError(STABLE_ERROR.CONDUCT_FORBIDDEN);
 
   if (!data.description.trim()) {
@@ -152,7 +150,8 @@ export async function deleteConductRecord(recordId: string): Promise<{ success: 
   if (!session?.user) throw new Error('Unauthorized');
 
   const tenant = await getTenant(session.user);
-  if (!isAdminOrDirector(session.user)) throw stableError(STABLE_ERROR.CONDUCT_FORBIDDEN);
+  const ok = await hasPermission(tenant.id, session.user.id, 'conduct:manage');
+  if (!ok) throw stableError(STABLE_ERROR.CONDUCT_FORBIDDEN);
 
   const record = await prisma.conductRecord.findFirst({ where: { id: recordId, tenantId: tenant.id } });
   if (!record) throw stableError(STABLE_ERROR.CONDUCT_RECORD_NOT_FOUND);

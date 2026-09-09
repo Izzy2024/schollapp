@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -29,18 +30,14 @@ async function getTenant(session: Session) {
   return tenant;
 }
 
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertLibrarian(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertLibrarian(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'library:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 /** Admin/director can see any student's loans; a student can see their own; a guardian can see their linked children's. */
 async function assertLoanAccess(tenantId: string, studentId: string, session: Session): Promise<void> {
-  if (isAdminOrDirector(session)) return;
+  if (await hasPermission(tenantId, session.id, 'library:manage')) return;
 
   const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
   if (student?.email && student.email === session.email) return;
@@ -91,8 +88,8 @@ export async function createBook(data: {
 }): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertLibrarian(session.user);
   const tenant = await getTenant(session.user);
+  await assertLibrarian(tenant.id, session.user.id);
 
   if (!data.title.trim() || data.totalCopies < 1) {
     return { error: STABLE_ERROR.INVALID_TARGET };
@@ -117,8 +114,8 @@ export async function createBook(data: {
 export async function deleteBook(bookId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertLibrarian(session.user);
   const tenant = await getTenant(session.user);
+  await assertLibrarian(tenant.id, session.user.id);
 
   const book = await prisma.book.findFirst({ where: { id: bookId, tenantId: tenant.id } });
   if (!book) return { error: STABLE_ERROR.BOOK_NOT_FOUND };
@@ -144,8 +141,8 @@ export type LoanRow = {
 export async function checkoutBook(bookId: string, studentId: string, dueDateIso: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertLibrarian(session.user);
   const tenant = await getTenant(session.user);
+  await assertLibrarian(tenant.id, session.user.id);
 
   const result = await prisma.$transaction(async (tx) => {
     const book = await tx.book.findFirst({ where: { id: bookId, tenantId: tenant.id } });
@@ -170,8 +167,8 @@ export async function checkoutBook(bookId: string, studentId: string, dueDateIso
 export async function returnBook(loanId: string): Promise<{ success: true } | { error: string }> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertLibrarian(session.user);
   const tenant = await getTenant(session.user);
+  await assertLibrarian(tenant.id, session.user.id);
 
   const result = await prisma.$transaction(async (tx) => {
     const loan = await tx.bookLoan.findFirst({ where: { id: loanId, tenantId: tenant.id } });
@@ -191,8 +188,8 @@ export async function returnBook(loanId: string): Promise<{ success: true } | { 
 export async function getActiveLoans(): Promise<LoanRow[]> {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertLibrarian(session.user);
   const tenant = await getTenant(session.user);
+  await assertLibrarian(tenant.id, session.user.id);
 
   const loans = await prisma.bookLoan.findMany({
     where: { tenantId: tenant.id, returnedAt: null },

@@ -13,6 +13,19 @@ function clearTestSession() {
   delete (globalThis as any).__TEST_SESSION__;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedHealthManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'health:manage' },
+    update: {},
+    create: { code: 'health:manage', description: 'test seed: health manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `health-manager-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function makeSetup() {
   const now = Date.now();
   const tenant = await prisma.tenant.create({
@@ -22,6 +35,7 @@ async function makeSetup() {
     data: { email: `admin-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
   });
   await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+  await seedHealthManage(tenant.id, admin.id);
 
   const studentEmail = `student-${now}@ex.com`;
   const student = await prisma.student.create({

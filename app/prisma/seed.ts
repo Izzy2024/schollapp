@@ -65,6 +65,14 @@ async function main() {
     'invitations:manage',
     'grades:write',
     'attendance:write',
+    'health:manage',
+    'cafeteria:manage',
+    'inventory:manage',
+    'library:manage',
+    'transport:manage',
+    'conduct:manage',
+    'integrations:manage',
+    'schedule:manage',
   ];
 
   const permissions: Record<string, any> = {};
@@ -77,8 +85,8 @@ async function main() {
   }
 
   const roleDefs = [
-    { name: 'admin', permissions: ['app:admin', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write'] },
-    { name: 'director', permissions: ['app:director', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write'] },
+    { name: 'admin', permissions: ['app:admin', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write', 'health:manage', 'cafeteria:manage', 'inventory:manage', 'library:manage', 'transport:manage', 'conduct:manage', 'integrations:manage', 'schedule:manage'] },
+    { name: 'director', permissions: ['app:director', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write', 'health:manage', 'cafeteria:manage', 'inventory:manage', 'library:manage', 'transport:manage', 'conduct:manage', 'integrations:manage', 'schedule:manage'] },
     { name: 'teacher', permissions: ['app:teacher', 'grades:write', 'attendance:write'] },
     { name: 'parent', permissions: ['app:parent'] },
     { name: 'student', permissions: ['app:student'] },

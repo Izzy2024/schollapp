@@ -29,7 +29,7 @@ async function makeTenant(slugPrefix: string) {
 
 // DB-backed hasPermission() needs a real Permission + Role + UserRole row.
 // Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
-async function seedStudentsManage(tenantId: string, userId: string, roleName: string) {
+async function seedPermission(tenantId: string, userId: string, roleName: string, code: string) {
   await prisma.user.upsert({
     where: { id: userId },
     update: {},
@@ -42,13 +42,21 @@ async function seedStudentsManage(tenantId: string, userId: string, roleName: st
     },
   });
   const permission = await prisma.permission.upsert({
-    where: { code: 'students:manage' },
+    where: { code },
     update: {},
-    create: { code: 'students:manage', description: 'test seed: students manage access' },
+    create: { code, description: `test seed: ${code} access` },
   });
-  const role = await prisma.role.create({ data: { tenantId, name: `${roleName}-${userId}` } });
+  const role = await prisma.role.create({ data: { tenantId, name: `${roleName}-${userId}-${code}` } });
   await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
   await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
+async function seedStudentsManage(tenantId: string, userId: string, roleName: string) {
+  await seedPermission(tenantId, userId, roleName, 'students:manage');
+}
+
+async function seedStaffManage(tenantId: string, userId: string, roleName: string) {
+  await seedPermission(tenantId, userId, roleName, 'staff:manage');
 }
 
 describe('staff/students/guardians authorization — NO mock.module', () => {
@@ -85,11 +93,17 @@ describe('staff/students/guardians authorization — NO mock.module', () => {
     try {
       for (const role of ['admin', 'director']) {
         await seedStudentsManage(tenant.id, `u-${role}`, role);
+        await seedStaffManage(tenant.id, `u-${role}`, role);
         setTestSession({ id: `u-${role}`, tenantSlug: tenant.slug, roles: [role] });
 
         // getStudentById with a non-existent id returns null rather than
         // throwing once past the role gate — proves the gate itself passed.
         assert.equal(await getStudentById('non-existent'), null);
+
+        // getStaffList past the staff:manage gate returns a (possibly empty)
+        // page rather than UNAUTHORIZED_ROLE — same proof for staff.ts.
+        const staffPage = await getStaffList();
+        assert.ok(Array.isArray(staffPage.staff));
 
         // removeGuardianLink with a non-existent link throws a Prisma "record
         // not found" error, not UNAUTHORIZED_ROLE — same proof for guardians.ts.

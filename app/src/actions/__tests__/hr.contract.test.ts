@@ -22,6 +22,20 @@ function clearTestSession() {
   delete (globalThis as any).__TEST_SESSION__;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+// HR comparte staff:manage con staff/guardians (ver assertHrAdmin).
+async function seedStaffManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'staff:manage' },
+    update: {},
+    create: { code: 'staff:manage', description: 'test seed: staff manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `hr-manager-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function makeSetup() {
   const now = Date.now();
   const tenant = await prisma.tenant.create({
@@ -31,6 +45,7 @@ async function makeSetup() {
     data: { email: `admin-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
   });
   await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+  await seedStaffManage(tenant.id, admin.id);
 
   const teacherUser = await prisma.user.create({
     data: { email: `teacher-${now}@ex.com`, fullName: 'Docente', passwordHash: 'x', isActive: true },

@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
+import { hasPermission } from '@/lib/rbac';
 import { revalidatePath } from 'next/cache';
 
 function formatSlot(day: number, start: string, end: string, room?: string | null) {
@@ -636,12 +637,12 @@ export async function getAllClassSchedules(tenantSlug?: string) {
   }));
 }
 
-function assertSchedulerAccess(user: { role?: string | null; roles?: string[] | null }) {
-  const role = user.role ?? undefined;
-  const roles = user.roles ?? [];
-  if (role === 'admin' || role === 'director') return;
-  if (roles.includes('admin') || roles.includes('director')) return;
-  throw new Error('No autorizado para editar horarios');
+async function assertSchedulerAccess(tenantId: string, userId: string) {
+  // schedule:manage cubre la gestión directa de horarios (crear/editar/eliminar
+  // bloques). Se mantiene el mensaje de error original porque la UI lo muestra
+  // tal cual en vez de un código STABLE_ERROR.
+  const ok = await hasPermission(tenantId, userId, 'schedule:manage');
+  if (!ok) throw new Error('No autorizado para editar horarios');
 }
 
 export async function previewDirectScheduleConflict(
@@ -655,11 +656,11 @@ export async function previewDirectScheduleConflict(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  assertSchedulerAccess(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+  await assertSchedulerAccess(tenant.id, session.user.id);
 
   if (dayOfWeek < 1 || dayOfWeek > 6) return { ok: false, error: 'Día inválido.' };
   if (!isValidRange(startTime, endTime)) return { ok: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
@@ -694,11 +695,11 @@ export async function createClassScheduleDirect(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  assertSchedulerAccess(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+  await assertSchedulerAccess(tenant.id, session.user.id);
 
   if (dayOfWeek < 1 || dayOfWeek > 6) return { success: false, error: 'Día inválido.' };
   if (!isValidRange(startTime, endTime)) return { success: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
@@ -750,11 +751,11 @@ export async function updateClassScheduleDirect(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  assertSchedulerAccess(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+  await assertSchedulerAccess(tenant.id, session.user.id);
 
   if (dayOfWeek < 1 || dayOfWeek > 6) return { success: false, error: 'Día inválido.' };
   if (!isValidRange(startTime, endTime)) return { success: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
@@ -804,11 +805,11 @@ export async function updateClassScheduleDirect(
 export async function deleteClassScheduleDirect(scheduleId: string, tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  assertSchedulerAccess(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+  await assertSchedulerAccess(tenant.id, session.user.id);
 
   const schedule = await prisma.classSchedule.findUnique({ where: { id: scheduleId } });
   if (!schedule || schedule.tenantId !== tenant.id) return { success: false, error: 'Horario no encontrado.' };
