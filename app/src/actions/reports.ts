@@ -186,3 +186,94 @@ export async function exportActiveStudentsCsv() {
 
   return lines.join('\n');
 }
+
+// ─── 5. Director Financial Summary ──────────────────────────────────────────
+
+export type DirectorFinancialSummary = {
+  totalChargesCents: number;
+  totalPaymentsCents: number;
+  balanceDueCents: number;
+  chargeCount: number;
+  paymentCount: number;
+  collectionRate: number;
+  chargesByStatus: { status: string; count: number; totalCents: number }[];
+  topConcepts: { name: string; totalCents: number; count: number }[];
+  recentPayments: { id: string; amountCents: number; currency: string; method: string; paidAt: string; studentName: string }[];
+};
+
+export async function getDirectorFinancialSummary(): Promise<DirectorFinancialSummary> {
+  const { tenantId } = await requireTenantOwner();
+
+  const [charges, payments] = await Promise.all([
+    prisma.financeCharge.findMany({
+      where: { tenantId },
+      select: { id: true, amountCents: true, currency: true, status: true, conceptId: true, concept: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.financePayment.findMany({
+      where: { tenantId },
+      select: {
+        id: true, amountCents: true, currency: true, method: true, paidAt: true,
+        student: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { paidAt: 'desc' },
+      take: 10,
+    }),
+  ]);
+
+  const totalChargesCents = charges.reduce((s, c) => s + c.amountCents, 0);
+  const totalPaymentsCents = payments.reduce((s, p) => s + p.amountCents, 0) + // only last 10 above, need all
+    0; // We'll use aggregate for total
+
+  const [totalPaymentsAgg] = await Promise.all([
+    prisma.financePayment.aggregate({ where: { tenantId }, _sum: { amountCents: true } }),
+  ]);
+
+  const allPaymentsCents = totalPaymentsAgg._sum.amountCents || 0;
+
+  // Group charges by status
+  const statusMap = new Map<string, { count: number; totalCents: number }>();
+  for (const c of charges) {
+    const s = c.status || 'unknown';
+    const entry = statusMap.get(s) || { count: 0, totalCents: 0 };
+    entry.count++;
+    entry.totalCents += c.amountCents;
+    statusMap.set(s, entry);
+  }
+  const chargesByStatus = Array.from(statusMap.entries()).map(([status, v]) => ({ status, ...v }));
+
+  // Top concepts
+  const conceptMap = new Map<string, { totalCents: number; count: number }>();
+  for (const c of charges) {
+    const name = c.concept?.name || 'Sin concepto';
+    const entry = conceptMap.get(name) || { totalCents: 0, count: 0 };
+    entry.totalCents += c.amountCents;
+    entry.count++;
+    conceptMap.set(name, entry);
+  }
+  const topConcepts = Array.from(conceptMap.entries())
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.totalCents - a.totalCents)
+    .slice(0, 10);
+
+  const recentPaymentsMapped = payments.map(p => ({
+    id: p.id,
+    amountCents: p.amountCents,
+    currency: p.currency,
+    method: p.method,
+    paidAt: p.paidAt.toISOString(),
+    studentName: `${p.student.firstName} ${p.student.lastName}`,
+  }));
+
+  return {
+    totalChargesCents,
+    totalPaymentsCents: allPaymentsCents,
+    balanceDueCents: totalChargesCents - allPaymentsCents,
+    chargeCount: charges.length,
+    paymentCount: payments.length,
+    collectionRate: totalChargesCents > 0 ? Math.round((allPaymentsCents / totalChargesCents) * 100) : 0,
+    chargesByStatus,
+    topConcepts,
+    recentPayments: recentPaymentsMapped,
+  };
+}

@@ -26,21 +26,21 @@ describe('director overview/activity RBAC contract (S05/R001)', () => {
   });
 
   it('permite acceso para director en superficies /director/overview y /director/activity', async () => {
-    setAuthSession({ user: { id: 'director-a', role: 'DIRECTOR', tenantSlug: 'school-a' } });
+    setAuthSession({ user: { id: 'director-a', roles: ['director'], tenantSlug: 'school-a' } });
 
     await assert.doesNotReject(() => getDirectorOverviewStats());
     await assert.doesNotReject(() => getDirectorRecentActivities());
   });
 
   it('deniega acceso para roles no autorizados con código estable UNAUTHORIZED_ROLE', async () => {
-    setAuthSession({ user: { id: 'teacher-a', role: 'TEACHER', tenantSlug: 'school-a' } });
+    setAuthSession({ user: { id: 'teacher-a', roles: ['teacher'], tenantSlug: 'school-a' } });
 
     await assert.rejects(() => getDirectorOverviewStats(), /UNAUTHORIZED_ROLE/);
     await assert.rejects(() => getDirectorRecentActivities(), /UNAUTHORIZED_ROLE/);
   });
 
   it('evita data leakage cross-tenant forzando tenant de sesión aunque reciba tenantSlug externo', async () => {
-    setAuthSession({ user: { id: 'director-a', role: 'DIRECTOR', tenantSlug: 'school-a' } });
+    setAuthSession({ user: { id: 'director-a', roles: ['director'], tenantSlug: 'school-a' } });
 
     await assert.doesNotReject(() => getDirectorRecentActivities('school-b'));
     await assert.doesNotReject(() => getDirectorOverviewStats('school-b'));

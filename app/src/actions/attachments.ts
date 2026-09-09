@@ -2,9 +2,7 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-import fs from 'fs/promises';
-import path from 'path';
-import { randomUUID } from 'crypto';
+import { getStorageAdapter } from '@/lib/storage';
 
 export async function uploadAttachment(formData: FormData) {
   const session = await auth();
@@ -24,30 +22,22 @@ export async function uploadAttachment(formData: FormData) {
     throw new Error('Faltan parámetros requeridos');
   }
 
-  // Determine local upload directory
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', tenant.id);
-  
-  // Ensure directory exists
-  await fs.mkdir(uploadDir, { recursive: true });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const storage = await getStorageAdapter();
+  const stored = await storage.upload({
+    tenantId: tenant.id,
+    fileName: file.name,
+    contentType: file.type,
+    buffer,
+  });
 
-  const ext = path.extname(file.name);
-  const uniqueFilename = `${randomUUID()}${ext}`;
-  const filePath = path.join(uploadDir, uniqueFilename);
-  const fileUrl = `/uploads/${tenant.id}/${uniqueFilename}`; // Public URL to access the file
-
-  // Write file to disk
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  await fs.writeFile(filePath, buffer);
-
-  // Save to DB
   const attachment = await prisma.attachment.create({
     data: {
       tenantId: tenant.id,
       ownerType,
       ownerId,
       fileName: file.name,
-      fileKey: fileUrl, // using fileKey as the public URL for local storage
+      fileKey: stored.fileKey,
       contentType: file.type,
       sizeBytes: file.size,
     }
@@ -101,16 +91,13 @@ export async function deleteAttachment(attachmentId: string, tenantSlug?: string
     where: { id: attachmentId }
   });
 
-  // Try to delete physical file
+  // Best-effort: remove the underlying file. A failure here (already deleted,
+  // storage backend hiccup) shouldn't roll back the DB delete.
   try {
-    // fileKey is like '/uploads/tenantId/uuid.ext'
-    // Map it back to the absolute local path
-    const relativePath = attachment.fileKey.startsWith('/') ? attachment.fileKey.slice(1) : attachment.fileKey;
-    const physicalPath = path.join(process.cwd(), 'public', relativePath);
-    await fs.unlink(physicalPath);
+    const storage = await getStorageAdapter();
+    await storage.remove(attachment.fileKey);
   } catch (err) {
-    console.error('Error deleting physical file (it might have been deleted already):', err);
-    // Non-fatal error, DB record is already deleted
+    console.error('Error deleting stored file (it might have been deleted already):', err);
   }
 
   return { success: true };

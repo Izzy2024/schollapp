@@ -5,7 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getTeacherStudentsData } from '@/actions/teacherStudents';
 import { TEACHER_MENU_GROUPS } from '@/lib/teacherMenu';
-import { message } from 'antd';
+import { App } from 'antd';
 
 type StudentBase = { id: string; enrollmentId: string | null; firstName: string; lastName: string; curp: string; email: string | null };
 
@@ -14,6 +14,7 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
   initialClassId: string;
   tenantSlug: string;
 }) {
+  const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -23,21 +24,35 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
 
   useEffect(() => {
     const urlClass = searchParams.get('class');
-    if (urlClass && urlClass !== classId) setClassId(urlClass);
+
+    // Avoid react-hooks/set-state-in-effect by deferring state updates.
+    if (urlClass && urlClass !== classId) queueMicrotask(() => setClassId(urlClass));
   }, [searchParams, classId]);
 
   useEffect(() => {
     if (!classId) return;
 
-    setLoading(true);
+    let cancelled = false;
+    queueMicrotask(() => setLoading(true));
+
     getTeacherStudentsData(classId, tenantSlug)
-      .then(res => setStudents(res))
-      .catch(e => {
-        message.error(e.message || 'Error cargando alumnos');
+      .then((res) => {
+        if (cancelled) return;
+        setStudents(res);
       })
-      .finally(() => setLoading(false));
-      
-      router.replace(`/teacher/students?class=${classId}`, { scroll: false });
+      .catch((e) => {
+        message.error(e?.message || 'Error cargando alumnos');
+      })
+      .finally(() => {
+        if (cancelled) return;
+        queueMicrotask(() => setLoading(false));
+      });
+
+    router.replace(`/teacher/students?class=${classId}`, { scroll: false });
+
+    return () => {
+      cancelled = true;
+    };
   }, [classId, tenantSlug, router]);
 
   return (

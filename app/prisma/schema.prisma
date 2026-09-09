@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // -----------------------------------------------------------------------------
@@ -19,6 +19,14 @@ model Tenant {
   name      String
   slug      String   @unique
   timezone  String   @default("America/Mexico_City")
+  logoUrl   String?
+
+  // Panama fiscal fields
+  panamaRUC       String? // RUC de la escuela
+  panamaDV        String? // Dígito verificador
+  panamaNIT       String? // NIT
+  panamaPACApiKey String? // API key del PAC (proveedor autorizado)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -52,26 +60,136 @@ model Tenant {
 
   financeConcepts FinanceConcept[]
   financeCharges  FinanceCharge[]
+  financePayments FinancePayment[]
+  financeInvoices FinanceInvoice[]
+  paymentPlans       FinancePaymentPlan[]
+  paymentInstallments FinancePaymentInstallment[]
+  discounts          FinanceDiscount[]
+  reminders          FinanceReminder[]
+  dunningEvents      FinanceDunningEvent[]
+
+  messageConversations MessageConversation[]
+  messageParticipants  MessageParticipant[]
+  messages             Message[]
+
+  schoolCalendarEvents SchoolCalendarEvent[]
+
+  invitations Invitation[]
+  gradeWeightConfigs GradeWeightConfig[]
+  submissions Submission[]
+  applicants Applicant[]
+  conductRecords ConductRecord[]
+  books Book[]
+  bookLoans BookLoan[]
+  transportRoutes TransportRoute[]
+  transportStops TransportStop[]
+  transportAssignments TransportAssignment[]
+  cafeteriaMenuItems CafeteriaMenuItem[]
+  cafeteriaAccounts CafeteriaAccount[]
+  cafeteriaTransactions CafeteriaTransaction[]
+  healthRecords HealthRecord[]
+  healthIncidents HealthIncident[]
+  staffContracts StaffContract[]
+  payrollPeriods PayrollPeriod[]
+  payrollEntries PayrollEntry[]
+  assets Asset[]
+  assetLogs AssetLog[]
+  externalIntegrations ExternalIntegration[]
+}
+
+// -----------------------------------------------------------------------------
+// 11) Calendario Escolar Global (M005)
+// -----------------------------------------------------------------------------
+
+model SchoolCalendarEvent {
+  id          String    @id @default(uuid())
+  tenantId    String
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean   @default(false)
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("CreatedCalendarEvents", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, startAt])
+  @@index([tenantId, endAt])
 }
 
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  fullName     String
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  passwordHash       String
+  fullName           String
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  memberships        UserMembership[]
-  roles              UserRole[]
-  staffProfiles      Staff[]
-  attendanceSessions AttendanceSession[]
-  announcements      Announcement[]
-  activityEvents     ActivityEvent[]     @relation("ActorActivityEvent")
-  reviewedRequests   ClassRequest[]      @relation("ReviewedClassRequests")
-  reviewedScheduleRequests ScheduleRequest[] @relation("ReviewedScheduleRequests")
+  memberships              UserMembership[]
+  roles                    UserRole[]
+  staffProfiles            Staff[]
+  attendanceSessions       AttendanceSession[]
+  announcements            Announcement[]
+  activityEvents           ActivityEvent[]     @relation("ActorActivityEvent")
+  reviewedRequests         ClassRequest[]      @relation("ReviewedClassRequests")
+  reviewedScheduleRequests ScheduleRequest[]   @relation("ReviewedScheduleRequests")
+
+  financePaymentsCreated FinancePayment[]
+
+  messageParticipants MessageParticipant[]
+  sentMessages        Message[]
+
+  createdCalendarEvents SchoolCalendarEvent[] @relation("CreatedCalendarEvents")
+  invitationsUsed       Invitation[]          @relation("InvitationUsedBy")
+  passwordResetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Fixed-window auth rate limiting (serverless-safe: shared DB, not memory).
+// One row per key (`login:email:<...>`, `login:ip:<...>`, ...). See src/lib/rate-limit.ts.
+model RateLimitEntry {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  attempts    Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+}
+
+model Invitation {
+  id           String    @id @default(uuid())
+  tenantId     String
+  code         String    @unique
+  targetType   String // staff/student/guardian
+  targetId     String
+  expiresAt    DateTime
+  usedAt       DateTime?
+  usedByUserId String?
+  createdById  String?
+  createdAt    DateTime  @default(now())
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usedByUser User?  @relation("InvitationUsedBy", fields: [usedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, usedAt])
+  @@index([tenantId, targetType, targetId])
 }
 
 model UserMembership {
@@ -174,10 +292,36 @@ model GradeLevel {
   name      String
   sortOrder Int    @default(0)
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sections      Section[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sections Section[]
+  financeConcepts FinanceConcept[]
+  applicants Applicant[]
 
   @@unique([tenantId, code])
+}
+
+model Applicant {
+  id                 String    @id @default(uuid())
+  tenantId           String
+  firstName          String
+  lastName           String
+  dob                DateTime?
+  gradeLevelId       String?
+  guardianName       String?
+  guardianEmail      String?
+  guardianPhone      String?
+  status             String    @default("submitted") // submitted/exam_scheduled/exam_passed/exam_failed/accepted/rejected/enrolled
+  examScore          Float?
+  examNotes          String?
+  notes              String?
+  convertedStudentId String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
 }
 
 model Section {
@@ -221,13 +365,13 @@ model SectionSubject {
   subjectId String
   staffId   String?
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  section         Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  subject         Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  staff           Staff?           @relation(fields: [staffId], references: [id])
-  evaluations     Evaluation[]
-  curricularUnits CurricularUnit[]
-  schedules       ClassSchedule[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  section          Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject          Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  staff            Staff?            @relation(fields: [staffId], references: [id])
+  evaluations      Evaluation[]
+  curricularUnits  CurricularUnit[]
+  schedules        ClassSchedule[]
   scheduleRequests ScheduleRequest[]
 
   @@unique([tenantId, sectionId, subjectId])
@@ -258,9 +402,314 @@ model Student {
   attendanceRecords AttendanceRecord[]
   gradeRecords      GradeRecord[]
   financeCharges    FinanceCharge[]
+  financePayments   FinancePayment[]
+  submissions       Submission[]
+  conductRecords    ConductRecord[]
+  bookLoans         BookLoan[]
+  transportAssignments TransportAssignment[]
+  cafeteriaAccount     CafeteriaAccount[]
+  cafeteriaTransactions CafeteriaTransaction[]
+  healthRecord         HealthRecord?
+  healthIncidents      HealthIncident[]
 
   @@unique([tenantId, studentCode])
   @@index([tenantId, lastName, firstName])
+}
+
+model ExternalIntegration {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  provider            String // e.g. "google_classroom"
+  status              String    @default("disconnected") // disconnected/connected
+  externalAccountEmail String?
+  pendingState        String?   @unique
+  accessToken         String?
+  refreshToken        String?
+  tokenExpiresAt      DateTime?
+  connectedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+}
+
+model Asset {
+  id               String    @id @default(uuid())
+  tenantId         String
+  name             String
+  category         String?
+  serialNumber     String?
+  location         String?
+  purchaseDate     DateTime?
+  purchaseCostCents Int?
+  status           String    @default("available") // available/assigned/maintenance/retired
+  assignedToStaffId String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedToStaff Staff?      @relation(fields: [assignedToStaffId], references: [id], onDelete: SetNull)
+  logs           AssetLog[]
+
+  @@index([tenantId, status])
+}
+
+model AssetLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  assetId    String
+  action     String // assigned/returned/maintenance/retired
+  notes      String?
+  occurredAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  asset  Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, assetId, occurredAt(sort: Desc)])
+}
+
+model StaffContract {
+  id           String    @id @default(uuid())
+  tenantId     String
+  staffId      String
+  position     String
+  salaryCents  Int
+  contractType String // full_time/part_time/contract
+  startDate    DateTime
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, staffId])
+}
+
+model PayrollPeriod {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("draft") // draft/paid
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entries PayrollEntry[]
+
+  @@index([tenantId])
+}
+
+model PayrollEntry {
+  id              String    @id @default(uuid())
+  tenantId        String
+  payrollPeriodId String
+  staffId         String
+  grossCents      Int
+  deductionsCents Int       @default(0)
+  netCents        Int
+  notes           String?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollPeriod PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  staff         Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([payrollPeriodId, staffId])
+  @@index([tenantId, staffId])
+}
+
+model HealthRecord {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  studentId             String   @unique
+  bloodType             String?
+  allergies             String?
+  chronicConditions     String?
+  medications           String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model HealthIncident {
+  id             String   @id @default(uuid())
+  tenantId       String
+  studentId      String
+  reportedById   String? // Staff.id
+  type           String // illness/injury/other
+  description    String
+  treatmentGiven String?
+  sentHome       Boolean  @default(false)
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reportedBy Staff?  @relation(fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, occurredAt(sort: Desc)])
+}
+
+model CafeteriaMenuItem {
+  id        String  @id @default(uuid())
+  tenantId  String
+  name      String
+  priceCents Int
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  transactions CafeteriaTransaction[]
+
+  @@index([tenantId])
+}
+
+model CafeteriaAccount {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  balanceCents Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, studentId])
+}
+
+model CafeteriaTransaction {
+  id          String   @id @default(uuid())
+  tenantId    String
+  studentId   String
+  menuItemId  String?
+  type        String // topup/purchase
+  amountCents Int // positive for topup, positive magnitude for purchase (sign implied by type)
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student  Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  menuItem CafeteriaMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, createdAt(sort: Desc)])
+}
+
+model TransportRoute {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  driverName   String?
+  vehiclePlate String?
+  capacity     Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stops       TransportStop[]
+  assignments TransportAssignment[]
+
+  @@index([tenantId])
+}
+
+model TransportStop {
+  id           String  @id @default(uuid())
+  tenantId     String
+  routeId      String
+  name         String
+  order        Int     @default(0)
+  pickupTime   String? // HH:mm
+  dropoffTime  String? // HH:mm
+
+  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  route       TransportRoute        @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  assignments TransportAssignment[]
+
+  @@index([tenantId, routeId])
+}
+
+model TransportAssignment {
+  id        String   @id @default(uuid())
+  tenantId  String
+  studentId String
+  routeId   String
+  stopId    String?
+  createdAt DateTime @default(now())
+
+  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  route   TransportRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stop    TransportStop? @relation(fields: [stopId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, studentId])
+}
+
+model Book {
+  id               String   @id @default(uuid())
+  tenantId         String
+  title            String
+  author           String?
+  isbn             String?
+  category         String?
+  totalCopies      Int      @default(1)
+  availableCopies  Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loans  BookLoan[]
+
+  @@index([tenantId, title])
+}
+
+model BookLoan {
+  id         String    @id @default(uuid())
+  tenantId   String
+  bookId     String
+  studentId  String
+  borrowedAt DateTime  @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  book    Book    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, studentId])
+  @@index([tenantId, bookId, returnedAt])
+}
+
+model ConductRecord {
+  id          String   @id @default(uuid())
+  tenantId    String
+  studentId   String
+  reportedById String? // Staff.id of the teacher/admin who logged it
+  type        String   // merit/demerit/incident
+  category    String?  // e.g. "Falta leve", "Falta grave", "Reconocimiento académico"
+  description String
+  points      Int      @default(0) // positive for merit, negative for demerit; 0 for neutral incidents
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reportedBy Staff?  @relation(fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, occurredAt(sort: Desc)])
 }
 
 model Guardian {
@@ -302,11 +751,16 @@ model Staff {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  sectionSubjects SectionSubject[]
-  classRequests   ClassRequest[]
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sectionSubjects  SectionSubject[]
+  classRequests    ClassRequest[]
   scheduleRequests ScheduleRequest[]
+  conductRecordsReported ConductRecord[]
+  healthIncidentsReported HealthIncident[]
+  contracts StaffContract[]
+  payrollEntries PayrollEntry[]
+  assignedAssets Asset[]
 }
 
 model Attachment {
@@ -320,7 +774,9 @@ model Attachment {
   sizeBytes   Int?
   createdAt   DateTime @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  financePayments FinancePayment[]
+  submissions     Submission[]
 
   @@index([tenantId, ownerType, ownerId])
 }
@@ -443,22 +899,55 @@ model ActivityEvent {
 // -----------------------------------------------------------------------------
 
 model Evaluation {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
   sectionSubjectId String
   termId           String
   name             String
   type             String // Exam, Homework, Participation, etc.
   date             DateTime
-  maxScore         Float    @default(100)
-  createdAt        DateTime @default(now())
+  maxScore         Float     @default(100)
+  dueDate          DateTime? // set by the teacher to turn this evaluation into a submittable assignment
+  createdAt        DateTime  @default(now())
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sectionSubject SectionSubject @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
   term           Term           @relation(fields: [termId], references: [id], onDelete: Cascade)
   records        GradeRecord[]
+  submissions    Submission[]
 
   @@unique([tenantId, sectionSubjectId, termId, name])
+}
+
+model Submission {
+  id           String    @id @default(uuid())
+  tenantId     String
+  evaluationId String
+  studentId    String
+  submittedAt  DateTime?
+  attachmentId String?
+  feedback     String?
+  status       String    @default("pending") // pending/submitted/late/graded
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  evaluation Evaluation  @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attachment Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, evaluationId, studentId])
+}
+
+model GradeWeightConfig {
+  id            String @id @default(uuid())
+  tenantId      String
+  type          String // matches Evaluation.type
+  weightPercent Int
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, type])
 }
 
 model GradeRecord {
@@ -479,7 +968,7 @@ model GradeRecord {
 }
 
 model CurricularUnit {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   tenantId         String
   sectionSubjectId String
   termId           String
@@ -487,12 +976,12 @@ model CurricularUnit {
   description      String?
   startDate        DateTime?
   endDate          DateTime?
-  order            Int      @default(0)
-  createdAt        DateTime @default(now())
+  order            Int       @default(0)
+  createdAt        DateTime  @default(now())
 
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sectionSubject SectionSubject  @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
-  term           Term            @relation(fields: [termId], references: [id], onDelete: Cascade)
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sectionSubject SectionSubject    @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
+  term           Term              @relation(fields: [termId], references: [id], onDelete: Cascade)
   topics         CurricularTopic[]
 
   @@index([tenantId, sectionSubjectId, termId])
@@ -508,27 +997,27 @@ model CurricularTopic {
   order       Int       @default(0)
   createdAt   DateTime  @default(now())
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  unit    CurricularUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  unit   CurricularUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 }
 
 model ClassRequest {
-  id           String    @id @default(uuid())
-  tenantId     String
-  staffId      String
-  subjectId    String
-  sectionId    String
-  status       String    @default("pending") // pending, approved, rejected
+  id            String    @id @default(uuid())
+  tenantId      String
+  staffId       String
+  subjectId     String
+  sectionId     String
+  status        String    @default("pending") // pending, approved, rejected
   justification String
-  reviewedById String?
-  reviewedAt   DateTime?
-  createdAt    DateTime  @default(now())
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime  @default(now())
 
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  section    Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  reviewedBy User?    @relation("ReviewedClassRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff      Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  subject    Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  section    Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("ReviewedClassRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([tenantId, status])
 }
@@ -550,26 +1039,26 @@ model ClassSchedule {
 }
 
 model ScheduleRequest {
-  id               String   @id @default(uuid())
-  tenantId         String
-  sectionSubjectId String
-  staffId          String
-  type             String // new/change
-  status           String   @default("pending") // pending, approved, rejected
-  proposedDayOfWeek Int
-  proposedStartTime String // HH:mm
-  proposedEndTime   String // HH:mm
-  proposedRoom      String?
+  id                   String    @id @default(uuid())
+  tenantId             String
+  sectionSubjectId     String
+  staffId              String
+  type                 String // new/change
+  status               String    @default("pending") // pending, approved, rejected
+  proposedDayOfWeek    Int
+  proposedStartTime    String // HH:mm
+  proposedEndTime      String // HH:mm
+  proposedRoom         String?
   alternativeDayOfWeek Int?
   alternativeStartTime String?
   alternativeEndTime   String?
   alternativeRoom      String?
-  reason            String
-  reviewNote        String?
-  reviewedById      String?
-  reviewedAt        DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  reason               String
+  reviewNote           String?
+  reviewedById         String?
+  reviewedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   sectionSubject SectionSubject @relation(fields: [sectionSubjectId], references: [id], onDelete: Cascade)
@@ -592,6 +1081,7 @@ enum FinanceConceptKind {
 enum FinanceChargeStatus {
   pending
   paid
+  overdue
   void
 }
 
@@ -603,6 +1093,16 @@ model FinanceConcept {
   amountCents Int
   currency    String             @default("MXN")
   isActive    Boolean            @default(true)
+
+  // Configuración de generación automática al matricular
+  autoGenerateOnEnrollment Boolean @default(false) // Generar automáticamente al matricular
+  chargeType              String? // "enrollment" | "monthly" | "annual"
+  installmentCount        Int?    @default(1) // Para mensualidades: cuántos meses (ej. 10)
+  applySiblingDiscount   Boolean @default(false) // Aplicar descuento por hermano
+
+  gradeLevelId            String?
+  gradeLevel              GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -626,11 +1126,345 @@ model FinanceCharge {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
-  tenant  Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  student Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  concept FinanceConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student  Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  concept  FinanceConcept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  payments FinancePayment[]
+  invoices FinanceInvoice[]
+  paymentPlans FinancePaymentPlan[]
+  reminders FinanceReminder[]
+  dunningEvents FinanceDunningEvent[]
 
   @@unique([tenantId, studentId, conceptId, periodKey])
   @@index([tenantId, studentId])
   @@index([tenantId, periodKey])
+}
+
+model FinancePayment {
+  id           String   @id @default(uuid())
+  tenantId     String
+  studentId    String
+  chargeId     String
+  amountCents  Int
+  currency     String   @default("MXN")
+  paidAt       DateTime
+  method       String
+  note         String?
+  reference    String?
+  attachmentId String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  charge     FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  createdBy  User          @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  attachment Attachment?   @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, studentId, paidAt])
+  @@index([tenantId, chargeId])
+}
+
+// -----------------------------------------------------------------------------
+// 9.1) Invoice and Payment Plan Models (M010 - Billing Module)
+// -----------------------------------------------------------------------------
+
+enum FinanceInvoiceStatus {
+  issued    // Emitida
+  sent      // Enviada al tutor
+  paid      // Pagada
+  cancelled // Cancelada
+  overdue   // Vencida
+}
+
+enum PaymentPlanStatus {
+  active
+  completed
+  cancelled
+  defaulted
+}
+
+enum InstallmentStatus {
+  pending
+  paid
+  overdue
+  cancelled
+}
+
+enum DiscountKind {
+  sibling        // Descuento hermanos
+  scholarship    // Beca académica
+  prompt_payment // Pronto pago
+  financial_aid  // Apoyo financiero
+  custom         // Personalizado
+}
+
+enum DiscountAppliesTo {
+  enrollment        // Inscripción
+  tuition           // Colegiatura
+  all_charges       // Todos los cargos
+  specific_concept  // Concepto específico
+}
+
+enum ReminderType {
+  before_due_7d   // 7 días antes
+  before_due_3d   // 3 días antes
+  on_due_date     // Día de vencimiento
+  after_due_1d    // 1 día después
+  after_due_7d    // 1 semana después
+  after_due_15d   // 15 días después
+  after_due_30d   // 1 mes después
+}
+
+enum ReminderChannel {
+  email
+  sms
+  in_app
+  whatsapp
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+}
+
+enum DunningAction {
+  email_sent
+  call_made
+  meeting_scheduled
+  payment_plan_offered
+  warning_issued
+  suspended_services
+  referred_collection
+}
+
+model FinanceInvoice {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chargeId  String   // Cargo asociado
+  folio     String   @unique // "INV-2025-00123"
+
+  // Panama fiscal
+  panamaCUFE String? // Código Único de Factura Electrónica
+  panamaXML  String? // XML enviado a PAC (JSON stringified)
+
+  // Datos del momento (snapshot)
+  studentName  String // Nombre al momento de generación
+  studentCode  String?
+  conceptName  String
+  amountCents  Int
+  currency     String @default("USD") // Panama usa USD/Balboa
+
+  // Receptor (datos del tutor)
+  recipientName    String?
+  recipientRUC     String? // Para factura fiscal Panama
+  recipientEmail   String?
+  recipientPhone   String?
+
+  // Fechas importantes
+  issuedAt      DateTime @default(now())
+  dueDate       DateTime
+  sentAt        DateTime? // Cuando se envió por email
+  paidAt        DateTime?
+
+  // Estado
+  status FinanceInvoiceStatus @default(issued)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, folio])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+  @@index([tenantId, chargeId])
+}
+
+model FinancePaymentPlan {
+  id              String   @id @default(uuid())
+  tenantId        String
+  chargeId        String
+
+  totalAmountCents  Int
+  installmentCount   Int      // Número de parcialidades
+  installmentsPaid   Int      @default(0)
+
+  startDate   DateTime
+  nextDueDate DateTime?
+
+  status PaymentPlanStatus @default(active)
+
+  installments FinancePaymentInstallment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, chargeId])
+}
+
+model FinancePaymentInstallment {
+  id        String   @id @default(uuid())
+  planId    String
+  tenantId  String
+
+  number       Int  // 1, 2, 3...
+  amountCents  Int
+  dueDate      DateTime
+
+  status   InstallmentStatus @default(pending)
+  paidAt   DateTime?
+  paymentId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plan   FinancePaymentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, number])
+  @@index([tenantId, status])
+  @@index([tenantId, dueDate])
+}
+
+model FinanceDiscount {
+  id       String   @id @default(uuid())
+  tenantId String
+
+  name String // "Beca Hermanos", "Pronto Pago"
+  code String? // Código canjeable
+  kind DiscountKind
+
+  // Reglas
+  percentage Int? // Descuento %
+  fixedCents Int? // O monto fijo
+
+  // Aplicación
+  appliesTo       DiscountAppliesTo
+  conceptIdFilter String? // Si appliesTo = specific_concept
+
+  // Configuración
+  maxUses         Int? // Máximo número de usos
+  currentUses     Int  @default(0)
+  siblingMinCount Int? // Mínimo de hermanos para descuento sibling
+
+  // Vigencia
+  validFrom  DateTime?
+  validUntil DateTime?
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isActive])
+}
+
+model FinanceReminder {
+  id       String   @id @default(uuid())
+  tenantId String
+  invoiceId String?
+  chargeId  String
+
+  scheduledFor DateTime
+  sentAt       DateTime?
+
+  type    ReminderType
+  channel ReminderChannel @default(email)
+  status  ReminderStatus @default(pending)
+
+  // Contenido generado
+  subject String?
+  body    String?
+
+  // Metadata de envío
+  errorMessage String?
+  externalId   String? // ID del proveedor (SendGrid, etc.)
+
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge  FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, scheduledFor])
+  @@index([tenantId, chargeId])
+}
+
+model FinanceDunningEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  chargeId  String
+
+  action      DunningAction
+  performedAt DateTime @default(now())
+  performedBy String // userId
+
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  charge FinanceCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, chargeId])
+  @@index([tenantId, performedAt])
+}
+
+// -----------------------------------------------------------------------------
+// 10) Messaging (Comunicación / Mensajería)
+// -----------------------------------------------------------------------------
+
+model MessageConversation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  participants MessageParticipant[]
+  messages     Message[]
+
+  @@index([tenantId, updatedAt])
+}
+
+model MessageParticipant {
+  id             String    @id @default(uuid())
+  tenantId       String
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation MessageConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, conversationId, userId])
+  @@index([tenantId, userId])
+  @@index([tenantId, conversationId])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  tenantId       String
+  conversationId String
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation MessageConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversationId, createdAt])
+  @@index([tenantId, senderId, createdAt])
 }

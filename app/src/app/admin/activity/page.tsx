@@ -4,39 +4,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getRecentActivities } from '@/actions/activity';
 import { getActivityFilterOptions } from '@/lib/activity-taxonomy';
-import { message } from 'antd';
+import { App } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: 'attendance', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: 'announcements', icon: 'campaign', label: 'Comunicados', href: '/admin/announcements' },
-      { key: 'reports', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Auditoría y Configuración',
-    items: [
-      { key: 'activity', icon: 'history', label: 'Bitácora', href: '/admin/activity' },
-      { key: 'academic', icon: 'calendar_month', label: 'Académico', href: '/admin/academic' },
-      { key: '13', icon: 'settings', label: 'Ajustes', href: '/admin/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 type ActivityResult = Awaited<ReturnType<typeof getRecentActivities>>;
 
 const FILTERS = getActivityFilterOptions();
 
 export default function ActivityLogPage() {
+  const { message } = App.useApp();
   const [data, setData] = useState<ActivityResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');

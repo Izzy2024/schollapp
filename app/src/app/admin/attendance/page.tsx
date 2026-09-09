@@ -7,34 +7,14 @@ import {
   getAttendanceBySectionDate,
   saveAttendanceBySectionDate,
 } from '@/actions/attendance';
-import { message } from 'antd';
+import { App, Modal } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: 'attendance', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: 'academic', icon: 'calendar_month', label: 'Académico', href: '/admin/academic' },
-      { key: '13', icon: 'settings', label: 'Ajustes', href: '/admin/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 type Section = { id: string; name: string; gradeLevelId: string; gradeLevelName: string; enrolledCount: number };
 type AttRec = { studentId: string; studentName: string; studentCode: string | null; status: string | null; note: string | null };
+type TakenBy = { name: string; role: string | null } | null;
 
 const STATUS_CONFIG = {
   present:  { label: 'Presente',  short: 'P', color: 'bg-green-100 text-green-700 border-green-200',  active: 'bg-green-500 text-white border-green-500' },
@@ -77,11 +57,14 @@ function todayIso() {
 }
 
 export default function AttendancePage() {
+  const { message } = App.useApp();
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [date, setDate] = useState(todayIso());
   const [records, setRecords] = useState<AttRec[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [takenBy, setTakenBy] = useState<TakenBy>(null);
+  const [editUnlocked, setEditUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -111,6 +94,8 @@ export default function AttendancePage() {
     try {
       const data = await getAttendanceBySectionDate(selectedSectionId, date);
       setSessionId(data.sessionId);
+      setTakenBy(data.takenBy);
+      setEditUnlocked(false);
       setRecords(data.records.map(r => ({ ...r, status: r.status ?? 'present' })));
       setSaveStatus('idle');
       setSaveFeedback(null);
@@ -175,6 +160,18 @@ export default function AttendancePage() {
     return counts;
   }, [records]);
 
+  const requestUnlockEdit = () => {
+    Modal.confirm({
+      title: 'Habilitar edición de asistencia',
+      content: takenBy
+        ? `Esta asistencia fue registrada por ${takenBy.name}${takenBy.role ? ` (${takenBy.role})` : ''}. Estás por modificarla como administrador. Este cambio queda registrado en el historial de actividad.`
+        : 'Estás por registrar asistencia como administrador. Esta acción queda registrada en el historial de actividad.',
+      okText: 'Habilitar edición',
+      cancelText: 'Cancelar',
+      onOk: () => setEditUnlocked(true),
+    });
+  };
+
   const selectedSection = sections.find(s => s.id === selectedSectionId);
 
   const sectionsByGrade = useMemo(() => {
@@ -219,6 +216,32 @@ export default function AttendancePage() {
           </button>
         )}
       </div>
+
+      {!loading && selectedSectionId && (
+        <div className={`mb-4 flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
+          editUnlocked ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-gray-200 bg-gray-50 text-gray-600'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">{editUnlocked ? 'edit' : 'visibility'}</span>
+            <span>
+              {editUnlocked
+                ? 'Modo edición habilitado — los cambios que hagas quedan registrados como acción de administrador.'
+                : takenBy
+                  ? `Vista de solo lectura. Registrado por ${takenBy.name}${takenBy.role ? ` (${takenBy.role})` : ''}.`
+                  : 'Vista de solo lectura. Aún no se ha registrado asistencia para esta fecha.'}
+            </span>
+          </div>
+          {!editUnlocked && (
+            <button
+              onClick={requestUnlockEdit}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">lock_open</span>
+              Habilitar edición
+            </button>
+          )}
+        </div>
+      )}
 
       {saveFeedback && (
         <div className={`mb-4 rounded-xl border px-4 py-3 text-sm font-medium ${
@@ -324,7 +347,7 @@ export default function AttendancePage() {
             </div>
           )}
 
-          {records.length > 0 && (
+          {records.length > 0 && editUnlocked && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-3 flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium text-gray-600">Marcar todos:</span>
               {(Object.keys(STATUS_CONFIG) as StatusKey[]).map(s => (
@@ -379,11 +402,12 @@ export default function AttendancePage() {
                       {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
                         <button
                           key={key}
-                          onClick={() => updateStatus(rec.studentId, key)}
+                          onClick={() => editUnlocked && updateStatus(rec.studentId, key)}
+                          disabled={!editUnlocked}
                           title={cfg.label}
                           className={`w-9 h-9 rounded-xl text-sm font-bold border-2 transition-all ${
                             rec.status === key ? cfg.active : 'bg-white border-gray-200 text-gray-400 hover:border-gray-400'
-                          }`}
+                          } ${!editUnlocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                         >
                           {cfg.short}
                         </button>

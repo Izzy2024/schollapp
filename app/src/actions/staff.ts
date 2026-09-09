@@ -4,15 +4,34 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+
+type Session = {
+  id: string;
+  email?: string | null;
+  tenantSlug?: string | null;
+  roles?: string[] | null;
+};
+
+function isAdminOrDirector(session: Session): boolean {
+  const roles = session.roles ?? [];
+  return roles.includes('admin') || roles.includes('director');
+}
+
+async function assertStaffAdmin(session: Session) {
+  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
 
 export async function getStaffList(
-  search?: string, 
-  page = 1, 
+  search?: string,
+  page = 1,
   pageSize = 20,
   tenantSlug?: string
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
@@ -24,8 +43,8 @@ export async function getStaffList(
 
   if (search) {
     where.OR = [
-      { fullName: { contains: search } },
-      { email: { contains: search } }
+      { fullName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } }
     ];
   }
 
@@ -64,6 +83,7 @@ export async function createStaff(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
@@ -82,6 +102,18 @@ export async function createStaff(
     }
   });
 
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: data.fullName,
+      role: 'teacher',
+    });
+    await prisma.staff.update({ where: { id: staff.id }, data: { userId: result.userId } });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
   revalidatePath('/admin/staff');
-  return { success: true, staff };
+  return { success: true, staff, credentials };
 }

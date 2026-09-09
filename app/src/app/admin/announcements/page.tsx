@@ -10,32 +10,10 @@ import {
   AnnouncementRow,
 } from '@/actions/announcements';
 import { getSectionsForAttendance } from '@/actions/attendance';
-import { message } from 'antd';
+import { App } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: 'attendance', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: 'announcements', icon: 'campaign', label: 'Comunicados', href: '/director/announcements' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: 'academic', icon: 'calendar_month', label: 'Académico', href: '/admin/academic' },
-      { key: '13', icon: 'settings', label: 'Ajustes', href: '/admin/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 type Section = { id: string; name: string; gradeLevelId: string; gradeLevelName: string; enrolledCount: number };
 
@@ -71,6 +49,7 @@ function NewAnnouncementModal({
   onCreated: () => void;
   sections: Section[];
 }) {
+  const { message } = App.useApp();
   const [form, setForm] = useState({
     title: '',
     body: '',
@@ -328,6 +307,7 @@ function AnnouncementPreview({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnnouncementsPage() {
+  const { message } = App.useApp();
   const [rows, setRows] = useState<AnnouncementRow[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);

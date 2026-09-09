@@ -3,26 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getParentDashboardData } from '@/actions/parent';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import Link from 'next/link';
 
-const menuGroups = [
-  {
-    title: 'Panel Familiar',
-    items: [
-      { key: '1', icon: 'family_restroom', label: 'Mis Hijos', href: '/parent' },
-      { key: '2', icon: 'attach_money', label: 'Pagos y Finanzas', href: '/parent/finances' },
-      { key: '3', icon: 'calendar_month', label: 'Calendario', href: '/parent/calendar' },
-      { key: '4', icon: 'mail', label: 'Mensajes', href: '/parent/messages', badge: 1 },
-      { key: '5', icon: 'description', label: 'Documentos', href: '/parent/documents' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: '6', icon: 'campaign', label: 'Noticias', href: '/parent/news' },
-      { key: '7', icon: 'settings', label: 'Configuración', href: '/parent/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['parent']);
 
 export default function ParentDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,10 +76,10 @@ export default function ParentDashboard() {
                     <span className="block text-xs text-gray-400 font-medium uppercase tracking-wide">Asistencia Mensual</span>
                     <span className="font-bold text-gray-900 text-lg">{child.attendance}</span>
                   </div>
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto transition-colors">
+                  <Link href="/parent/report-card" className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto transition-colors no-underline">
                     <span className="material-symbols-outlined text-base">visibility</span>
                     Ver Calificaciones
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))
@@ -107,27 +91,47 @@ export default function ParentDashboard() {
           <div className="stat-card p-6 bg-gradient-to-b from-white to-blue-50/30">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h2>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-md">
-                <span className="material-symbols-outlined text-sm">credit_card</span>
-                Pagar
-              </button>
+              <a
+                href="/parent/finances"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-md"
+              >
+                <span className="material-symbols-outlined text-sm">receipt_long</span>
+                Ver detalle
+              </a>
             </div>
             <div className="text-center mb-6">
               <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Pendiente</span>
               <p className="text-3xl font-bold text-blue-600 mt-2">
-                $ {data?.financial?.balanceDue?.toLocaleString('es-MX', { minimumFractionDigits: 2 }) || '0.00'}
+                {typeof data?.financial?.balanceDueCents === 'number'
+                  ? new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(data.financial.balanceDueCents / 100)
+                  : new Intl.NumberFormat('es-MX', {
+                      style: 'currency',
+                      currency: 'MXN',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(0)}
               </p>
-              <span className="text-xs text-red-500 font-medium">{data?.financial?.dueDate || 'Al corriente'}</span>
+              <span className="text-xs text-red-500 font-medium">{data?.financial?.balanceDueCents ? 'Pendiente' : 'Al corriente'}</span>
             </div>
             <div className="border-t border-gray-100 pt-4">
               <h5 className="font-semibold text-gray-700 text-sm mb-3">Próximos Cargos</h5>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {data?.financial?.upcomingCharges?.map((charge: any) => (
-                <div key={charge.id} className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-500">{charge.concept}</span>
-                  <span className="font-medium text-gray-900">$ {charge.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                </div>
-              ))}
+              {/* MVP: upcoming charges list is shown in /parent/finances */}
+              {data?.financial?.upcomingCharges?.length ? (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                data.financial.upcomingCharges.map((charge: any) => (
+                  <div key={charge.id} className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-500">{charge.concept}</span>
+                    <span className="font-medium text-gray-900">$ {charge.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Ver detalle en “Pagos y Finanzas”.</p>
+              )}
             </div>
           </div>
 
@@ -135,18 +139,18 @@ export default function ParentDashboard() {
           <div className="stat-card p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
             <div className="space-y-3">
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              <Link href="/parent/calendar" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">calendar_month</span>
                 <span className="text-sm font-medium text-gray-700">Ver Calendario Escolar</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              </Link>
+              <Link href="/parent/documents" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">description</span>
                 <span className="text-sm font-medium text-gray-700">Subir Documentos</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left">
+              </Link>
+              <Link href="/parent/messages" className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors text-left no-underline">
                 <span className="material-symbols-outlined text-gray-500">support_agent</span>
                 <span className="text-sm font-medium text-gray-700">Contactar Administración</span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>

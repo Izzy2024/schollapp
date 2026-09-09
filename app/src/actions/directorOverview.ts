@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { getTestPrisma } from '@/lib/test-seams';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { getEnrollmentStats } from '@/actions/directorStats';
+import { getPrimaryRole } from '@/lib/nav/menu';
 
 function getUtcTodayWindow() {
   const now = new Date();
@@ -20,11 +21,11 @@ export async function getDirectorOverviewStats(tenantSlug?: string) {
     throw new Error('Unauthorized');
   }
 
-  if (session.user.role !== 'DIRECTOR') {
+  if (getPrimaryRole((session.user as { roles?: string[] }).roles ?? []) !== 'director') {
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
 
-  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+  const db: typeof prisma = getTestPrisma<typeof prisma>() ?? prisma;
 
   const tenant = await db.tenant.findUnique({
     where: { slug: session.user.tenantSlug },

@@ -61,7 +61,7 @@ type ScheduleSuggestion = {
   note: string;
 };
 
-async function findScheduleConflicts({
+export async function findScheduleConflicts({
   tenantId,
   dayOfWeek,
   startTime,
@@ -277,10 +277,9 @@ export async function previewScheduleRequestConflict(
   if (!tenant) throw new Error('Tenant not found');
 
   const staff = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    orderBy: { createdAt: 'asc' }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
-  if (!staff) throw new Error('No se encontró docente activo para validar la solicitud');
+  if (!staff) throw new Error('No se encontró tu perfil de docente');
 
   if (!sectionSubjectId?.trim()) return { ok: false, error: 'Clase inválida' };
   if (proposedDayOfWeek < 1 || proposedDayOfWeek > 6) return { ok: false, error: 'Día propuesto inválido.' };
@@ -352,10 +351,9 @@ export async function createScheduleRequest(
   if (!tenant) throw new Error('Tenant not found');
 
   const staff = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
-    orderBy: { createdAt: 'asc' }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
-  if (!staff) throw new Error('No se encontró docente activo para crear la solicitud');
+  if (!staff) throw new Error('No se encontró tu perfil de docente');
 
   if (!sectionSubjectId?.trim()) return { success: false, error: 'Clase inválida' };
   if (!reason?.trim() || reason.trim().length < 10) return { success: false, error: 'El motivo debe tener al menos 10 caracteres.' };
@@ -479,6 +477,7 @@ export async function getScheduleRequests(tenantSlug?: string, status?: 'pending
 export async function approveScheduleRequest(requestId: string, tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  const reviewerId = session.user.id;
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
@@ -509,11 +508,6 @@ export async function approveScheduleRequest(requestId: string, tenantSlug?: str
     ...(targetSchedule ? { excludeScheduleId: targetSchedule.id } : {})
   });
   if (conflicts.length > 0) return { success: false, error: conflicts[0].error };
-
-  const reviewer = await prisma.user.findFirst({
-    where: { memberships: { some: { tenantId: tenant.id } } },
-    orderBy: { createdAt: 'asc' }
-  });
 
   await prisma.$transaction(async (tx) => {
     if (req.type === 'new') {
@@ -556,7 +550,7 @@ export async function approveScheduleRequest(requestId: string, tenantSlug?: str
       where: { id: req.id },
       data: {
         status: 'approved',
-        reviewedById: reviewer?.id ?? null,
+        reviewedById: reviewerId,
         reviewedAt: new Date(),
         reviewNote: 'Aprobada'
       }
@@ -585,16 +579,11 @@ export async function rejectScheduleRequest(requestId: string, note: string, ten
   if (req.tenantId !== tenant.id) throw new Error('Solicitud fuera del tenant');
   if (req.status !== 'pending') return { success: false, error: 'La solicitud ya fue procesada.' };
 
-  const reviewer = await prisma.user.findFirst({
-    where: { memberships: { some: { tenantId: tenant.id } } },
-    orderBy: { createdAt: 'asc' }
-  });
-
   await prisma.scheduleRequest.update({
     where: { id: requestId },
     data: {
       status: 'rejected',
-      reviewedById: reviewer?.id ?? null,
+      reviewedById: session.user.id,
       reviewedAt: new Date(),
       reviewNote: note?.trim() || 'Rechazada'
     }
@@ -603,5 +592,244 @@ export async function rejectScheduleRequest(requestId: string, note: string, ten
   revalidatePath('/admin/schedule-requests');
   revalidatePath('/director/schedule-requests');
   revalidatePath(`/teacher/classes/${req.sectionSubjectId}`);
+  return { success: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Direct schedule management (admin/director) — unlike the teacher-facing
+// request flow above, these write ClassSchedule immediately, no approval
+// step. Same conflict checker so an admin can't create a clash either.
+// ─────────────────────────────────────────────────────────────────────────
+
+export async function getAllClassSchedules(tenantSlug?: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const schedules = await prisma.classSchedule.findMany({
+    where: { tenantId: tenant.id },
+    include: {
+      sectionSubject: {
+        include: {
+          subject: true,
+          staff: true,
+          section: { include: { gradeLevel: true } }
+        }
+      }
+    },
+    orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }]
+  });
+
+  return schedules.map((s) => ({
+    id: s.id,
+    dayOfWeek: s.dayOfWeek,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    room: s.room,
+    sectionSubjectId: s.sectionSubjectId,
+    subjectName: s.sectionSubject.subject.name,
+    sectionName: `${s.sectionSubject.section.gradeLevel.name} ${s.sectionSubject.section.name}`,
+    teacherName: s.sectionSubject.staff?.fullName || 'Sin asignar'
+  }));
+}
+
+function assertSchedulerAccess(user: { role?: string | null; roles?: string[] | null }) {
+  const role = user.role ?? undefined;
+  const roles = user.roles ?? [];
+  if (role === 'admin' || role === 'director') return;
+  if (roles.includes('admin') || roles.includes('director')) return;
+  throw new Error('No autorizado para editar horarios');
+}
+
+export async function previewDirectScheduleConflict(
+  sectionSubjectId: string,
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  room: string | null,
+  excludeScheduleId?: string,
+  tenantSlug?: string
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  assertSchedulerAccess(session.user);
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  if (dayOfWeek < 1 || dayOfWeek > 6) return { ok: false, error: 'Día inválido.' };
+  if (!isValidRange(startTime, endTime)) return { ok: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
+
+  const sectionSubject = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
+  if (!sectionSubject || sectionSubject.tenantId !== tenant.id) return { ok: false, error: 'Clase no encontrada.' };
+  if (!sectionSubject.staffId) return { ok: false, error: 'Esta clase no tiene docente asignado todavía.' };
+
+  const conflicts = await findScheduleConflicts({
+    tenantId: tenant.id,
+    dayOfWeek,
+    startTime,
+    endTime,
+    room,
+    staffId: sectionSubject.staffId,
+    excludeScheduleId
+  });
+  if (conflicts.length > 0) {
+    return { ok: false, error: conflicts[0].error, conflictType: conflicts[0].conflictType, conflicts };
+  }
+
+  return { ok: true, message: 'Horario disponible. Sin choques detectados.' };
+}
+
+export async function createClassScheduleDirect(
+  sectionSubjectId: string,
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  room: string | null,
+  tenantSlug?: string
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  assertSchedulerAccess(session.user);
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  if (dayOfWeek < 1 || dayOfWeek > 6) return { success: false, error: 'Día inválido.' };
+  if (!isValidRange(startTime, endTime)) return { success: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
+
+  const sectionSubject = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
+  if (!sectionSubject || sectionSubject.tenantId !== tenant.id) return { success: false, error: 'Clase no encontrada.' };
+  if (!sectionSubject.staffId) return { success: false, error: 'Esta clase no tiene docente asignado todavía.' };
+
+  const conflicts = await findScheduleConflicts({
+    tenantId: tenant.id,
+    dayOfWeek,
+    startTime,
+    endTime,
+    room,
+    staffId: sectionSubject.staffId
+  });
+  if (conflicts.length > 0) return { success: false, error: conflicts[0].error };
+
+  await prisma.classSchedule.create({
+    data: { tenantId: tenant.id, sectionSubjectId, dayOfWeek, startTime, endTime, room }
+  });
+
+  await prisma.activityEvent.create({
+    data: {
+      tenantId: tenant.id,
+      actorUserId: session.user.id,
+      entityType: 'classSchedule',
+      entityId: sectionSubjectId,
+      action: 'schedule_created_direct',
+      metadata: JSON.stringify({ sectionSubjectId, dayOfWeek, startTime, endTime, room }),
+      occurredAt: new Date()
+    }
+  });
+
+  revalidatePath('/admin/schedule');
+  revalidatePath('/teacher');
+  revalidatePath(`/teacher/classes/${sectionSubjectId}`);
+  revalidatePath('/teacher/schedule');
+  return { success: true };
+}
+
+export async function updateClassScheduleDirect(
+  scheduleId: string,
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  room: string | null,
+  tenantSlug?: string
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  assertSchedulerAccess(session.user);
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  if (dayOfWeek < 1 || dayOfWeek > 6) return { success: false, error: 'Día inválido.' };
+  if (!isValidRange(startTime, endTime)) return { success: false, error: 'La hora de inicio debe ser menor a la hora fin.' };
+
+  const schedule = await prisma.classSchedule.findUnique({
+    where: { id: scheduleId },
+    include: { sectionSubject: true }
+  });
+  if (!schedule || schedule.tenantId !== tenant.id) return { success: false, error: 'Horario no encontrado.' };
+  if (!schedule.sectionSubject.staffId) return { success: false, error: 'Esta clase no tiene docente asignado todavía.' };
+
+  const conflicts = await findScheduleConflicts({
+    tenantId: tenant.id,
+    dayOfWeek,
+    startTime,
+    endTime,
+    room,
+    staffId: schedule.sectionSubject.staffId,
+    excludeScheduleId: scheduleId
+  });
+  if (conflicts.length > 0) return { success: false, error: conflicts[0].error };
+
+  await prisma.classSchedule.update({
+    where: { id: scheduleId },
+    data: { dayOfWeek, startTime, endTime, room }
+  });
+
+  await prisma.activityEvent.create({
+    data: {
+      tenantId: tenant.id,
+      actorUserId: session.user.id,
+      entityType: 'classSchedule',
+      entityId: schedule.sectionSubjectId,
+      action: 'schedule_updated_direct',
+      metadata: JSON.stringify({ scheduleId, dayOfWeek, startTime, endTime, room }),
+      occurredAt: new Date()
+    }
+  });
+
+  revalidatePath('/admin/schedule');
+  revalidatePath('/teacher');
+  revalidatePath(`/teacher/classes/${schedule.sectionSubjectId}`);
+  revalidatePath('/teacher/schedule');
+  return { success: true };
+}
+
+export async function deleteClassScheduleDirect(scheduleId: string, tenantSlug?: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  assertSchedulerAccess(session.user);
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
+  if (!tenant) throw new Error('Tenant not found');
+
+  const schedule = await prisma.classSchedule.findUnique({ where: { id: scheduleId } });
+  if (!schedule || schedule.tenantId !== tenant.id) return { success: false, error: 'Horario no encontrado.' };
+
+  await prisma.classSchedule.delete({ where: { id: scheduleId } });
+
+  await prisma.activityEvent.create({
+    data: {
+      tenantId: tenant.id,
+      actorUserId: session.user.id,
+      entityType: 'classSchedule',
+      entityId: schedule.sectionSubjectId,
+      action: 'schedule_deleted_direct',
+      metadata: JSON.stringify({ scheduleId }),
+      occurredAt: new Date()
+    }
+  });
+
+  revalidatePath('/admin/schedule');
+  revalidatePath('/teacher');
+  revalidatePath(`/teacher/classes/${schedule.sectionSubjectId}`);
+  revalidatePath('/teacher/schedule');
   return { success: true };
 }
