@@ -5,15 +5,33 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { provisionUserAccount } from '@/lib/accountProvisioning';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+
+type Session = {
+  id: string;
+  email?: string | null;
+  tenantSlug?: string | null;
+  roles?: string[] | null;
+};
+
+function isAdminOrDirector(session: Session): boolean {
+  const roles = session.roles ?? [];
+  return roles.includes('admin') || roles.includes('director');
+}
+
+async function assertStaffAdmin(session: Session) {
+  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
 
 export async function getStaffList(
-  search?: string, 
-  page = 1, 
+  search?: string,
+  page = 1,
   pageSize = 20,
   tenantSlug?: string
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
@@ -65,6 +83,7 @@ export async function createStaff(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
+  await assertStaffAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
