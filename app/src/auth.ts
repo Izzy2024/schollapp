@@ -3,6 +3,20 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
+import { STABLE_ERROR } from '@/lib/errors';
+import {
+  UNKNOWN_IP,
+  LOGIN_EMAIL_LIMIT,
+  LOGIN_EMAIL_WINDOW_MS,
+  LOGIN_IP_LIMIT,
+  LOGIN_IP_WINDOW_MS,
+  clearRateLimit,
+  getClientIp,
+  isRateLimited,
+  loginEmailKey,
+  loginIpKey,
+  registerAttempt,
+} from '@/lib/rate-limit';
 
 function resolveAuthSecret(): string {
   if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
@@ -26,6 +40,25 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
           throw new Error('Faltan credenciales');
         }
 
+        // Fixed-window brute-force protection (Prisma-backed, serverless-safe).
+        // Checked BEFORE the user lookup so unknown emails consume quota too.
+        const normalizedEmail = (credentials.email as string).trim().toLowerCase();
+        const clientIp = await getClientIp();
+        const emailKey = loginEmailKey(normalizedEmail);
+        const ipKey = clientIp !== UNKNOWN_IP ? loginIpKey(clientIp) : null;
+
+        if (
+          (await isRateLimited(emailKey, LOGIN_EMAIL_LIMIT, LOGIN_EMAIL_WINDOW_MS)) ||
+          (ipKey !== null && (await isRateLimited(ipKey, LOGIN_IP_LIMIT, LOGIN_IP_WINDOW_MS)))
+        ) {
+          throw new Error(STABLE_ERROR.TOO_MANY_ATTEMPTS);
+        }
+
+        const recordLoginFailure = async () => {
+          await registerAttempt(emailKey, LOGIN_EMAIL_WINDOW_MS);
+          if (ipKey !== null) await registerAttempt(ipKey, LOGIN_IP_WINDOW_MS);
+        };
+
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
           include: {
@@ -43,6 +76,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         });
 
         if (!user || !user.isActive) {
+          await recordLoginFailure();
           throw new Error('Usuario no encontrado o inactivo');
         }
 
@@ -61,6 +95,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         }
 
         if (!isPasswordValid) {
+          await recordLoginFailure();
           throw new Error('Contraseña incorrecta');
         }
 
@@ -77,6 +112,9 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         if (userRolesForTenant.length === 0) {
           throw new Error('Usuario sin rol asignado');
         }
+
+        // Successful login resets the per-email failure counter.
+        await clearRateLimit(emailKey);
 
         return {
           id: user.id,

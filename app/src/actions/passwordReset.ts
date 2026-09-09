@@ -5,15 +5,45 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { STABLE_ERROR } from '@/lib/errors';
 import { sendEmail } from '@/lib/email';
+import {
+  UNKNOWN_IP,
+  PASSWORD_RESET_EMAIL_LIMIT,
+  PASSWORD_RESET_EMAIL_WINDOW_MS,
+  PASSWORD_RESET_IP_LIMIT,
+  PASSWORD_RESET_IP_WINDOW_MS,
+  getClientIp,
+  isRateLimited,
+  passwordResetEmailKey,
+  passwordResetIpKey,
+  registerAttempt,
+} from '@/lib/rate-limit';
 
 const RESET_TTL_HOURS = 1;
 
 /**
  * Always returns success regardless of whether the email exists, so this
  * endpoint can't be used to enumerate registered accounts.
+ *
+ * Rate limiting preserves that property: the check and the counter run BEFORE
+ * the user lookup and count EVERY request (existing or not), so neither the
+ * response shape nor its timing reveals whether the email is registered.
+ * Returns `{ error: TOO_MANY_ATTEMPTS }` (same for any email) when limited.
  */
-export async function requestPasswordReset(email: string): Promise<{ success: true }> {
+export async function requestPasswordReset(email: string): Promise<{ success: true } | { error: string }> {
   const normalizedEmail = email.trim().toLowerCase();
+  const clientIp = await getClientIp();
+  const emailKey = passwordResetEmailKey(normalizedEmail);
+  const ipKey = clientIp !== UNKNOWN_IP ? passwordResetIpKey(clientIp) : null;
+
+  if (
+    (await isRateLimited(emailKey, PASSWORD_RESET_EMAIL_LIMIT, PASSWORD_RESET_EMAIL_WINDOW_MS)) ||
+    (ipKey !== null && (await isRateLimited(ipKey, PASSWORD_RESET_IP_LIMIT, PASSWORD_RESET_IP_WINDOW_MS)))
+  ) {
+    return { error: STABLE_ERROR.TOO_MANY_ATTEMPTS };
+  }
+  await registerAttempt(emailKey, PASSWORD_RESET_EMAIL_WINDOW_MS);
+  if (ipKey !== null) await registerAttempt(ipKey, PASSWORD_RESET_IP_WINDOW_MS);
+
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
   if (user && user.isActive) {

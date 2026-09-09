@@ -161,6 +161,18 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Fixed-window auth rate limiting (serverless-safe: shared DB, not memory).
+// One row per key (`login:email:<...>`, `login:ip:<...>`, ...). See src/lib/rate-limit.ts.
+model RateLimitEntry {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  attempts    Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+}
+
 model Invitation {
   id           String    @id @default(uuid())
   tenantId     String

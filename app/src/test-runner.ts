@@ -93,3 +93,6 @@ import './actions/finance/__tests__/onlinePayments.contract.test';
 
 // External integrations (Google Classroom connect status) contract suite
 import './actions/__tests__/integrations.contract.test';
+
+// Rate limiting (login + password reset) contract suite
+import './actions/__tests__/rateLimit.contract.test';
