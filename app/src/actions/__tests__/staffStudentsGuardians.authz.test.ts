@@ -27,6 +27,30 @@ async function makeTenant(slugPrefix: string) {
   });
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedStudentsManage(tenantId: string, userId: string, roleName: string) {
+  await prisma.user.upsert({
+    where: { id: userId },
+    update: {},
+    create: {
+      id: userId,
+      email: `${userId}@test.local`,
+      passwordHash: 'x',
+      fullName: userId,
+      isActive: true,
+    },
+  });
+  const permission = await prisma.permission.upsert({
+    where: { code: 'students:manage' },
+    update: {},
+    create: { code: 'students:manage', description: 'test seed: students manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `${roleName}-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 describe('staff/students/guardians authorization — NO mock.module', () => {
   it('a non-admin session (student) is rejected with UNAUTHORIZED_ROLE on every management action', async () => {
     const tenant = await makeTenant('t-authz-student');
@@ -60,6 +84,7 @@ describe('staff/students/guardians authorization — NO mock.module', () => {
     const tenant = await makeTenant('t-authz-admin');
     try {
       for (const role of ['admin', 'director']) {
+        await seedStudentsManage(tenant.id, `u-${role}`, role);
         setTestSession({ id: `u-${role}`, tenantSlug: tenant.slug, roles: [role] });
 
         // getStudentById with a non-existent id returns null rather than

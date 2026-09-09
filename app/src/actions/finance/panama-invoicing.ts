@@ -19,7 +19,7 @@ export async function sendInvoiceToPanamaPAC(invoiceId: string): Promise<{
   folio: string;
 }> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   // Check Panama configuration
   const panamaConfig = await getPanamaConfig(ctx.tenantId);

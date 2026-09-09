@@ -6,7 +6,7 @@ import { assertFinanceWriteAccess, getTenantIdFromSession, normalizeAndValidateP
 
 export async function generateForPeriod(input: { periodKey: string; conceptId: string; studentIds?: string[] }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const periodKey = await normalizeAndValidatePeriodKey(input.periodKey);
 
@@ -102,7 +102,7 @@ export async function generateForPeriod(input: { periodKey: string; conceptId: s
  */
 export async function voidCharge(input: { chargeId: string; reason: string }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const reason = input.reason?.trim();
   if (!reason) throw new Error('Indica el motivo de la anulación');

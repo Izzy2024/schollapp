@@ -13,7 +13,7 @@ import { STABLE_ERROR, stableError } from '@/lib/errors';
  */
 export async function createPaymentPlan(input: { chargeId: string; installmentCount: number; startDate: Date }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   await ensureActorUserExists(ctx.actorUserId);
 
   if (!Number.isInteger(input.installmentCount) || input.installmentCount < 2) {
@@ -114,7 +114,7 @@ export async function recordInstallmentPayment(input: {
   note?: string;
 }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   await ensureActorUserExists(ctx.actorUserId);
 
   const installment = await prisma.financePaymentInstallment.findFirst({
@@ -182,7 +182,7 @@ export async function recordInstallmentPayment(input: {
 
 export async function cancelPaymentPlan(planId: string) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   await ensureActorUserExists(ctx.actorUserId);
 
   const plan = await prisma.financePaymentPlan.findFirst({ where: { id: planId, tenantId: ctx.tenantId } });

@@ -3,6 +3,7 @@
 import { auth } from '@/auth';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
+import { hasPermission } from '@/lib/rbac';
 
 export type FinanceSessionUser = {
   id: string;
@@ -51,14 +52,9 @@ export async function ensureActorUserExists(actorUserId: string) {
   });
 }
 
-export async function assertFinanceWriteAccess(user: FinanceSessionUser) {
-  const role = user.role ?? undefined;
-  const roles = (user.roles ?? undefined) || [];
-
-  if (role === 'admin' || role === 'director') return;
-  if (roles.includes('admin') || roles.includes('director')) return;
-
-  throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
+export async function assertFinanceWriteAccess(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'finance:write');
+  if (!ok) throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
 }
 
 const PERIOD_KEY_RE = /^\d{4}(-[A-Z0-9]+)?$/i;

@@ -26,6 +26,17 @@ async function resetDb() {
   }
 }
 
+async function seedFinanceWriteAccess(tenantId: string, userId: string) {
+  const permission = await db.permission.upsert({
+    where: { code: 'finance:write' },
+    update: {},
+    create: { code: 'finance:write', description: 'test seed: finance write access' },
+  });
+  const role = await db.role.create({ data: { tenantId, name: `finance-writer-${userId}` } });
+  await db.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await db.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function seed() {
   await resetDb();
 
@@ -34,6 +45,7 @@ async function seed() {
   await db.user.create({
     data: { id: 'user-admin', email: 'admin@tenant-void.test', passwordHash: 'x', fullName: 'Admin', isActive: true },
   });
+  await seedFinanceWriteAccess(tenant.id, 'user-admin');
   const student = await db.student.create({ data: { tenantId: tenant.id, firstName: 'Ana', lastName: 'Pérez' } });
   const concept = await db.financeConcept.create({
     data: { tenantId: tenant.id, name: 'Colegiatura', kind: 'monthly', amountCents: 100_00, currency: 'USD' },

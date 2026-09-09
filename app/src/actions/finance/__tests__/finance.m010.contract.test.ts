@@ -32,6 +32,30 @@ function getDb(): DB {
   return prisma;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedFinanceWriteAccess(tenantId: string, userId: string) {
+  await prisma.user.upsert({
+    where: { id: userId },
+    update: {},
+    create: {
+      id: userId,
+      email: `${userId}@test.local`,
+      passwordHash: 'x',
+      fullName: userId,
+      isActive: true,
+    },
+  });
+  const permission = await prisma.permission.upsert({
+    where: { code: 'finance:write' },
+    update: {},
+    create: { code: 'finance:write', description: 'test seed: finance write access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `finance-writer-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function resetDb(db: DB) {
   const candidates = [
     'activityEvent',
@@ -95,6 +119,7 @@ describe('M010 finance contracts (sibling discounts + payment plans) — NO mock
     });
 
     setTestSession({ user: { id: 'user-admin-a', tenantId: tenant.id, tenantSlug: tenant.slug, role: 'admin', roles: ['admin'] } });
+    await seedFinanceWriteAccess(tenant.id, 'user-admin-a');
 
     await discounts.create({
       name: 'Descuento hermanos',
@@ -126,6 +151,7 @@ describe('M010 finance contracts (sibling discounts + payment plans) — NO mock
     });
 
     setTestSession({ user: { id: 'user-admin-a', tenantId: tenant.id, tenantSlug: tenant.slug, role: 'admin', roles: ['admin'] } });
+    await seedFinanceWriteAccess(tenant.id, 'user-admin-a');
 
     await financeCharges.generateForPeriod({ periodKey: '2026-01', conceptId: concept.id, studentIds: [student.id] });
     const [charge] = await db.financeCharge.findMany({ where: { tenantId: tenant.id, studentId: student.id } });

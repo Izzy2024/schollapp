@@ -226,7 +226,7 @@ export async function recordDunningEvent(
   notes?: string
 ): Promise<DunningEventRecord> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   // Verify charge exists in tenant
   const charge = await prisma.financeCharge.findFirst({
@@ -321,7 +321,7 @@ export async function scheduleReminder(
   scheduledFor: Date
 ): Promise<{ id: string }> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const reminder = await prisma.financeReminder.create({
     data: {
@@ -413,7 +413,7 @@ export async function markReminderFailed(reminderId: string, errorMessage: strin
  */
 export async function processOverdueReminders(): Promise<{ scheduled: number; sent: number }> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const overdueCharges = await prisma.financeCharge.findMany({
     where: { tenantId: ctx.tenantId, status: 'overdue' },

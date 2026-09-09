@@ -77,7 +77,7 @@ async function generateNextFolio(tenantId: string): Promise<string> {
  */
 export async function generateInvoice(input: GenerateInvoiceInput): Promise<InvoiceDetail> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const charge = await prisma.financeCharge.findFirst({
     where: { id: input.chargeId, tenantId: ctx.tenantId },
@@ -328,7 +328,7 @@ export async function getInvoiceByFolio(folio: string): Promise<InvoiceDetail | 
  */
 export async function markInvoiceSent(invoiceId: string): Promise<void> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   await prisma.$transaction(async (tx) => {
     const invoice = await tx.financeInvoice.findFirst({
@@ -362,7 +362,7 @@ export async function markInvoiceSent(invoiceId: string): Promise<void> {
  */
 export async function cancelInvoice(invoiceId: string, reason?: string): Promise<void> {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   await prisma.$transaction(async (tx) => {
     const invoice = await tx.financeInvoice.findFirst({

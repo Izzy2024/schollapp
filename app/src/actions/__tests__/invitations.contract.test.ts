@@ -27,6 +27,19 @@ async function makeTenant(slugPrefix: string) {
   });
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedInvitationsManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'invitations:manage' },
+    update: {},
+    create: { code: 'invitations:manage', description: 'test seed: invitations manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `inviter-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 describe('Invitations contract (registration by code) — NO mock.module', () => {
   beforeEach(() => {
     delete (globalThis as any).__TEST_PRISMA__;
@@ -40,6 +53,7 @@ describe('Invitations contract (registration by code) — NO mock.module', () =>
       data: { email: `admin-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedInvitationsManage(tenant.id, admin.id);
 
     const student = await prisma.student.create({
       data: { tenantId: tenant.id, firstName: 'Ana', lastName: 'Pérez', status: 'active' },
@@ -120,6 +134,7 @@ describe('Invitations contract (registration by code) — NO mock.module', () =>
       data: { email: `admin-reg-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedInvitationsManage(tenant.id, admin.id);
 
     const student = await prisma.student.create({
       data: { tenantId: tenant.id, firstName: 'Carlos', lastName: 'Díaz', status: 'active' },
@@ -165,6 +180,7 @@ describe('Invitations contract (registration by code) — NO mock.module', () =>
       data: { email: `admin-staff-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedInvitationsManage(tenant.id, admin.id);
 
     const staff = await prisma.staff.create({
       data: { tenantId: tenant.id, fullName: 'Profesora López', isActive: true },
@@ -195,6 +211,7 @@ describe('Invitations contract (registration by code) — NO mock.module', () =>
       data: { email: `admin-dup-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedInvitationsManage(tenant.id, admin.id);
 
     const student = await prisma.student.create({
       data: { tenantId: tenant.id, firstName: 'Sofía', lastName: 'Torres', status: 'active' },
@@ -223,6 +240,7 @@ describe('Invitations contract (registration by code) — NO mock.module', () =>
       data: { email: `admin-revoke-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedInvitationsManage(tenant.id, admin.id);
 
     const student = await prisma.student.create({
       data: { tenantId: tenant.id, firstName: 'Iván', lastName: 'Solís', status: 'active' },

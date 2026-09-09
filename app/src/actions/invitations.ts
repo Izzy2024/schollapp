@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 import { ensureMembershipAndRole, type ProvisionRole } from '@/lib/accountProvisioning';
 import { sendEmail } from '@/lib/email';
 
@@ -33,13 +34,13 @@ async function getAdminTenantSession() {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
 
-  const roles = session.user.roles ?? [];
-  if (!roles.includes('admin') && !roles.includes('director')) {
-    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
-  }
-
   const tenant = await prisma.tenant.findUnique({ where: { slug: session.user.tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+
+  const ok = await hasPermission(tenant.id, session.user.id, 'invitations:manage');
+  if (!ok) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
 
   return { tenantId: tenant.id, actorUserId: session.user.id };
 }

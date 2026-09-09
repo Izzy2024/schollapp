@@ -73,7 +73,7 @@ export async function recordManualMulti(input: {
   reference?: string;
 }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   // Mismo seam que recordManual: FinancePayment.createdById tiene FK a User.
   await prisma.user.upsert({
@@ -189,7 +189,7 @@ export type RecordManualPaymentInput = {
 
 export async function recordManual(input: RecordManualPaymentInput) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   // Test seam: contract tests don't create User rows, but FinancePayment.createdById has FK.
   // Ensure the actor user exists (idempotent) before creating the payment.

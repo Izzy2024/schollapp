@@ -13,6 +13,19 @@ function clearTestSession() {
   delete (globalThis as any).__TEST_SESSION__;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedStudentsManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'students:manage' },
+    update: {},
+    create: { code: 'students:manage', description: 'test seed: students manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `promotion-manager-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 describe('Academic year promotion contract — NO mock.module', () => {
   it('promotes enrolled students to the next grade in a new active year, and graduates the top grade', async () => {
     const now = Date.now();
@@ -24,6 +37,7 @@ describe('Academic year promotion contract — NO mock.module', () => {
       data: { email: `admin-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
     });
     await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+    await seedStudentsManage(tenant.id, admin.id);
 
     const sourceYear = await prisma.academicYear.create({
       data: { tenantId: tenant.id, name: '2025-2026', startDate: new Date('2025-08-01'), endDate: new Date('2026-06-30'), isActive: true },

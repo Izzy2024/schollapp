@@ -38,6 +38,30 @@ function getDb(): DB {
   return prisma;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedFinanceWriteAccess(tenantId: string, userId: string) {
+  await prisma.user.upsert({
+    where: { id: userId },
+    update: {},
+    create: {
+      id: userId,
+      email: `${userId}@test.local`,
+      passwordHash: 'x',
+      fullName: userId,
+      isActive: true,
+    },
+  });
+  const permission = await prisma.permission.upsert({
+    where: { code: 'finance:write' },
+    update: {},
+    create: { code: 'finance:write', description: 'test seed: finance write access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `finance-writer-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function resetDb(db: DB) {
   const candidates = ['activityEvent', 'financePayment', 'financeCharge', 'financeConcept', 'student', 'user', 'tenant'];
   for (const modelName of candidates) {
@@ -73,6 +97,7 @@ describe('M003 finance -> activity contracts (finance.* + parse-safe metadata)',
     setTestSession({
       user: { id: 'user-admin-a', tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
     });
+    await seedFinanceWriteAccess(tenantA.id, 'user-admin-a');
 
     const r = await financeCharges.generateForPeriod({ periodKey: '2026-03', conceptId: concept.id, studentIds: [student.id] });
     assert.equal(r.createdCount, 1);
@@ -122,6 +147,7 @@ describe('M003 finance -> activity contracts (finance.* + parse-safe metadata)',
     setTestSession({
       user: { id: 'user-admin-a', tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
     });
+    await seedFinanceWriteAccess(tenantA.id, 'user-admin-a');
 
     const created = await financePayments.recordManual({ chargeId: charge.id, amountCents: 25_00, paidAt: new Date('2026-03-05T12:00:00.000Z') });
     assert.ok(created?.id);

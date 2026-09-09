@@ -35,7 +35,7 @@ function assertValidRule(input: Pick<DiscountInput, 'percentage' | 'fixedCents' 
 
 export async function create(input: DiscountInput) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   await ensureActorUserExists(ctx.actorUserId);
   assertValidRule(input);
 
@@ -72,7 +72,7 @@ export async function create(input: DiscountInput) {
 
 export async function setActive(id: string, isActive: boolean) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const discount = await prisma.financeDiscount.findFirst({ where: { id, tenantId: ctx.tenantId } });
   if (!discount) throw stableError(STABLE_ERROR.FINANCE_DISCOUNT_NOT_FOUND);
@@ -171,7 +171,7 @@ export async function markDiscountUsed(tx: Pick<PrismaClient, 'financeDiscount'>
  */
 export async function applyToCharge(chargeId: string, discountId: string) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   await ensureActorUserExists(ctx.actorUserId);
 
   const charge = await prisma.financeCharge.findFirst({ where: { id: chargeId, tenantId: ctx.tenantId } });

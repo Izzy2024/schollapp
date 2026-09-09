@@ -29,7 +29,21 @@ async function makeTenantWithAdmin(slugPrefix: string) {
     data: { email: `admin-${now}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
   });
   await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+  await seedStudentsManage(tenant.id, admin.id);
   return { tenant, admin };
+}
+
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedStudentsManage(tenantId: string, userId: string) {
+  const permission = await prisma.permission.upsert({
+    where: { code: 'students:manage' },
+    update: {},
+    create: { code: 'students:manage', description: 'test seed: students manage access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `admissions-manager-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
 }
 
 describe('Admissions contract (public form + admin pipeline) — NO mock.module', () => {

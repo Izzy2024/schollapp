@@ -7,21 +7,11 @@ import { Prisma } from '@prisma/client';
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { provisionUserAccount } from '@/lib/accountProvisioning';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
-type Session = {
-  id: string;
-  email?: string | null;
-  tenantSlug?: string | null;
-  roles?: string[] | null;
-};
-
-function isAdminOrDirector(session: Session): boolean {
-  const roles = session.roles ?? [];
-  return roles.includes('admin') || roles.includes('director');
-}
-
-async function assertStudentsAdmin(session: Session) {
-  if (!isAdminOrDirector(session)) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+async function assertStudentsAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'students:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
 export async function getStudents(
@@ -34,13 +24,13 @@ export async function getStudents(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStudentsAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   const academicYear = await prisma.academicYear.findFirst({
     where: { tenantId: tenant.id, isActive: true },
@@ -136,13 +126,13 @@ export async function createStudent(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStudentsAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   let studentCode = data.studentCode;
   if (!studentCode) {
@@ -190,13 +180,13 @@ export async function createStudent(
 export async function getStudentById(studentId: string, tenantSlug?: string) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStudentsAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   const student = await prisma.student.findUnique({
     where: { id: studentId, tenantId: tenant.id },
@@ -224,13 +214,13 @@ export async function updateStudent(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  await assertStudentsAdmin(session.user);
   tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   // Check student belongs to tenant
   const existing = await prisma.student.findFirst({

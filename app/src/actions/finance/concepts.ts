@@ -18,7 +18,7 @@ export async function create(input: {
   gradeLevelId?: string | null;
 }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const name = input.name?.trim();
   if (!name) throw new Error('El nombre es requerido');
@@ -85,7 +85,7 @@ export async function update(input: {
   gradeLevelId?: string | null;
 }) {
   const ctx = await getTenantIdFromSession();
-  await assertFinanceWriteAccess(ctx.user);
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const concept = await prisma.financeConcept.findFirst({ where: { id: input.id, tenantId: ctx.tenantId } });
   if (!concept) throw new Error('Concepto no encontrado');

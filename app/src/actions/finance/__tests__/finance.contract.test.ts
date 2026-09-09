@@ -39,6 +39,30 @@ function getDb(): DB {
   return prisma;
 }
 
+// DB-backed hasPermission() needs a real Permission + Role + UserRole row.
+// Replicates the seed pattern from src/lib/__tests__/rbac.test.ts.
+async function seedFinanceWriteAccess(tenantId: string, userId: string) {
+  await prisma.user.upsert({
+    where: { id: userId },
+    update: {},
+    create: {
+      id: userId,
+      email: `${userId}@test.local`,
+      passwordHash: 'x',
+      fullName: userId,
+      isActive: true,
+    },
+  });
+  const permission = await prisma.permission.upsert({
+    where: { code: 'finance:write' },
+    update: {},
+    create: { code: 'finance:write', description: 'test seed: finance write access' },
+  });
+  const role = await prisma.role.create({ data: { tenantId, name: `finance-writer-${userId}` } });
+  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
+}
+
 async function resetDb(db: DB) {
   // Best-effort cleanup. Keep it resilient to schema evolution.
   const candidates = [
@@ -153,6 +177,7 @@ describe('M003 finance contracts (scope/RBAC/dedupe/balance) — NO mock.module'
         roles: ['admin'],
       },
     });
+    await seedFinanceWriteAccess(tenantA.id, 'user-admin-a');
 
     const r1 = await financeCharges.generateForPeriod({ periodKey: '2026-03', conceptId: concept.id });
     const r2 = await financeCharges.generateForPeriod({ periodKey: '2026-03', conceptId: concept.id });
@@ -195,6 +220,7 @@ describe('M003 finance contracts (scope/RBAC/dedupe/balance) — NO mock.module'
     setTestSession({
       user: { id: 'user-admin-a', tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
     });
+    await seedFinanceWriteAccess(tenantA.id, 'user-admin-a');
     await financeCharges.generateForPeriod({ periodKey: '2026-03', conceptId: concept.id, studentIds: [studentOwned.id] });
 
     const [charge] = await db.financeCharge.findMany({ where: { tenantId: tenantA.id, studentId: studentOwned.id } });

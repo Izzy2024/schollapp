@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -19,13 +20,13 @@ async function getAdminTenant() {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
 
-  const roles = session.user.roles ?? [];
-  if (!roles.includes('admin') && !roles.includes('director')) {
-    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
-  }
-
   const tenant = await prisma.tenant.findUnique({ where: { slug: session.user.tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+
+  const ok = await hasPermission(tenant.id, session.user.id, 'students:manage');
+  if (!ok) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
 
   return tenant;
 }
