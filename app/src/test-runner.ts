@@ -96,3 +96,6 @@ import './actions/__tests__/integrations.contract.test';
 
 // Rate limiting (login + password reset) contract suite
 import './actions/__tests__/rateLimit.contract.test';
+
+// Login rate-limit marker (isTooManyAttemptsError) contract suite
+import './actions/__tests__/authRateLimit.contract.test';
