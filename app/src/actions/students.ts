@@ -41,9 +41,9 @@ export async function getStudents(
 
   if (search) {
     where.OR = [
-      { firstName: { contains: search } },
-      { lastName: { contains: search } },
-      { studentCode: { contains: search } }
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { studentCode: { contains: search, mode: 'insensitive' } }
     ];
   }
   

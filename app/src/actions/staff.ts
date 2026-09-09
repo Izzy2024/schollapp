@@ -43,8 +43,8 @@ export async function getStaffList(
 
   if (search) {
     where.OR = [
-      { fullName: { contains: search } },
-      { email: { contains: search } }
+      { fullName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } }
     ];
   }
 

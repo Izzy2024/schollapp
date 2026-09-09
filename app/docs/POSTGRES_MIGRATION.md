@@ -4,7 +4,13 @@ Runbook para cuando haya una instancia de Postgres provisionada (Railway, Supaba
 
 ## Pendiente al momento de migrar: búsquedas case-insensitive
 
-Los filtros `contains:` en `src/actions/search.ts` (líneas ~62-64, ~102), `src/actions/staff.ts` (líneas ~28-29) y `src/actions/students.ts` (líneas ~36-38) dependen hoy de que SQLite compare `LIKE` sin distinguir mayúsculas/minúsculas para ASCII. **Postgres sí distingue mayúsculas por defecto.** Prisma expone `mode: 'insensitive'` para resolver esto, pero **esa opción de tipo no existe mientras el provider sea `sqlite`** — no se puede añadir antes del paso 2 sin romper la compilación. Justo después de cambiar el provider (paso 2), añadir `mode: 'insensitive'` a cada uno de esos filtros y correr `npm run build` para confirmar que compilan con los tipos generados para Postgres.
+Los filtros `contains:` en estos 5 archivos (11 líneas, 14 filtros) dependen hoy de que SQLite compare `LIKE` sin distinguir mayúsculas/minúsculas para ASCII. **Postgres sí distingue mayúsculas por defecto.** Prisma expone `mode: 'insensitive'` para resolver esto, pero **esa opción de tipo no existe mientras el provider sea `sqlite`** — no se puede añadir antes del paso 2 sin romper la compilación. Justo después de cambiar el provider (paso 2), añadir `mode: 'insensitive'` a cada uno de estos filtros y correr `npm run build` para confirmar que compilan con los tipos generados para Postgres:
+
+- `src/actions/inventory.ts:60` — `name`, `serialNumber` (2 filtros en 1 línea)
+- `src/actions/library.ts:77` — `title`, `author` (2 filtros en 1 línea)
+- `src/actions/search.ts:62-64` — `firstName`, `lastName`, `studentCode`; `:102` — `fullName`, `email` (5 filtros en 4 líneas)
+- `src/actions/staff.ts:46-47` — `fullName`, `email`
+- `src/actions/students.ts:44-46` — `firstName`, `lastName`, `studentCode`
 
 ## Pasos
 

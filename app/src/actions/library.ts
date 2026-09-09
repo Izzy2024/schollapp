@@ -74,7 +74,7 @@ export async function getBooks(search?: string): Promise<BookRow[]> {
   const books = await prisma.book.findMany({
     where: {
       tenantId: tenant.id,
-      ...(search ? { OR: [{ title: { contains: search } }, { author: { contains: search } }] } : {}),
+      ...(search ? { OR: [{ title: { contains: search, mode: 'insensitive' } }, { author: { contains: search, mode: 'insensitive' } }] } : {}),
     },
     orderBy: { title: 'asc' },
   });

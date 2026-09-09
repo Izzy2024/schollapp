@@ -57,7 +57,7 @@ export async function getAssets(search?: string): Promise<AssetRow[]> {
   const assets = await prisma.asset.findMany({
     where: {
       tenantId: tenant.id,
-      ...(search ? { OR: [{ name: { contains: search } }, { serialNumber: { contains: search } }] } : {}),
+      ...(search ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { serialNumber: { contains: search, mode: 'insensitive' } }] } : {}),
     },
     include: { assignedToStaff: true },
     orderBy: { name: 'asc' },

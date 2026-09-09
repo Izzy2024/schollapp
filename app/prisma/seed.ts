@@ -78,7 +78,7 @@ async function main() {
 
   const roleDefs = [
     { name: 'admin', permissions: ['app:admin', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write'] },
-    { name: 'director', permissions: ['app:director', 'finance:write', 'students:manage', 'invitations:manage', 'grades:write', 'attendance:write'] },
+    { name: 'director', permissions: ['app:director', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write'] },
     { name: 'teacher', permissions: ['app:teacher', 'grades:write', 'attendance:write'] },
     { name: 'parent', permissions: ['app:parent'] },
     { name: 'student', permissions: ['app:student'] },

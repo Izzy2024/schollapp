@@ -59,9 +59,9 @@ export async function globalSearch(query: string): Promise<{ enabled: boolean; r
     where: {
       tenantId,
       OR: [
-        { firstName: { contains: q } },
-        { lastName: { contains: q } },
-        { studentCode: { contains: q } },
+        { firstName: { contains: q, mode: 'insensitive' } },
+        { lastName: { contains: q, mode: 'insensitive' } },
+        { studentCode: { contains: q, mode: 'insensitive' } },
       ],
       ...(sectionIdFilter ? { enrollments: { some: { sectionId: { in: sectionIdFilter } } } } : {}),
     },
@@ -99,7 +99,7 @@ export async function globalSearch(query: string): Promise<{ enabled: boolean; r
   // Personal: solo lo ve quien administra el directorio.
   if (role === 'admin' || role === 'director') {
     const staff = await prisma.staff.findMany({
-      where: { tenantId, OR: [{ fullName: { contains: q } }, { email: { contains: q } }] },
+      where: { tenantId, OR: [{ fullName: { contains: q, mode: 'insensitive' } }, { email: { contains: q, mode: 'insensitive' } }] },
       select: { id: true, fullName: true, roleLabel: true, email: true, isActive: true },
       orderBy: { fullName: 'asc' },
       take: 5,

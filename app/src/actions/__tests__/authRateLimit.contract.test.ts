@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 
 import { CredentialsSignin } from 'next-auth';
 
-import { isTooManyAttemptsError } from '@/actions/authActions';
+import { isTooManyAttemptsError } from '@/lib/authErrors';
 import { STABLE_ERROR } from '@/lib/errors';
 
 // Resolves the REAL @auth/core errors module installed under next-auth
