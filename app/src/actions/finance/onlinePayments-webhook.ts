@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR } from '@/lib/errors';
 import { settleChargeStatus } from './payments';
@@ -51,7 +50,17 @@ export async function recordOnlinePaymentFromWebhook(event: {
   const charge = await prisma.financeCharge.findFirst({ where: { id: chargeId, tenantId } });
   if (!charge) return { error: STABLE_ERROR.FINANCE_CHARGE_NOT_FOUND };
 
-  if (charge.status === 'void' || charge.status === 'paid') {
+  if (charge.status === 'void') {
+    return { error: STABLE_ERROR.CHARGE_NOT_PAYABLE };
+  }
+  if (charge.status === 'paid') {
+    // It may already be paid by THIS same event (a concurrent Stripe delivery
+    // settled it after our idempotency pre-check above): that's the "already
+    // done" path, not an error. Any other payment on a paid charge is not payable.
+    const alreadyRecorded = await prisma.financePayment.findFirst({
+      where: { tenantId, reference: event.externalReference },
+    });
+    if (alreadyRecorded) return { success: true };
     return { error: STABLE_ERROR.CHARGE_NOT_PAYABLE };
   }
 
@@ -76,7 +85,7 @@ export async function recordOnlinePaymentFromWebhook(event: {
     });
   } catch (error) {
     // A concurrent delivery of the same event won the unique constraint race.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if ((error as { code?: string } | null)?.code === 'P2002') {
       return { success: true };
     }
     throw error;
