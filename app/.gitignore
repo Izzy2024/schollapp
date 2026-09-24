@@ -16,6 +16,7 @@ prisma/test.db*
 
 # local attachment storage (dev-only adapter; real deploys use Vercel Blob)
 /public/uploads/*
+/.uploads/
 
 # next.js
 /.next/

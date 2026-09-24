@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { getStorageAdapter } from '@/lib/storage';
+import { checkUploadPolicy } from '@/lib/storage/upload-policy';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -79,7 +80,7 @@ export async function getMyAssignments(): Promise<Assignment[]> {
           ? {
               submittedAt: submission.submittedAt?.toISOString() ?? null,
               status: submission.status,
-              fileUrl: submission.attachment?.fileKey ?? null,
+              fileUrl: submission.attachment ? `/api/files/${submission.attachment.id}` : null,
               feedback: submission.feedback,
             }
           : null,
@@ -108,6 +109,7 @@ export async function submitAssignment(evaluationId: string, formData: FormData)
 
   const file = formData.get('file') as File;
   if (!file) throw new Error('Falta el archivo a entregar');
+  if (checkUploadPolicy(file)) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const storage = await getStorageAdapter();
@@ -233,7 +235,7 @@ export async function getSubmissionsForEvaluation(evaluationId: string): Promise
         studentName: `${e.student.firstName} ${e.student.lastName}`,
         submittedAt: submission?.submittedAt?.toISOString() ?? null,
         status: submission?.status ?? 'pending',
-        fileUrl: submission?.attachment?.fileKey ?? null,
+        fileUrl: submission?.attachment ? `/api/files/${submission.attachment.id}` : null,
         feedback: submission?.feedback ?? null,
       };
     })

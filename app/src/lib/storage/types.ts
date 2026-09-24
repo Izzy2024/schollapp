@@ -13,4 +13,6 @@ export interface StorageAdapter {
     buffer: Buffer;
   }): Promise<StoredFile>;
   remove(fileKey: string): Promise<void>;
+  /** Reads the raw bytes for an authenticated download (route /api/files/[id]). */
+  read(fileKey: string): Promise<Buffer>;
 }

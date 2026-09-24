@@ -3,6 +3,8 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { getStorageAdapter } from '@/lib/storage';
+import { checkUploadPolicy, MAX_UPLOAD_SIZE_BYTES } from '@/lib/storage/upload-policy';
+import { assertAttachmentAccess } from '@/lib/attachments-access';
 
 export async function uploadAttachment(formData: FormData) {
   const session = await auth();
@@ -20,6 +22,12 @@ export async function uploadAttachment(formData: FormData) {
 
   if (!file || !ownerType || !ownerId) {
     throw new Error('Faltan parámetros requeridos');
+  }
+
+  const violation = checkUploadPolicy(file);
+  if (violation === 'type') throw new Error('Tipo de archivo no permitido');
+  if (violation === 'size') {
+    throw new Error(`El archivo supera el tamaño máximo permitido (${MAX_UPLOAD_SIZE_BYTES / 1024 / 1024} MB)`);
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -43,7 +51,9 @@ export async function uploadAttachment(formData: FormData) {
     }
   });
 
-  return { success: true, attachment };
+  // Clients never see the raw storage locator: downloads go through the
+  // authenticated route /api/files/[id] (Content-Disposition: attachment).
+  return { success: true, attachment: { ...attachment, fileUrl: `/api/files/${attachment.id}` } };
 }
 
 export async function getAttachments(ownerType: string, ownerId: string, tenantSlug?: string) {
@@ -65,7 +75,22 @@ export async function getAttachments(ownerType: string, ownerId: string, tenantS
     orderBy: { createdAt: 'asc' }
   });
 
-  return attachments;
+  const visible = [];
+  for (const attachment of attachments) {
+    try {
+      await assertAttachmentAccess({
+        tenantId: tenant.id,
+        user: session.user,
+        attachment,
+        access: 'view',
+      });
+      visible.push(attachment);
+    } catch {
+      // Not the owner: skip silently (no enumeration of other owners' files).
+    }
+  }
+
+  return visible;
 }
 
 export async function deleteAttachment(attachmentId: string, tenantSlug?: string) {
@@ -78,13 +103,20 @@ export async function deleteAttachment(attachmentId: string, tenantSlug?: string
   });
   if (!tenant) throw new Error('Tenant not found');
 
-  const attachment = await prisma.attachment.findUnique({
+  const attachment = await prisma.attachment.findFirst({
     where: { id: attachmentId, tenantId: tenant.id }
   });
 
   if (!attachment) {
     throw new Error('Archivo no encontrado');
   }
+
+  await assertAttachmentAccess({
+    tenantId: tenant.id,
+    user: session.user,
+    attachment,
+    access: 'delete',
+  });
 
   // Delete from DB
   await prisma.attachment.delete({

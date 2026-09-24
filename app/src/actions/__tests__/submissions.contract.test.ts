@@ -82,7 +82,7 @@ describe('Submissions contract (assignments with deadline) — NO mock.module', 
     assert.equal(assignments[0].submission, null);
 
     const formData = new FormData();
-    formData.set('file', new File(['contenido'], 'ensayo.txt', { type: 'text/plain' }));
+    formData.set('file', new File(['contenido'], 'ensayo.pdf', { type: 'application/pdf' }));
     const result = await submitAssignment(evaluation.id, formData);
     assert.deepEqual(result, { success: true });
 
@@ -126,7 +126,7 @@ describe('Submissions contract (assignments with deadline) — NO mock.module', 
 
     setTestSession({ id: studentUser.id, tenantSlug: tenant.slug, roles: ['student'], email: student.email! });
     const formData = new FormData();
-    formData.set('file', new File(['contenido'], 'tarde.txt', { type: 'text/plain' }));
+    formData.set('file', new File(['contenido'], 'tarde.pdf', { type: 'application/pdf' }));
     await submitAssignment(evaluation.id, formData);
 
     const assignments = await getMyAssignments();
