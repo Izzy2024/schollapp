@@ -2,7 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
-import { assertFinanceWriteAccess, getTenantIdFromSession } from './_shared';
+import { getTenantIdFromSession } from './_shared';
+import { assertFinanceWriteAccess } from './_shared-internal';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -23,6 +24,7 @@ export async function settleChargeStatus(tx: Prisma.TransactionClient, tenantId:
 
 export async function listAll() {
   const ctx = await getTenantIdFromSession();
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const payments = await prisma.financePayment.findMany({
     where: { tenantId: ctx.tenantId },
