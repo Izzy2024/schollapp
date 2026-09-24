@@ -2,6 +2,7 @@ import { before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
+import { seedPermission } from '@/test/factories/rbac';
 
 // NOTE: This is a *contract* test suite for Slice S01.
 // It is expected to be RED until T02 implements schema + actions.
@@ -25,6 +26,10 @@ function getDb(): DB {
   return prisma as any;
 }
 
+function uniqueSuffix() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 async function resetDb(db: any) {
   // Best-effort cleanup. During T01, models might not exist yet.
   // Once T02 lands, this will work and keep tests isolated.
@@ -32,8 +37,8 @@ async function resetDb(db: any) {
     'financeCharge',
     'financeConcept',
     'student',
+    'user',
     'tenant',
-    // include user if needed later
   ];
 
   for (const modelName of candidates) {
@@ -68,7 +73,7 @@ describe('finance.s01 actions contract (S01)', { skip: false }, () => {
     const db = getDb() as any;
 
     // Arrange minimal tenant context; T02 should implement tenant resolution by tenantSlug/tenantId.
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
 
     setTestSession({
       user: {
@@ -95,8 +100,8 @@ describe('finance.s01 actions contract (S01)', { skip: false }, () => {
   it('tenant-scope: cannot generate charges for concept from another tenant (FINANCE_CONCEPT_NOT_FOUND | FINANCE_SCOPE_VIOLATION)', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
-    const tenantB = await db.tenant.create({ data: { name: 'Tenant B', slug: 'tenant-b' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
+    const tenantB = await db.tenant.create({ data: { name: 'Tenant B', slug: `tenant-b-${uniqueSuffix()}` } });
 
     // Students in tenant A (who would be charged)
     await db.student.create({ data: { firstName: 'Student', lastName: 'A1', tenantId: tenantA.id } });
@@ -112,9 +117,20 @@ describe('finance.s01 actions contract (S01)', { skip: false }, () => {
       },
     });
 
+    const suffix = uniqueSuffix();
+    const admin = await db.user.create({
+      data: {
+        email: `admin-${suffix}@test.local`,
+        passwordHash: 'test',
+        fullName: 'Admin A',
+        isActive: true,
+      },
+    });
+    await seedPermission(tenantA.id, admin.id, 'finance:write');
+
     setTestSession({
       user: {
-        id: 'user-admin-a',
+        id: admin.id,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'admin',
@@ -131,7 +147,7 @@ describe('finance.s01 actions contract (S01)', { skip: false }, () => {
   it('idempotency: generating same period twice does not create duplicates (createdCount/ skippedCount + unique (student, concept, periodKey))', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
 
     const student1 = await db.student.create({ data: { firstName: 'Student', lastName: 'A1', tenantId: tenantA.id } });
     const student2 = await db.student.create({ data: { firstName: 'Student', lastName: 'A2', tenantId: tenantA.id } });
@@ -146,9 +162,20 @@ describe('finance.s01 actions contract (S01)', { skip: false }, () => {
       },
     });
 
+    const suffix = uniqueSuffix();
+    const director = await db.user.create({
+      data: {
+        email: `director-${suffix}@test.local`,
+        passwordHash: 'test',
+        fullName: 'Director A',
+        isActive: true,
+      },
+    });
+    await seedPermission(tenantA.id, director.id, 'finance:write');
+
     setTestSession({
       user: {
-        id: 'user-director-a',
+        id: director.id,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'director',
