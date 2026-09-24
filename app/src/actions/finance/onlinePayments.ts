@@ -3,24 +3,7 @@
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { getTenantIdFromSession } from './_shared';
-import { settleChargeStatus } from './payments';
 import { getPaymentGateway } from '@/lib/payment';
-
-/** A stable per-tenant "system" actor for payments recorded automatically via webhook (no human session). */
-async function getSystemUserId(tenantId: string, tenantSlug: string): Promise<string> {
-  const email = `system-payments+${tenantSlug}@internal.local`;
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, fullName: 'Sistema de Pagos', passwordHash: 'system', isActive: false },
-  });
-  await prisma.userMembership.upsert({
-    where: { tenantId_userId: { tenantId, userId: user.id } },
-    update: {},
-    create: { tenantId, userId: user.id, status: 'active' },
-  });
-  return user.id;
-}
 
 export async function createCheckoutSessionForCharge(chargeId: string): Promise<{ url: string } | { error: string }> {
   const ctx = await getTenantIdFromSession();
@@ -64,45 +47,4 @@ export async function createCheckoutSessionForCharge(chargeId: string): Promise<
   });
 
   return { url };
-}
-
-/** Called by the webhook route after verifying the gateway signature. Idempotent by external reference. */
-export async function recordOnlinePaymentFromWebhook(event: {
-  metadata: Record<string, string>;
-  amountCents: number;
-  currency: string;
-  externalReference: string;
-}): Promise<{ success: true } | { error: string }> {
-  const { tenantId, chargeId, studentId } = event.metadata;
-  if (!tenantId || !chargeId || !studentId) return { error: STABLE_ERROR.INVALID_TARGET };
-
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-  if (!tenant) return { error: STABLE_ERROR.INVALID_TARGET };
-
-  const existing = await prisma.financePayment.findFirst({ where: { tenantId, reference: event.externalReference } });
-  if (existing) return { success: true }; // already recorded, webhook retried
-
-  const charge = await prisma.financeCharge.findFirst({ where: { id: chargeId, tenantId } });
-  if (!charge) return { error: STABLE_ERROR.FINANCE_CHARGE_NOT_FOUND };
-
-  const systemUserId = await getSystemUserId(tenantId, tenant.slug);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.financePayment.create({
-      data: {
-        tenantId,
-        studentId,
-        chargeId,
-        amountCents: event.amountCents,
-        currency: event.currency,
-        paidAt: new Date(),
-        method: 'online',
-        reference: event.externalReference,
-        createdById: systemUserId,
-      },
-    });
-    await settleChargeStatus(tx, tenantId, chargeId, charge.amountCents);
-  });
-
-  return { success: true };
 }

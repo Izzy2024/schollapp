@@ -12,6 +12,8 @@ export type CompletedPaymentEvent = {
   amountCents: number;
   currency: string;
   externalReference: string;
+  /** Stripe Checkout `payment_status`; only 'paid' means the money is actually captured. */
+  paymentStatus: string;
 };
 
 export interface PaymentGateway {

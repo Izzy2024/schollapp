@@ -1216,6 +1216,7 @@ model FinancePayment {
 
   @@index([tenantId, studentId, paidAt])
   @@index([tenantId, chargeId])
+  @@unique([tenantId, reference])
 }
 
 // -----------------------------------------------------------------------------

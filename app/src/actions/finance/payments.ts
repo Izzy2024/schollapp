@@ -11,6 +11,13 @@ import type { Prisma } from '@prisma/client';
  * logic only lives in one place.
  */
 export async function settleChargeStatus(tx: Prisma.TransactionClient, tenantId: string, chargeId: string, amountCents: number) {
+  const current = await tx.financeCharge.findUniqueOrThrow({
+    where: { id: chargeId },
+    select: { status: true },
+  });
+  // A void charge is final: never resurrect it by settling later payments.
+  if (current.status === 'void') return 'void';
+
   const agg = await tx.financePayment.aggregate({
     where: { tenantId, chargeId },
     _sum: { amountCents: true },

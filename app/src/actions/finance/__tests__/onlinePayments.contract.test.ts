@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
 
-import { createCheckoutSessionForCharge, recordOnlinePaymentFromWebhook } from '@/actions/finance/onlinePayments';
+import { createCheckoutSessionForCharge } from '@/actions/finance/onlinePayments';
+import { recordOnlinePaymentFromWebhook } from '@/actions/finance/onlinePayments-webhook';
 
 function setTestSession(user: { id: string; tenantSlug: string; role?: string; roles?: string[]; email?: string }) {
   (globalThis as any).__TEST_SESSION__ = { user };
@@ -84,6 +85,7 @@ describe('Online payments contract (checkout + webhook) — NO mock.module', () 
       amountCents: 10000,
       currency: 'USD',
       externalReference: `stripe-session-${Date.now()}`,
+      paymentStatus: 'paid',
     };
 
     const result = await recordOnlinePaymentFromWebhook(event);
