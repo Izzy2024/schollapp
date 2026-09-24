@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { getTenantIdFromSession } from './_shared';
 import { assertFinanceWriteAccess, ensureActorUserExists } from './_shared-internal';
+import { requirePermission } from '@/lib/authz';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import type { PrismaClient } from '@prisma/client';
 
@@ -82,9 +83,9 @@ export async function setActive(id: string, isActive: boolean) {
 }
 
 export async function list() {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
   return prisma.financeDiscount.findMany({
-    where: { tenantId: ctx.tenantId },
+    where: { tenantId },
     orderBy: { createdAt: 'desc' },
   });
 }

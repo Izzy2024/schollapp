@@ -4,6 +4,21 @@ import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { hasPermission } from '@/lib/rbac';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+
+/** Management view of a class (attendance:write or grades:write) or the assigned teacher. */
+async function assertClassReadAccess(tenantId: string, sectionSubjectStaffId: string | null, userId: string): Promise<void> {
+  const canManage =
+    (await hasPermission(tenantId, userId, 'attendance:write')) ||
+    (await hasPermission(tenantId, userId, 'grades:write'));
+  if (canManage) return;
+
+  const staff = await prisma.staff.findFirst({ where: { tenantId, userId } });
+  if (!staff || sectionSubjectStaffId !== staff.id) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
+}
 
 export async function getClassDetail(sectionSubjectId: string, tenantSlug?: string) {
   const session = await auth();
@@ -15,8 +30,8 @@ export async function getClassDetail(sectionSubjectId: string, tenantSlug?: stri
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const ss = await prisma.sectionSubject.findUnique({
-    where: { id: sectionSubjectId },
+  const ss = await prisma.sectionSubject.findFirst({
+    where: { id: sectionSubjectId, tenantId: tenant.id },
     include: {
       subject: true,
       section: {
@@ -32,7 +47,9 @@ export async function getClassDetail(sectionSubjectId: string, tenantSlug?: stri
     }
   });
 
-  if (!ss) throw new Error('Clase no encontrada');
+  if (!ss) throw stableError(STABLE_ERROR.INVALID_TARGET);
+
+  await assertClassReadAccess(tenant.id, ss.staffId, session.user.id);
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -108,8 +125,8 @@ export async function getClassStudents(sectionSubjectId: string, tenantSlug?: st
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const ss = await prisma.sectionSubject.findUnique({
-    where: { id: sectionSubjectId },
+  const ss = await prisma.sectionSubject.findFirst({
+    where: { id: sectionSubjectId, tenantId: tenant.id },
     include: {
       section: {
         include: { enrollments: { where: { status: 'enrolled' }, include: { student: true } } }
@@ -118,7 +135,9 @@ export async function getClassStudents(sectionSubjectId: string, tenantSlug?: st
     }
   });
 
-  if (!ss) throw new Error('Clase no encontrada');
+  if (!ss) throw stableError(STABLE_ERROR.INVALID_TARGET);
+
+  await assertClassReadAccess(tenant.id, ss.staffId, session.user.id);
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -179,11 +198,13 @@ export async function getClassAttendanceHistory(sectionSubjectId: string, tenant
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const ss = await prisma.sectionSubject.findUnique({
-    where: { id: sectionSubjectId }
+  const ss = await prisma.sectionSubject.findFirst({
+    where: { id: sectionSubjectId, tenantId: tenant.id }
   });
 
-  if (!ss) throw new Error('Clase no encontrada');
+  if (!ss) throw stableError(STABLE_ERROR.INVALID_TARGET);
+
+  await assertClassReadAccess(tenant.id, ss.staffId, session.user.id);
 
   const sessions = await prisma.attendanceSession.findMany({
     where: { sectionId: ss.sectionId },

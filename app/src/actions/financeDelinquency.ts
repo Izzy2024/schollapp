@@ -8,6 +8,4 @@ export {
   getDunningHistory,
   scheduleReminder,
   getPendingReminders,
-  markReminderSent,
-  markReminderFailed,
 } from './finance/delinquency';

@@ -45,6 +45,7 @@ export const stripePaymentGateway: PaymentGateway = {
       amountCents: session.amount_total ?? 0,
       currency: (session.currency ?? 'usd').toUpperCase(),
       externalReference: session.id,
+      paymentStatus: session.payment_status,
     };
   },
 };

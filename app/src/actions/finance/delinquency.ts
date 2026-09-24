@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { getTenantIdFromSession } from './_shared';
 import { assertFinanceWriteAccess } from './_shared-internal';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { requirePermission } from '@/lib/authz';
 
 // ============================================================================
 // Types
@@ -56,7 +58,7 @@ export type DunningEventRecord = {
  * Should be called by a cron job or manually
  */
 export async function updateOverdueStatuses(): Promise<{ updated: number }> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -64,7 +66,7 @@ export async function updateOverdueStatuses(): Promise<{ updated: number }> {
   // Find pending charges with dueDate in the past
   const result = await prisma.financeCharge.updateMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       status: 'pending',
       dueDate: { lt: today },
     },
@@ -76,7 +78,7 @@ export async function updateOverdueStatuses(): Promise<{ updated: number }> {
   // Also update invoices to overdue
   const updatedInvoices = await prisma.financeInvoice.updateMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       status: { in: ['issued', 'sent'] },
       dueDate: { lt: today },
     },
@@ -92,11 +94,11 @@ export async function updateOverdueStatuses(): Promise<{ updated: number }> {
  * Get students with overdue charges
  */
 export async function getDelinquentStudents(): Promise<DelinquentStudent[]> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const overdueCharges = await prisma.financeCharge.findMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       status: 'overdue',
     },
     include: {
@@ -168,11 +170,11 @@ export async function getDelinquentStudents(): Promise<DelinquentStudent[]> {
  * Get delinquency summary statistics
  */
 export async function getDelinquencySummary(): Promise<DelinquencySummary> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const overdueCharges = await prisma.financeCharge.findMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       status: 'overdue',
     },
     select: {
@@ -287,10 +289,10 @@ export async function recordDunningEvent(
  * Get dunning history for a charge
  */
 export async function getDunningHistory(chargeId: string): Promise<DunningEventRecord[]> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const events = await prisma.financeDunningEvent.findMany({
-    where: { chargeId, tenantId: ctx.tenantId },
+    where: { chargeId, tenantId },
     orderBy: { performedAt: 'desc' },
   });
 
@@ -324,6 +326,13 @@ export async function scheduleReminder(
   const ctx = await getTenantIdFromSession();
   await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
+  // The chargeId comes from the caller: make sure it belongs to this tenant.
+  const charge = await prisma.financeCharge.findFirst({
+    where: { id: chargeId, tenantId: ctx.tenantId },
+    select: { id: true },
+  });
+  if (!charge) throw stableError(STABLE_ERROR.FINANCE_CHARGE_NOT_FOUND);
+
   const reminder = await prisma.financeReminder.create({
     data: {
       tenantId: ctx.tenantId,
@@ -350,11 +359,11 @@ export async function getPendingReminders(): Promise<
     scheduledFor: Date;
   }>
 > {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const reminders = await prisma.financeReminder.findMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       status: 'pending',
       scheduledFor: { lte: new Date() },
     },
@@ -376,33 +385,6 @@ export async function getPendingReminders(): Promise<
     channel: r.channel,
     scheduledFor: r.scheduledFor,
   }));
-}
-
-/**
- * Mark reminder as sent
- */
-export async function markReminderSent(reminderId: string, externalId?: string): Promise<void> {
-  await prisma.financeReminder.update({
-    where: { id: reminderId },
-    data: {
-      status: 'sent',
-      sentAt: new Date(),
-      externalId: externalId || null,
-    },
-  });
-}
-
-/**
- * Mark reminder as failed
- */
-export async function markReminderFailed(reminderId: string, errorMessage: string): Promise<void> {
-  await prisma.financeReminder.update({
-    where: { id: reminderId },
-    data: {
-      status: 'failed',
-      errorMessage,
-    },
-  });
 }
 
 /**

@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { getTenantIdFromSession } from './_shared';
 import { assertFinanceWriteAccess } from './_shared-internal';
+import { requirePermission } from '@/lib/authz';
 
 // ============================================================================
 // Types
@@ -203,11 +204,11 @@ export async function listInvoices(input?: {
   fromDueDate?: Date;
   toDueDate?: Date;
 }): Promise<InvoiceListItem[]> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const invoices = await prisma.financeInvoice.findMany({
     where: {
-      tenantId: ctx.tenantId,
+      tenantId,
       ...(input?.status ? { status: input.status as any } : {}),
       ...(input?.studentId ? { charge: { studentId: input.studentId } } : {}),
       ...(input?.fromDueDate || input?.toDueDate
@@ -248,10 +249,10 @@ export async function listInvoices(input?: {
  * Get invoice by ID
  */
 export async function getInvoice(invoiceId: string): Promise<InvoiceDetail | null> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const invoice = await prisma.financeInvoice.findFirst({
-    where: { id: invoiceId, tenantId: ctx.tenantId },
+    where: { id: invoiceId, tenantId },
     include: {
       charge: { select: { studentId: true, conceptId: true } },
     },
@@ -288,10 +289,10 @@ export async function getInvoice(invoiceId: string): Promise<InvoiceDetail | nul
  * Get invoice by folio
  */
 export async function getInvoiceByFolio(folio: string): Promise<InvoiceDetail | null> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const invoice = await prisma.financeInvoice.findFirst({
-    where: { folio, tenantId: ctx.tenantId },
+    where: { folio, tenantId },
     include: {
       charge: { select: { studentId: true, conceptId: true } },
     },
@@ -400,17 +401,17 @@ export async function cancelInvoice(invoiceId: string, reason?: string): Promise
  * Update invoice status based on charge status (called after payment)
  */
 export async function syncInvoiceStatus(chargeId: string): Promise<void> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const charge = await prisma.financeCharge.findFirst({
-    where: { id: chargeId, tenantId: ctx.tenantId },
+    where: { id: chargeId, tenantId },
     select: { status: true },
   });
 
   if (!charge) return;
 
   const invoice = await prisma.financeInvoice.findFirst({
-    where: { chargeId, tenantId: ctx.tenantId },
+    where: { chargeId, tenantId },
   });
 
   if (!invoice) return;

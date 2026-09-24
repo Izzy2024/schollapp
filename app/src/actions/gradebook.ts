@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 export async function getGradebookData(sectionSubjectId: string, termId: string, tenantSlug?: string) {
   const session = await auth();
@@ -170,6 +171,19 @@ export async function saveGradeRecord(evaluationId: string, studentId: string, s
     include: { sectionSubject: true }
   });
   if (!ev || ev.sectionSubject.staffId !== teacher.id) throw new Error('Unauthorized');
+
+  if (score < 0 || score > ev.maxScore) throw stableError(STABLE_ERROR.INVALID_TARGET);
+
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      tenantId: tenant.id,
+      sectionId: ev.sectionSubject.sectionId,
+      studentId,
+      status: { in: ['enrolled', 'reenrolled'] },
+    },
+    select: { id: true },
+  });
+  if (!enrollment) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   await prisma.gradeRecord.upsert({
     where: {

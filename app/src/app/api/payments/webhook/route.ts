@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentGateway } from '@/lib/payment';
-import { recordOnlinePaymentFromWebhook } from '@/actions/finance/onlinePayments';
+import { recordOnlinePaymentFromWebhook } from '@/actions/finance/onlinePayments-webhook';
 
 export async function POST(request: NextRequest) {
   const gateway = await getPaymentGateway();

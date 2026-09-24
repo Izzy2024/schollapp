@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { getTenantIdFromSession } from './_shared';
 import { assertFinanceWriteAccess, ensureActorUserExists } from './_shared-internal';
+import { requirePermission } from '@/lib/authz';
 import { settleChargeStatus } from './payments';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 
@@ -84,10 +85,10 @@ export async function createPaymentPlan(input: { chargeId: string; installmentCo
 }
 
 export async function getPaymentPlan(chargeId: string) {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const plan = await prisma.financePaymentPlan.findFirst({
-    where: { chargeId, tenantId: ctx.tenantId },
+    where: { chargeId, tenantId },
     include: { installments: { orderBy: { number: 'asc' } } },
     orderBy: { createdAt: 'desc' },
   });
@@ -96,10 +97,10 @@ export async function getPaymentPlan(chargeId: string) {
 }
 
 export async function listActivePlans() {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   return prisma.financePaymentPlan.findMany({
-    where: { tenantId: ctx.tenantId, status: 'active' },
+    where: { tenantId, status: 'active' },
     include: {
       installments: { orderBy: { number: 'asc' } },
       charge: { include: { student: { select: { firstName: true, lastName: true } }, concept: { select: { name: true } } } },
