@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { permissionCodes, roleDefs } from '../src/lib/rbac-defaults';
 
 const prisma = new PrismaClient();
 
@@ -52,29 +53,6 @@ async function main() {
 
   // Step 8.1.1 — RBAC: Permissions + Roles + UserRoles
   // Keep these minimal and stable; UI (menus) and guards can rely on them.
-  const permissionCodes = [
-    'app:admin',
-    'app:director',
-    'app:teacher',
-    'app:parent',
-    'app:student',
-    // Granular permissions (RBAC real, adopted incrementally per action — see docs/GAP-ANALYSIS.md)
-    'finance:write',
-    'students:manage',
-    'staff:manage',
-    'invitations:manage',
-    'grades:write',
-    'attendance:write',
-    'health:manage',
-    'cafeteria:manage',
-    'inventory:manage',
-    'library:manage',
-    'transport:manage',
-    'conduct:manage',
-    'integrations:manage',
-    'schedule:manage',
-  ];
-
   const permissions: Record<string, any> = {};
   for (const code of permissionCodes) {
     permissions[code] = await prisma.permission.upsert({
@@ -83,14 +61,6 @@ async function main() {
       create: { code, description: `Base permission for ${code}` },
     });
   }
-
-  const roleDefs = [
-    { name: 'admin', permissions: ['app:admin', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write', 'health:manage', 'cafeteria:manage', 'inventory:manage', 'library:manage', 'transport:manage', 'conduct:manage', 'integrations:manage', 'schedule:manage'] },
-    { name: 'director', permissions: ['app:director', 'finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write', 'health:manage', 'cafeteria:manage', 'inventory:manage', 'library:manage', 'transport:manage', 'conduct:manage', 'integrations:manage', 'schedule:manage'] },
-    { name: 'teacher', permissions: ['app:teacher', 'grades:write', 'attendance:write'] },
-    { name: 'parent', permissions: ['app:parent'] },
-    { name: 'student', permissions: ['app:student'] },
-  ] as const;
 
   const rolesByName: Record<string, any> = {};
   for (const r of roleDefs) {

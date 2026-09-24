@@ -6,18 +6,7 @@ import type { Prisma } from '@prisma/client';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { ensureMembershipAndRole } from '@/lib/accountProvisioning';
 import { ensureDefaultPrimaryCatalog } from '@/lib/defaultPrimaryCatalog';
-
-// ponytail: mirrors roleDefs in prisma/seed.ts (keep both in sync). A tenant created
-// here never runs the seed, and hasPermission() denies everything to a role with no
-// RolePermission rows — so the new tenant gets the same default roles up front.
-const MANAGE_PERMISSIONS = ['finance:write', 'students:manage', 'staff:manage', 'invitations:manage', 'grades:write', 'attendance:write', 'health:manage', 'cafeteria:manage', 'inventory:manage', 'library:manage', 'transport:manage', 'conduct:manage', 'integrations:manage', 'schedule:manage'];
-const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
-  admin: ['app:admin', ...MANAGE_PERMISSIONS],
-  director: ['app:director', ...MANAGE_PERMISSIONS],
-  teacher: ['app:teacher', 'grades:write', 'attendance:write'],
-  parent: ['app:parent'],
-  student: ['app:student'],
-};
+import { DEFAULT_ROLE_PERMISSIONS } from '@/lib/rbac-defaults';
 
 async function createDefaultRoles(tenantId: string, tx: Prisma.TransactionClient) {
   for (const [name, codes] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
