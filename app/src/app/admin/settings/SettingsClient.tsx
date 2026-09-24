@@ -8,9 +8,8 @@ import { App } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function SettingsClient({ initProfile, tenantSlug }: {
-  initProfile: { id: string, name: string, slug: string, domain: string, logoUrl: string } | null;
-  tenantSlug: string;
+export default function SettingsClient({ initProfile }: {
+  initProfile: { id: string, name: string, logoUrl: string } | null;
 }) {
   const { message } = App.useApp();
   const router = useRouter();
@@ -18,7 +17,7 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
   const [activeTab, setActiveTab] = useState<'profile' | 'modules' | 'import' | 'panama'>('modules');
   const [profileData, setProfileData] = useState({
     name: initProfile?.name || '',
-    domain: initProfile?.domain || '',
+    domain: '',
     logoUrl: initProfile?.logoUrl || ''
   });
   const [savingProfile, setSavingProfile] = useState(false);
@@ -86,10 +85,9 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!initProfile?.id) return;
     setSavingProfile(true);
     try {
-      await updateTenantProfile(initProfile.id, profileData);
+      await updateTenantProfile(profileData);
       message.success('Perfil de colegio actualizado');
     } catch (err: any) {
       message.error(err.message || 'Error al guardar');
@@ -112,7 +110,7 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
 
     try {
       const text = await csvFile.text();
-      const res = await importStudentsCsv(tenantSlug, text);
+      const res = await importStudentsCsv(text);
       if (res.success) {
         message.success(res.message);
         setImportMessage(res.message);
@@ -132,7 +130,7 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
     const loadPanamaSettings = async () => {
       setLoadingPanama(true);
       try {
-        const settings = await getTenantSettings(tenantSlug);
+        const settings = await getTenantSettings();
         if (settings) {
           setPanamaData({
             ruc: settings.panamaRUC || '',
@@ -148,13 +146,13 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
       }
     };
     loadPanamaSettings();
-  }, [tenantSlug]);
+  }, []);
 
   const handlePanamaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingPanama(true);
     try {
-      await updateTenantSettings(tenantSlug, {
+      await updateTenantSettings({
         panamaRUC: panamaData.ruc || null,
         panamaDV: panamaData.dv || null,
         panamaNIT: panamaData.nit || null,
