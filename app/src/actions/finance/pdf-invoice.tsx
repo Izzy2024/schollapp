@@ -1,9 +1,8 @@
 'use server';
 
-import { renderToStream } from '@react-pdf/renderer';
 import prisma from '@/lib/prisma';
 import { requirePermission } from '@/lib/authz';
-import InvoicePDF, { type InvoicePDFData } from '@/lib/pdf/invoice-template';
+import type { InvoicePDFData } from '@/lib/pdf/invoice-template';
 
 /**
  * Generate PDF for an invoice
@@ -90,7 +89,12 @@ export async function generateInvoicePdf(invoiceId: string): Promise<Buffer> {
     panamaCUFE: invoice.panamaCUFE || undefined,
   };
 
-  // Generate PDF
+  // Generate PDF. Lazy imports: @react-pdf/renderer pulls in @react-pdf/hyphenate,
+  // which is ESM-only and breaks the tsx --test CJS interop if imported at module
+  // scope (see certificates.tsx for the same pattern, and its contract test's skip
+  // comment for the root cause).
+  const { renderToStream } = await import('@react-pdf/renderer');
+  const { default: InvoicePDF } = await import('@/lib/pdf/invoice-template');
   const stream = await renderToStream(<InvoicePDF data={pdfData} />);
 
   // Convert stream to buffer
