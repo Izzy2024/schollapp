@@ -23,6 +23,15 @@ import {
   approveScheduleRequest,
   rejectScheduleRequest,
 } from '@/actions/scheduleRequests';
+import {
+  enrollStudent,
+  unenrollStudent,
+  reenrollStudent,
+  getEnrollments,
+  getStudentsWithoutEnrollment,
+  getSectionsWithCapacity,
+} from '@/actions/enrollment-impl';
+import { generateEnrollmentCharges } from '@/actions/finance/enrollment-charges';
 
 function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -34,6 +43,10 @@ function setTestSession(user: { id: string; tenantSlug: string; roles: string[] 
 
 function clearTestSession() {
   delete (globalThis as any).__TEST_SESSION__;
+}
+
+function isUnauthorized(error: any) {
+  return error?.code === 'UNAUTHORIZED_ROLE' || /UNAUTHORIZED_ROLE/.test(error?.message ?? '');
 }
 
 async function createTenant(prefix: string) {
@@ -284,6 +297,91 @@ describe('class and schedule request authorization', () => {
         where: { tenantId: tenant.id, action: 'class_request_approved' },
       });
       assert.equal(event.actorUserId, reviewer.id);
+    } finally {
+      clearTestSession();
+    }
+  });
+});
+
+describe('enrollment authorization and tenant scope', () => {
+  it('rejects parent and student sessions on every enrollment write and charge generation', async () => {
+    const tenant = await createTenant('t-enrollment-role');
+    const fixtures = await createAcademicFixtures(tenant.id);
+    const student = await prisma.student.create({
+      data: { tenantId: tenant.id, firstName: 'Student', lastName: `Role-${uniqueSuffix()}` },
+    });
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        tenantId: tenant.id,
+        studentId: student.id,
+        sectionId: fixtures.section.id,
+        academicYearId: fixtures.year.id,
+        status: 'enrolled',
+      },
+    });
+    const parent = await createUser(tenant.id, 'parent');
+    const learner = await createUser(tenant.id, 'student');
+
+    for (const [user, role] of [[parent, 'parent'], [learner, 'student']] as const) {
+      setTestSession({ id: user.id, tenantSlug: tenant.slug, roles: [role] });
+      try {
+        await assert.rejects(() => enrollStudent(student.id, fixtures.section.id), isUnauthorized);
+        await assert.rejects(() => unenrollStudent(enrollment.id), isUnauthorized);
+        await assert.rejects(() => reenrollStudent(student.id, fixtures.section.id), isUnauthorized);
+        await assert.rejects(
+          () => generateEnrollmentCharges(student.id, enrollment.id, 'monthly', fixtures.year.id),
+          isUnauthorized
+        );
+      } finally {
+        clearTestSession();
+      }
+    }
+  });
+
+  it('keeps enrollment reads available to a tenant member without students:manage', async () => {
+    const tenant = await createTenant('t-enrollment-read');
+    await createAcademicFixtures(tenant.id);
+    const reader = await createUser(tenant.id, 'reader');
+    setTestSession({ id: reader.id, tenantSlug: tenant.slug, roles: ['teacher'] });
+
+    try {
+      assert.ok(Array.isArray(await getEnrollments()));
+      assert.ok(Array.isArray(await getStudentsWithoutEnrollment()));
+      assert.ok(Array.isArray(await getSectionsWithCapacity()));
+    } finally {
+      clearTestSession();
+    }
+  });
+
+  it('rejects cross-tenant student enrollment and charge generation', async () => {
+    const tenantA = await createTenant('t-enrollment-a');
+    const tenantB = await createTenant('t-enrollment-b');
+    const adminA = await createUser(tenantA.id, 'admin', 'students:manage');
+    const fixturesA = await createAcademicFixtures(tenantA.id);
+    const fixturesB = await createAcademicFixtures(tenantB.id);
+    const studentB = await prisma.student.create({
+      data: { tenantId: tenantB.id, firstName: 'Foreign', lastName: 'Student' },
+    });
+    const enrollmentB = await prisma.enrollment.create({
+      data: {
+        tenantId: tenantB.id,
+        studentId: studentB.id,
+        sectionId: fixturesB.section.id,
+        academicYearId: fixturesB.year.id,
+        status: 'enrolled',
+      },
+    });
+    setTestSession({ id: adminA.id, tenantSlug: tenantA.slug, roles: ['admin'] });
+
+    try {
+      await assert.rejects(
+        () => enrollStudent(studentB.id, fixturesA.section.id),
+        (error: any) => error?.name === 'EnrollmentDomainError' && error?.code === 'TENANT_SCOPE_VIOLATION'
+      );
+      await assert.rejects(
+        () => generateEnrollmentCharges(studentB.id, enrollmentB.id, 'monthly', fixturesA.year.id),
+        /TARGET_SCOPE_VIOLATION/
+      );
     } finally {
       clearTestSession();
     }

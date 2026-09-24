@@ -3,7 +3,8 @@ export type EnrollmentErrorCode =
   | 'CAPACITY_EXCEEDED'
   | 'ALREADY_ENROLLED_IN_YEAR'
   | 'NO_ACTIVE_YEAR'
-  | 'ENROLLMENT_NOT_FOUND';
+  | 'ENROLLMENT_NOT_FOUND'
+  | 'UNAUTHORIZED_ROLE';
 
 export type EnrollmentDomainErrorShape = {
   name: 'EnrollmentDomainError';
