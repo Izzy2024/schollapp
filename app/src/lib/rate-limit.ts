@@ -26,6 +26,12 @@ export const PASSWORD_RESET_EMAIL_WINDOW_MS = 60 * 60 * 1000;
 export const PASSWORD_RESET_IP_LIMIT = 20;
 export const PASSWORD_RESET_IP_WINDOW_MS = 60 * 60 * 1000;
 
+// Invitation codes (48-bit, brute-forceable): 20 lookups+registrations /
+// 15 min per IP, checked before any DB lookup in getInvitationInfo and
+// registerWithInvitation.
+export const INVITE_IP_LIMIT = 20;
+export const INVITE_IP_WINDOW_MS = 15 * 60 * 1000;
+
 export function loginEmailKey(email: string): string {
   return `login:email:${email.trim().toLowerCase()}`;
 }
@@ -40,6 +46,10 @@ export function passwordResetEmailKey(email: string): string {
 
 export function passwordResetIpKey(ip: string): string {
   return `password-reset:ip:${ip}`;
+}
+
+export function inviteIpKey(ip: string): string {
+  return `invite:ip:${ip}`;
 }
 
 /**

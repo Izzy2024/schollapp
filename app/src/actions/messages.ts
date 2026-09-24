@@ -283,6 +283,13 @@ export async function listRecipients(): Promise<MessageRecipientDTO[]> {
   const ctx = await requireSession();
   assertMessagingAccess(ctx.roles);
 
+  // SEG-L (listRecipients): students/parents could see every email in the
+  // tenant. Non-managing roles only see staff + management (the legitimate
+  // school-communication counterparts); admin/director/teacher keep the full
+  // list so existing pickers don't lose options.
+  const normalized = (ctx.roles ?? []).map((r) => String(r).toLowerCase());
+  const isManager = normalized.includes('admin') || normalized.includes('director') || normalized.includes('teacher') || normalized.includes('docente');
+
   const memberships = await prisma.userMembership.findMany({
     where: { tenantId: ctx.tenantId, status: 'active', userId: { not: ctx.actorUserId } },
     select: {
@@ -301,10 +308,15 @@ export async function listRecipients(): Promise<MessageRecipientDTO[]> {
     orderBy: [{ user: { fullName: 'asc' } }, { user: { id: 'asc' } }],
   });
 
-  return memberships.map((m) => ({
+  const all = memberships.map((m) => ({
     id: m.user.id,
     fullName: m.user.fullName,
     email: m.user.email,
     roles: m.user.roles.map((r) => r.role.name),
   }));
+
+  if (isManager) return all;
+  return all.filter((r) =>
+    r.roles.map((name) => String(name).toLowerCase()).some((name) => name === 'admin' || name === 'director' || name === 'teacher' || name === 'docente')
+  );
 }

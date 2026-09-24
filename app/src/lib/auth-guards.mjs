@@ -8,6 +8,7 @@ export function isServerActionRequest(request) {
 }
 
 export function resolveHomePath(roles) {
+  if (!Array.isArray(roles) || roles.length === 0) return '/profile';
   if (roles.includes('director')) return '/director';
   if (roles.includes('teacher') || roles.includes('docente')) return '/teacher';
   if (roles.includes('student') || roles.includes('alumno')) return '/student';
@@ -19,6 +20,10 @@ export function resolveHomePath(roles) {
 // This file stays as .mjs for Edge compatibility (authorized() callback).
 
 export function resolveFallbackPath(path, roles) {
+  // No recognized roles: don't force any further redirect (avoids the
+  // /admin -> /teacher -> /student -> /parent -> /admin loop). The caller
+  // (resolveHomePath) already sent these users somewhere neutral.
+  if (!Array.isArray(roles) || roles.length === 0) return null;
   if (path.startsWith('/admin') && !roles.includes('admin') && !roles.includes('director')) {
     return '/teacher';
   }

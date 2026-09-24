@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { STABLE_ERROR } from '@/lib/errors';
 import { sendEmail } from '@/lib/email';
+import { escapeHtml } from '@/lib/html-escape';
 import {
   UNKNOWN_IP,
   PASSWORD_RESET_EMAIL_LIMIT,
@@ -59,7 +60,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: tr
       await sendEmail({
         to: user.email,
         subject: 'Recupera tu contraseña',
-        html: `<p>Hola ${user.fullName},</p><p>Restablece tu contraseña con el siguiente enlace (expira en 1 hora):</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Si no solicitaste esto, ignora este correo.</p>`,
+        html: `<p>Hola ${escapeHtml(user.fullName)},</p><p>Restablece tu contraseña con el siguiente enlace (expira en 1 hora):</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Si no solicitaste esto, ignora este correo.</p>`,
       });
     } catch (err) {
       console.error('Error sending password reset email:', err);

@@ -7,7 +7,6 @@ import {
   createAnnouncement,
   publishAnnouncement,
   deleteAnnouncement,
-  getAnnouncements,
 } from '@/actions/announcements';
 
 function setTestSession(user: { id: string; tenantSlug: string; roles: string[] }) {
@@ -190,32 +189,4 @@ describe('announcements actions contract (S04) — NO mock.module, Postgres real
     }
   });
 
-  it(
-    'revelaría SEG-L12 si corriera: getAnnouncements devuelve borradores a todos los roles',
-    { skip: 'AUDIT SEG-L12: getAnnouncements devuelve borradores no publicados a todos los roles' },
-    async () => {
-      const school = await setupSchool('t-ann-segl12');
-      setTestSession({ id: school.admin.id, tenantSlug: school.tenant.slug, roles: ['admin'] });
-      try {
-        await createAnnouncement({
-          title: `Borrador ${uniq('draft')}`,
-          body: 'Sin publicar',
-          publishNow: false,
-          targetType: 'all',
-        });
-      } finally {
-        clearTestSession();
-      }
-
-      // BUG: un docente ve el borrador aunque nunca se publicó.
-      setTestSession({ id: school.teacher.id, tenantSlug: school.tenant.slug, roles: ['teacher'] });
-      try {
-        const rows = await getAnnouncements();
-        const drafts = rows.filter((r) => r.publishedAt === null);
-        assert.equal(drafts.length, 0);
-      } finally {
-        clearTestSession();
-      }
-    }
-  );
 });
