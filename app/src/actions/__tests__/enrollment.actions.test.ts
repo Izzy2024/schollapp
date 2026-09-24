@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
+import { seedPermission } from '@/test/factories/rbac';
 
 import { enrollStudent, unenrollStudent, reenrollStudent } from '@/actions/enrollment-impl';
 
@@ -26,6 +27,7 @@ async function setupSchool(prefix: string, opts?: { capacity?: number | null }) 
     data: { email: `${tag}@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
   });
   await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+  await seedPermission(tenant.id, admin.id, 'students:manage');
   const year = await prisma.academicYear.create({
     data: {
       tenantId: tenant.id,

@@ -3,10 +3,20 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requirePermission } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 // ==========================================
 // ACADEMIC YEAR
 // ==========================================
+
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    return;
+  }
+}
 
 export async function getAcademicYears() {
   const session = await auth();
@@ -23,15 +33,10 @@ export async function getAcademicYears() {
 }
 
 export async function createAcademicYear(name: string, startDateIso: string, endDateIso: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
 
   const existing = await prisma.academicYear.findFirst({
-    where: { tenantId: tenant.id, name }
+    where: { tenantId, name }
   });
 
   if (existing) {
@@ -48,7 +53,7 @@ export async function createAcademicYear(name: string, startDateIso: string, end
   // Check overlap (simplistic check)
   const overlap = await prisma.academicYear.findFirst({
     where: {
-      tenantId: tenant.id,
+      tenantId,
       OR: [
         { startDate: { lte: endDate }, endDate: { gte: startDate } }
       ]
@@ -60,12 +65,12 @@ export async function createAcademicYear(name: string, startDateIso: string, end
   }
 
   // If this is the first one, make it active
-  const count = await prisma.academicYear.count({ where: { tenantId: tenant.id } });
+  const count = await prisma.academicYear.count({ where: { tenantId } });
   const isActive = count === 0;
 
   await prisma.academicYear.create({
     data: {
-      tenantId: tenant.id,
+      tenantId,
       name,
       startDate,
       endDate,
@@ -73,33 +78,30 @@ export async function createAcademicYear(name: string, startDateIso: string, end
     }
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }
 
 export async function setAcademicYearActive(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
+  const academicYear = await prisma.academicYear.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!academicYear) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   await prisma.$transaction(async (tx) => {
     // Desactivate all
     await tx.academicYear.updateMany({
-      where: { tenantId: tenant.id },
+      where: { tenantId },
       data: { isActive: false }
     });
 
     // Activate the requested one
     await tx.academicYear.update({
-      where: { id, tenantId: tenant.id },
+      where: { id, tenantId },
       data: { isActive: true }
     });
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }
 
@@ -131,15 +133,15 @@ export async function getSections() {
 }
 
 export async function createSection(academicYearId: string, gradeLevelId: string, name: string, capacity: number) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
+  const [academicYear, gradeLevel] = await Promise.all([
+    prisma.academicYear.findFirst({ where: { id: academicYearId, tenantId }, select: { id: true } }),
+    prisma.gradeLevel.findFirst({ where: { id: gradeLevelId, tenantId }, select: { id: true } }),
+  ]);
+  if (!academicYear || !gradeLevel) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   const existing = await prisma.section.findFirst({
-    where: { tenantId: tenant.id, academicYearId, gradeLevelId, name }
+    where: { tenantId, academicYearId, gradeLevelId, name }
   });
 
   if (existing) {
@@ -148,7 +150,7 @@ export async function createSection(academicYearId: string, gradeLevelId: string
 
   await prisma.section.create({
     data: {
-      tenantId: tenant.id,
+      tenantId,
       academicYearId,
       gradeLevelId,
       name,
@@ -156,20 +158,17 @@ export async function createSection(academicYearId: string, gradeLevelId: string
     }
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }
 
 export async function deleteSection(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
+  const section = await prisma.section.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!section) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   const enrollmentsCount = await prisma.enrollment.count({
-    where: { sectionId: id }
+    where: { sectionId: id, tenantId }
   });
 
   if (enrollmentsCount > 0) {
@@ -177,10 +176,10 @@ export async function deleteSection(id: string) {
   }
 
   await prisma.section.delete({
-    where: { id, tenantId: tenant.id }
+    where: { id, tenantId }
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }
 
@@ -204,15 +203,10 @@ export async function getGradeLevels() {
 }
 
 export async function createGradeLevel(name: string, code: string, sortOrder: number) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
 
   const existingCode = await prisma.gradeLevel.findFirst({
-    where: { tenantId: tenant.id, code }
+    where: { tenantId, code }
   });
 
   if (existingCode) {
@@ -221,28 +215,25 @@ export async function createGradeLevel(name: string, code: string, sortOrder: nu
 
   await prisma.gradeLevel.create({
     data: {
-      tenantId: tenant.id,
+      tenantId,
       name,
       code,
       sortOrder,
     }
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }
 
 export async function deleteGradeLevel(id: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  const tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
-  if (!tenant) throw new Error('Tenant not found');
+  const { tenantId } = await requirePermission('academic:manage');
+  const gradeLevel = await prisma.gradeLevel.findFirst({ where: { id, tenantId }, select: { id: true } });
+  if (!gradeLevel) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   // Check if sections are tied to this grade
   const sections = await prisma.section.count({
-    where: { gradeLevelId: id, tenantId: tenant.id }
+    where: { gradeLevelId: id, tenantId }
   });
 
   if (sections > 0) {
@@ -250,9 +241,9 @@ export async function deleteGradeLevel(id: string) {
   }
 
   await prisma.gradeLevel.delete({
-    where: { id, tenantId: tenant.id }
+    where: { id, tenantId }
   });
 
-  revalidatePath('/admin/academic');
+  safeRevalidate('/admin/academic');
   return { success: true };
 }

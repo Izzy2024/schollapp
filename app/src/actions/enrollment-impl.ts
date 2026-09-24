@@ -2,6 +2,7 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { hasPermission } from '@/lib/rbac';
 import { makeEnrollmentDomainError } from './enrollment-errors';
 import { generateEnrollmentCharges, type PaymentOption } from './finance/enrollment-charges';
 // NOTE: keep imports in this file limited to functions; Next server-action modules
@@ -33,6 +34,18 @@ async function getSessionContext(): Promise<SessionContext> {
     tenantSlug: tenant.slug,
     actorUserId: session.user.id ?? null,
   };
+}
+
+async function getSessionContextForWrite(): Promise<SessionContext> {
+  const ctx = await getSessionContext();
+  if (!ctx.actorUserId) {
+    throw makeEnrollmentDomainError('UNAUTHORIZED_ROLE', 'No autorizado');
+  }
+  const allowed = await hasPermission(ctx.tenantId, ctx.actorUserId, 'students:manage');
+  if (!allowed) {
+    throw makeEnrollmentDomainError('UNAUTHORIZED_ROLE', 'No autorizado');
+  }
+  return ctx;
 }
 
 async function getActiveAcademicYear(tenantId: string) {
@@ -136,8 +149,15 @@ export async function enrollStudent(
   _tenantSlug?: string,
   paymentOption: PaymentOption = 'monthly'
 ) {
-  const ctx = await getSessionContext();
+  const ctx = await getSessionContextForWrite();
   const activeYear = await getActiveAcademicYear(ctx.tenantId);
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, tenantId: ctx.tenantId },
+    select: { id: true },
+  });
+  if (!student) {
+    throw makeEnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Student not found for tenant');
+  }
 
   const existing = await prisma.enrollment.findFirst({
     where: {
@@ -205,7 +225,7 @@ export async function enrollStudent(
 }
 
 export async function unenrollStudent(enrollmentId: string, _tenantSlug?: string) {
-  const ctx = await getSessionContext();
+  const ctx = await getSessionContextForWrite();
 
   const existing = await prisma.enrollment.findFirst({
     where: { id: enrollmentId, tenantId: ctx.tenantId },
@@ -235,8 +255,15 @@ export async function unenrollStudent(enrollmentId: string, _tenantSlug?: string
 }
 
 export async function reenrollStudent(studentId: string, sectionId: string, _tenantSlug?: string) {
-  const ctx = await getSessionContext();
+  const ctx = await getSessionContextForWrite();
   const activeYear = await getActiveAcademicYear(ctx.tenantId);
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, tenantId: ctx.tenantId },
+    select: { id: true },
+  });
+  if (!student) {
+    throw makeEnrollmentDomainError('TENANT_SCOPE_VIOLATION', 'Student not found for tenant');
+  }
 
   const section = await prisma.section.findFirst({
     where: { id: sectionId, tenantId: ctx.tenantId },

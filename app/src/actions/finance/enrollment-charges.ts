@@ -2,6 +2,8 @@
 
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { requirePermission } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { resolveSiblingDiscount, markDiscountUsed } from './discounts';
 
 // ============================================================================
@@ -36,31 +38,27 @@ export async function generateEnrollmentCharges(
   paymentOption: PaymentOption = 'monthly',
   academicYearId: string
 ): Promise<EnrollmentChargeResult> {
-  const session = await auth();
-  if (!session?.user?.tenantSlug) {
-    throw new Error('Unauthorized');
-  }
-
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: session.user.tenantSlug },
-    select: { id: true },
-  });
-
-  if (!tenant) {
-    throw new Error('Tenant not found');
-  }
+  const ctx = await requirePermission('students:manage');
 
   // Get academic year info and section grade level
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { id: enrollmentId },
-    select: { section: { select: { gradeLevelId: true } } }
+  const enrollment = await prisma.enrollment.findFirst({
+    where: { id: enrollmentId, tenantId: ctx.tenantId },
+    select: { studentId: true, academicYearId: true, section: { select: { gradeLevelId: true } } }
   });
-  const gradeLevelId = enrollment?.section.gradeLevelId;
+  if (!enrollment || enrollment.studentId !== studentId || enrollment.academicYearId !== academicYearId) {
+    throw stableError(STABLE_ERROR.TARGET_SCOPE_VIOLATION);
+  }
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, tenantId: ctx.tenantId },
+    select: { id: true },
+  });
+  if (!student) throw stableError(STABLE_ERROR.TARGET_SCOPE_VIOLATION);
+  const gradeLevelId = enrollment.section.gradeLevelId;
 
   // Get auto-generate concepts
   const concepts = await prisma.financeConcept.findMany({
     where: {
-      tenantId: tenant.id,
+      tenantId: ctx.tenantId,
       autoGenerateOnEnrollment: true,
       isActive: true,
       OR: [
@@ -75,12 +73,13 @@ export async function generateEnrollmentCharges(
   }
 
   // Get academic year info
-  const academicYear = await prisma.academicYear.findUnique({
-    where: { id: academicYearId },
+  const academicYear = await prisma.academicYear.findFirst({
+    where: { id: academicYearId, tenantId: ctx.tenantId },
     select: { name: true, startDate: true, terms: { orderBy: { startDate: 'asc' } } },
   });
+  if (!academicYear) throw stableError(STABLE_ERROR.TARGET_SCOPE_VIOLATION);
 
-  const yearName = academicYear?.name || new Date().getFullYear().toString();
+  const yearName = academicYear.name;
   const charges: Array<{
     id: string;
     conceptName: string;
@@ -104,7 +103,7 @@ export async function generateEnrollmentCharges(
         let amountCents = concept.amountCents;
         let discountCents = 0;
         if (concept.applySiblingDiscount) {
-          const discount = await resolveSiblingDiscount(tx, tenant.id, studentId, concept.id, 'enrollment', amountCents);
+          const discount = await resolveSiblingDiscount(tx, ctx.tenantId, studentId, concept.id, 'enrollment', amountCents);
           if (discount) {
             discountCents = discount.reductionCents;
             amountCents -= discountCents;
@@ -114,7 +113,7 @@ export async function generateEnrollmentCharges(
 
         const charge = await tx.financeCharge.create({
           data: {
-            tenantId: tenant.id,
+            tenantId: ctx.tenantId,
             studentId,
             conceptId: concept.id,
             amountCents,
@@ -145,7 +144,7 @@ export async function generateEnrollmentCharges(
 
           const charge = await tx.financeCharge.create({
             data: {
-              tenantId: tenant.id,
+              tenantId: ctx.tenantId,
               studentId,
               conceptId: concept.id,
               amountCents: annualAmount,
@@ -174,7 +173,7 @@ export async function generateEnrollmentCharges(
           let monthlyDiscountCents = 0;
           let monthlyDiscountId: string | null = null;
           if (concept.applySiblingDiscount) {
-            const discount = await resolveSiblingDiscount(tx, tenant.id, studentId, concept.id, 'monthly', concept.amountCents);
+            const discount = await resolveSiblingDiscount(tx, ctx.tenantId, studentId, concept.id, 'monthly', concept.amountCents);
             if (discount) {
               monthlyDiscountCents = discount.reductionCents;
               monthlyDiscountId = discount.discountId;
@@ -192,7 +191,7 @@ export async function generateEnrollmentCharges(
 
             const charge = await tx.financeCharge.create({
               data: {
-                tenantId: tenant.id,
+                tenantId: ctx.tenantId,
                 studentId,
                 conceptId: concept.id,
                 amountCents,
@@ -222,8 +221,8 @@ export async function generateEnrollmentCharges(
     // Create activity event
     await tx.activityEvent.create({
       data: {
-        tenantId: tenant.id,
-        actorUserId: session.user?.id || 'system',
+        tenantId: ctx.tenantId,
+        actorUserId: ctx.userId,
         entityType: 'finance',
         entityId: enrollmentId,
         action: 'finance.charges.auto_generated',
@@ -277,8 +276,8 @@ export async function getEnrollmentPaymentOptions(sectionId?: string): Promise<{
 
   let gradeLevelId = undefined;
   if (sectionId) {
-    const section = await prisma.section.findUnique({
-      where: { id: sectionId },
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, tenantId: tenant.id },
       select: { gradeLevelId: true }
     });
     if (section) gradeLevelId = section.gradeLevelId;
