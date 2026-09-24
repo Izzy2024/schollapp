@@ -2,7 +2,7 @@
 
 import { renderToStream } from '@react-pdf/renderer';
 import prisma from '@/lib/prisma';
-import { getTenantIdFromSession } from '../finance/_shared';
+import { requirePermission } from '@/lib/authz';
 import InvoicePDF, { type InvoicePDFData } from '@/lib/pdf/invoice-template';
 
 /**
@@ -10,11 +10,11 @@ import InvoicePDF, { type InvoicePDFData } from '@/lib/pdf/invoice-template';
  * Returns the PDF as a buffer that can be served to the user
  */
 export async function generateInvoicePdf(invoiceId: string): Promise<Buffer> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   // Get invoice data
   const invoice = await prisma.financeInvoice.findFirst({
-    where: { id: invoiceId, tenantId: ctx.tenantId },
+    where: { id: invoiceId, tenantId },
     include: {
       charge: {
         include: {
@@ -49,7 +49,7 @@ export async function generateInvoicePdf(invoiceId: string): Promise<Buffer> {
 
   // Get tenant info
   const tenant = await prisma.tenant.findUnique({
-    where: { id: ctx.tenantId },
+    where: { id: tenantId },
     select: {
       name: true,
       panamaRUC: true,
@@ -109,10 +109,10 @@ export async function generateInvoicePdf(invoiceId: string): Promise<Buffer> {
  * Generate PDF by folio
  */
 export async function generateInvoicePdfByFolio(folio: string): Promise<Buffer> {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   const invoice = await prisma.financeInvoice.findFirst({
-    where: { folio, tenantId: ctx.tenantId },
+    where: { folio, tenantId },
     select: { id: true },
   });
 

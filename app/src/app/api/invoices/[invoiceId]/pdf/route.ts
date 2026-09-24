@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateInvoicePdf } from '@/actions/finance/pdf-invoice';
+import { STABLE_ERROR } from '@/lib/errors';
 
 export async function GET(
   request: NextRequest,
@@ -19,9 +20,16 @@ export async function GET(
       },
     });
   } catch (error: any) {
+    const code = error?.message;
+    if (code === STABLE_ERROR.UNAUTHORIZED_ROLE || code === STABLE_ERROR.TENANT_NOT_FOUND) {
+      return NextResponse.json({ error: code }, { status: 403 });
+    }
+    if (code === 'Invoice not found') {
+      return NextResponse.json({ error: code }, { status: 404 });
+    }
     console.error('Error generating invoice PDF:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate PDF' },
+      { error: code || 'Failed to generate PDF' },
       { status: 500 }
     );
   }

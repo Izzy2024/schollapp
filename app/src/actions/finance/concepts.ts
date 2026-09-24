@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { getTenantIdFromSession, assertFinanceWriteAccess } from './_shared';
+import { requirePermission } from '@/lib/authz';
 import { Prisma } from '@prisma/client';
 
 export type FinanceConceptKind = 'monthly' | 'one_time';
@@ -141,10 +142,10 @@ export async function update(input: {
 }
 
 export async function list() {
-  const ctx = await getTenantIdFromSession();
+  const { tenantId } = await requirePermission('finance:write');
 
   return prisma.financeConcept.findMany({
-    where: { tenantId: ctx.tenantId },
+    where: { tenantId },
     include: { gradeLevel: { select: { name: true } } },
     orderBy: { createdAt: 'desc' },
   });
