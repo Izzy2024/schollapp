@@ -23,7 +23,7 @@ export default function ActivityLogPage() {
   const fetchActivities = useCallback(async (filter: string, p: number) => {
     setLoading(true);
     try {
-      const result = await getRecentActivities(undefined, filter, p, 50);
+      const result = await getRecentActivities(filter, p, 50);
       setData(prev => {
         if (p === 1 || !prev) return result;
         return {

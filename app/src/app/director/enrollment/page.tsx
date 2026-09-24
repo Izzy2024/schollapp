@@ -35,7 +35,7 @@ export default function DirectorEnrollmentPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getEnrollmentStats('school-demo')
+    getEnrollmentStats()
       .then(setStats)
       .catch(console.error)
       .finally(() => setLoading(false));

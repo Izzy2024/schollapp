@@ -18,7 +18,7 @@ export default function DirectorAccreditationPage() {
     (async () => {
       try {
         const { getRecentActivities } = await import('@/actions/activity');
-        const result = await getRecentActivities(undefined, undefined, 1, 50);
+        const result = await getRecentActivities(undefined, 1, 50);
         setEvents(result.activities as ActivityEvent[]);
       } catch (e: any) {
         message.error(e.message || 'Error cargando datos');

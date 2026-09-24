@@ -3,7 +3,7 @@
 import prisma from '@/lib/prisma';
 import { auth } from '@/auth';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
-import { emitCommunicationMessageSentActivity } from '@/actions/activity-emit';
+import { emitCommunicationMessageSentActivity } from '@/actions/activity-emit-internal';
 
 export type MessageConversationListItemDTO = {
   conversationId: string;

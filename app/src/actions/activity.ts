@@ -1,8 +1,9 @@
 'use server';
 
-import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { getTestPrisma } from '@/lib/test-seams';
+import { requireTenant } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { parseActivityMetadata } from '@/lib/activity-metadata';
 import {
   ACTIVITY_TAXONOMY,
@@ -12,30 +13,34 @@ import {
 } from '@/lib/activity-taxonomy';
 
 export async function getRecentActivities(
-  tenantSlug?: string,
   filterEntityType?: string,
   page: number = 1,
   limit: number = 50
 ) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
+  const ctx = await requireTenant();
+  if (!ctx.roles.includes('admin') && !ctx.roles.includes('director')) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
 
-  const currentTenantSlug = tenantSlug || session.user.tenantSlug;
+  // Gracefully handle legacy callers passing (undefined, filter, page, limit)
+  let actualFilter = filterEntityType;
+  let actualPage = page;
+  let actualLimit = limit;
+  if (typeof page === 'string') {
+    actualFilter = page;
+    actualPage = typeof limit === 'number' ? limit : 1;
+    actualLimit = 50;
+  }
 
   const db: typeof prisma = getTestPrisma<typeof prisma>() ?? prisma;
 
-  const tenant = await db.tenant.findUnique({
-    where: { slug: currentTenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
-
-  const canonicalFilter = normalizeActivityFilter(filterEntityType);
+  const canonicalFilter = normalizeActivityFilter(actualFilter);
   const whereClause = {
-    tenantId: tenant.id,
+    tenantId: ctx.tenantId,
     ...buildActivityFilterWhere(canonicalFilter),
   };
 
-  const offset = (Math.max(1, page) - 1) * limit;
+  const offset = (Math.max(1, actualPage) - 1) * actualLimit;
 
   const [activities, totalCount] = await Promise.all([
     db.activityEvent.findMany({
@@ -47,14 +52,14 @@ export async function getRecentActivities(
       },
       orderBy: { occurredAt: 'desc' },
       skip: offset,
-      take: limit,
+      take: actualLimit,
     }),
     db.activityEvent.count({ where: whereClause }),
   ]);
 
   return {
     activities: activities
-      .filter((act) => act.tenantId === tenant.id)
+      .filter((act) => act.tenantId === ctx.tenantId)
       .map((act) => {
         const normalizedEntity = normalizeActivityEntityType(act.entityType) ?? 'announcement';
 
@@ -114,9 +119,9 @@ export async function getRecentActivities(
       }),
     pagination: {
       total: totalCount,
-      page,
-      limit,
-      totalPages: Math.ceil(totalCount / limit),
+      page: actualPage,
+      limit: actualLimit,
+      totalPages: Math.ceil(totalCount / actualLimit),
     },
   };
 }

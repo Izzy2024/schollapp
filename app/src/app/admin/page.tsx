@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getAdminDashboardStats>> | null>(null);
 
   useEffect(() => {
-    getAdminDashboardStats('school-demo')
+    getAdminDashboardStats()
       .then(setStats)
       .catch(console.error);
   }, []);

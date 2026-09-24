@@ -26,7 +26,7 @@ export default function AdminActivitiesPage() {
     (async () => {
       try {
         const { getRecentActivities } = await import('@/actions/activity');
-        const result = await getRecentActivities(undefined, filter, page, 30);
+        const result = await getRecentActivities(filter, page, 30);
         setActivities(result.activities as Activity[]);
       } catch (e: any) {
         message.error(e.message || 'Error cargando actividades');
