@@ -16,7 +16,7 @@ export async function getCurricularPlan(sectionSubjectId: string, termId: string
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -67,7 +67,7 @@ export async function createUnit(
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -112,7 +112,7 @@ export async function updateUnit(
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -144,7 +144,7 @@ export async function deleteUnit(unitId: string, tenantSlug?: string) {
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -174,7 +174,7 @@ export async function createTopic(
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -213,7 +213,7 @@ export async function deleteTopic(topicId: string, tenantSlug?: string) {
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 
@@ -237,7 +237,7 @@ export async function reorderUnit(unitId: string, direction: 'up' | 'down', tena
   if (!tenant) throw new Error('Tenant not found');
 
   const teacher = await prisma.staff.findFirst({
-    where: { tenantId: tenant.id, OR: [{ user: { email: 'docente1@demo.com' } }, { userId: session.user.id }] }
+    where: { tenantId: tenant.id, userId: session.user.id }
   });
   if (!teacher) throw new Error('Teacher profile not found');
 

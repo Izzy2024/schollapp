@@ -3,6 +3,28 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { authConfig } from './auth.config';
+import { STABLE_ERROR } from '@/lib/errors';
+import {
+  UNKNOWN_IP,
+  LOGIN_EMAIL_LIMIT,
+  LOGIN_EMAIL_WINDOW_MS,
+  LOGIN_IP_LIMIT,
+  LOGIN_IP_WINDOW_MS,
+  clearRateLimit,
+  getClientIp,
+  isRateLimited,
+  loginEmailKey,
+  loginIpKey,
+  registerAttempt,
+} from '@/lib/rate-limit';
+
+function resolveAuthSecret(): string {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET must be set in production');
+  }
+  return 'secret-for-dev-only-change-in-prod';
+}
 
 export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
   ...authConfig,
@@ -17,6 +39,25 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Faltan credenciales');
         }
+
+        // Fixed-window brute-force protection (Prisma-backed, serverless-safe).
+        // Checked BEFORE the user lookup so unknown emails consume quota too.
+        const normalizedEmail = (credentials.email as string).trim().toLowerCase();
+        const clientIp = await getClientIp();
+        const emailKey = loginEmailKey(normalizedEmail);
+        const ipKey = clientIp !== UNKNOWN_IP ? loginIpKey(clientIp) : null;
+
+        if (
+          (await isRateLimited(emailKey, LOGIN_EMAIL_LIMIT, LOGIN_EMAIL_WINDOW_MS)) ||
+          (ipKey !== null && (await isRateLimited(ipKey, LOGIN_IP_LIMIT, LOGIN_IP_WINDOW_MS)))
+        ) {
+          throw new Error(STABLE_ERROR.TOO_MANY_ATTEMPTS);
+        }
+
+        const recordLoginFailure = async () => {
+          await registerAttempt(emailKey, LOGIN_EMAIL_WINDOW_MS);
+          if (ipKey !== null) await registerAttempt(ipKey, LOGIN_IP_WINDOW_MS);
+        };
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
@@ -35,11 +76,16 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         });
 
         if (!user || !user.isActive) {
+          await recordLoginFailure();
           throw new Error('Usuario no encontrado o inactivo');
         }
 
         let isPasswordValid = false;
-        if (user.passwordHash === 'demo-hash-123' && credentials.password === 'demo-hash-123') {
+        if (
+          process.env.ALLOW_DEMO_LOGIN === '1' &&
+          user.passwordHash === 'demo-hash-123' &&
+          credentials.password === 'demo-hash-123'
+        ) {
           isPasswordValid = true;
         } else {
           isPasswordValid = await bcrypt.compare(
@@ -49,6 +95,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         }
 
         if (!isPasswordValid) {
+          await recordLoginFailure();
           throw new Error('Contraseña incorrecta');
         }
 
@@ -58,18 +105,16 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         }
 
         // Gather roles for this specific tenant
-        let userRolesForTenant = user.roles
-          .filter((ur: any) => ur.tenantId === mainMembership.tenantId)
-          .map((ur: any) => ur.role.name);
+        const userRolesForTenant = user.roles
+          .filter(ur => ur.tenantId === mainMembership.tenantId)
+          .map(ur => ur.role.name);
 
-        // Fallback for demo users if DB roles aren't seeded yet
         if (userRolesForTenant.length === 0) {
-          if (user.email.includes('admin')) userRolesForTenant = ['admin'];
-          else if (user.email.includes('director')) userRolesForTenant = ['director'];
-          else if (user.email.includes('docente')) userRolesForTenant = ['teacher'];
-          else if (user.email.includes('alumno')) userRolesForTenant = ['student'];
-          else if (user.email.includes('padre')) userRolesForTenant = ['parent'];
+          throw new Error('Usuario sin rol asignado');
         }
+
+        // Successful login resets the per-email failure counter.
+        await clearRateLimit(emailKey);
 
         return {
           id: user.id,
@@ -78,6 +123,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
           tenantId: mainMembership.tenantId,
           tenantSlug: mainMembership.tenant.slug,
           roles: userRolesForTenant,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -87,18 +133,27 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
       if (user) {
         // Initial sign-in
         token.id = user.id;
-        token.tenantId = (user as any).tenantId;
-        token.tenantSlug = (user as any).tenantSlug;
-        token.roles = (user as any).roles;
+        const u = user as { tenantId: string; tenantSlug: string; roles: string[]; mustChangePassword: boolean };
+        token.tenantId = u.tenantId;
+        token.tenantSlug = u.tenantSlug;
+        token.roles = u.roles;
+        token.mustChangePassword = u.mustChangePassword;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        (session.user as any).tenantId = token.tenantId as string;
-        (session.user as any).tenantSlug = token.tenantSlug as string;
-        (session.user as any).roles = token.roles as string[];
+        const su = session.user as typeof session.user & {
+          tenantId?: string;
+          tenantSlug?: string;
+          roles?: string[];
+          mustChangePassword?: boolean;
+        };
+        su.tenantId = token.tenantId as string;
+        su.tenantSlug = token.tenantSlug as string;
+        su.roles = token.roles as string[];
+        su.mustChangePassword = Boolean(token.mustChangePassword);
       }
       return session;
     },
@@ -106,7 +161,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
+  secret: resolveAuthSecret(),
 });
 
 // Test override seam: some contract tests run under tsx where node:test mock.module is not available.
@@ -115,7 +170,7 @@ import { getTestSession } from '@/lib/test-seams';
 
 export async function auth() {
   const testSession = getTestSession();
-  if (testSession) return testSession as any;
+  if (testSession) return testSession;
   return nextAuthAuth();
 }
 

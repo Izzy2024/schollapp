@@ -3,31 +3,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getStaffList, createStaff } from '@/actions/staff';
-import { message } from 'antd';
+import { createInvitation } from '@/actions/invitations';
+import { App } from 'antd';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: '3', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: 'academic', icon: 'calendar_month', label: 'Académico', href: '/admin/academic' },
-      { key: '13', icon: 'settings', label: 'Ajustes', href: '/admin/settings' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 type StaffMember = {
   id: string;
@@ -41,6 +21,7 @@ type StaffMember = {
 };
 
 export default function StaffPage() {
+  const { message } = App.useApp();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -56,6 +37,21 @@ export default function StaffPage() {
     phone: '',
     roleLabel: 'Docente',
   });
+  const [newCredentials, setNewCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [inviteInfo, setInviteInfo] = useState<{ code: string; expiresAt: Date; invitedName: string } | null>(null);
+
+  const handleCreateInvitation = async (staffId: string) => {
+    try {
+      const res = await createInvitation({ targetType: 'staff', targetId: staffId });
+      if ('error' in res) {
+        message.error(res.error);
+      } else {
+        setInviteInfo(res);
+      }
+    } catch (error: any) {
+      message.error(error.message || 'Error al generar el código');
+    }
+  };
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -106,6 +102,7 @@ export default function StaffPage() {
         message.success('Docente registrado con éxito');
         setModalOpen(false);
         setFormData({ fullName: '', email: '', phone: '', roleLabel: 'Docente' });
+        if (res.credentials) setNewCredentials(res.credentials);
         loadData(1, search);
       }
     } catch (error: any) {
@@ -202,6 +199,13 @@ export default function StaffPage() {
                     <td className="px-6 py-4 text-right">
                       <button className="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ver Perfil">
                         <span className="material-symbols-outlined text-xl">visibility</span>
+                      </button>
+                      <button
+                        onClick={() => handleCreateInvitation(s.id)}
+                        className="text-gray-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-indigo-50 transition-colors"
+                        title="Generar código de invitación"
+                      >
+                        <span className="material-symbols-outlined text-xl">key</span>
                       </button>
                     </td>
                   </tr>
@@ -318,6 +322,63 @@ export default function StaffPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
               >
                 Guardar Docente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credenciales generadas */}
+      {newCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Acceso generado</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-600">
+                Comparte estas credenciales con el docente. La contraseña no se volverá a mostrar.
+              </p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-1 font-mono text-sm">
+                <div><span className="text-gray-500">Correo:</span> {newCredentials.email}</div>
+                <div><span className="text-gray-500">Contraseña temporal:</span> {newCredentials.tempPassword}</div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
+              <button
+                onClick={() => setNewCredentials(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Código de invitación generado */}
+      {inviteInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900">Código de invitación</h3>
+            </div>
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-600">
+                Comparte este código o link con <strong>{inviteInfo.invitedName}</strong> para que cree su cuenta.
+                El email del perfil se actualizará al que use al registrarse.
+              </p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-1 font-mono text-sm break-all">
+                <div><span className="text-gray-500">Código:</span> {inviteInfo.code}</div>
+                <div><span className="text-gray-500">Link:</span> {`${typeof window !== 'undefined' ? window.location.origin : ''}/register?code=${inviteInfo.code}`}</div>
+                <div><span className="text-gray-500">Expira:</span> {new Date(inviteInfo.expiresAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
+              <button
+                onClick={() => setInviteInfo(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Entendido
               </button>
             </div>
           </div>

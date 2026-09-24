@@ -22,7 +22,7 @@ export async function getRecentActivities(
 
   const currentTenantSlug = tenantSlug || session.user.tenantSlug;
 
-  const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
+  const db: typeof prisma = getTestPrisma<typeof prisma>() ?? prisma;
 
   const tenant = await db.tenant.findUnique({
     where: { slug: currentTenantSlug },
@@ -30,7 +30,7 @@ export async function getRecentActivities(
   if (!tenant) throw new Error('Tenant not found');
 
   const canonicalFilter = normalizeActivityFilter(filterEntityType);
-  const whereClause: any = {
+  const whereClause = {
     tenantId: tenant.id,
     ...buildActivityFilterWhere(canonicalFilter),
   };
@@ -87,6 +87,18 @@ export async function getRecentActivities(
           iconColor = 'text-purple-600';
           iconBg = 'bg-purple-50';
           if (actionStr.includes('taken') || actionStr.includes('created')) text = 'Pasó lista asistencia';
+        }
+
+        if (normalizedEntity === 'finance') {
+          icon = 'paid';
+          iconColor = 'text-emerald-700';
+          iconBg = 'bg-emerald-50';
+
+          if (actionStr === 'finance.concept.created') text = 'Creó un concepto de cobro';
+          else if (actionStr === 'finance.concept.updated') text = 'Actualizó un concepto de cobro';
+          else if (actionStr === 'finance.charge.created') text = 'Generó un cargo';
+          else if (actionStr === 'finance.payment.recorded') text = 'Registró un pago';
+          else text = `Acción de finanzas: ${act.action}`;
         }
 
         return {

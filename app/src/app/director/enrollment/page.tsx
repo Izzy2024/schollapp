@@ -13,30 +13,12 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 // Director Menu Groups with updates from Step 16
-const menuGroups = [
-  {
-    title: 'Consola Directiva',
-    items: [
-      { key: '1', icon: 'analytics', label: 'Vista General', href: '/director' },
-      { key: '2', icon: 'monitoring', label: 'Rendimiento Acad.', href: '/director/academic' },
-      { key: 'dir-enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/director/enrollment' },
-      { key: 'dir-class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/director/class-requests' },
-      { key: '4', icon: 'attach_money', label: 'Finanzas', href: '/director/financials' },
-      { key: '5', icon: 'inventory_2', label: 'Gestión de Recursos', href: '/director/resources' },
-    ],
-  },
-  {
-    title: 'Reportes Estratégicos',
-    items: [
-      { key: '6', icon: 'verified', label: 'Acreditación', href: '/director/accreditation' },
-      { key: '7', icon: 'psychology', label: 'Desempeño Docente', href: '/director/staff' },
-    ],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['director']);
 
 type GradeStat = { gradeName: string; enrolled: number; capacity: number };
 type SectionStat = { gradeName: string; sectionName: string; enrolled: number; capacity: number; pct: number };

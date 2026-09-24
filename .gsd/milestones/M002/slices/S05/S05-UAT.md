@@ -1,27 +1,26 @@
-# S05: Recovery placeholder UAT
+# S05 UAT: Bitácora Global y Dashboard (Overview) (M002)
 
-**Milestone:** M002
-**Written:** 2026-03-18T20:32:27.957Z
+## Objetivo
+Validar que existe activity feed global y que el dashboard Overview muestra métricas coherentes con datos reales.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login como Director: `director@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Overview carga
+1. Ir a `/login` e ingresar como Director.
+2. Expected: redirige a `/director/overview` (o entrar manualmente).
+3. Expected: se muestran KPIs (matrícula, asistencia hoy, pendientes) sin errores.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Activity feed
+1. Navegar a `/director/activity`.
+2. Expected: se ve una lista de eventos (activity feed) ordenada por fecha.
+3. (Opcional) Generar un evento:
+   - Crear un comunicado o registrar un pago y volver al feed.
+4. Expected: aparece un evento nuevo (`announcement.*`, `finance.*`, `communication.*` según módulos usados).
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
-
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- El feed aparece vacío con seed aplicado.
+- Eventos muestran metadata no parseable.
+- KPIs no coinciden con acciones (ej. asistencia tomada pero KPI no cambia).

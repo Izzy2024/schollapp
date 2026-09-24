@@ -1,27 +1,25 @@
-# S03: Recovery placeholder UAT
+# S03 UAT: Control de Asistencia (M002)
 
-**Milestone:** M002
-**Written:** 2026-03-18T19:50:05.681Z
+## Objetivo
+Validar toma de asistencia por grupo/fecha y reportes básicos.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login teacher: `docente1@demo.com` / `demo-hash-123` (o Admin)
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Pasar lista
+1. Ir a `/admin/attendance` (admin) o superficie docente equivalente.
+2. Seleccionar grupo y fecha (hoy).
+3. Marcar algunos alumnos como ausente/retardo.
+4. Guardar.
+5. Expected: se guardan registros y al refrescar persisten.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Reportes
+1. Ir a `/admin/reports`.
+2. Buscar reporte de asistencia por grupo o alumno.
+3. Expected: refleja los cambios del caso 1.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
-
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- Los cambios no persisten.
+- Se mezcla asistencia entre grupos/fechas.

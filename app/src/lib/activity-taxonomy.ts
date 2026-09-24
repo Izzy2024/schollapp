@@ -1,4 +1,4 @@
-export const ACTIVITY_ENTITY_TYPES = ['enrollment', 'attendance', 'announcement'] as const;
+export const ACTIVITY_ENTITY_TYPES = ['enrollment', 'attendance', 'announcement', 'finance'] as const;
 
 export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[number];
 
@@ -11,6 +11,11 @@ const FILTER_ALIASES: Record<string, ActivityEntityType | null> = {
   attendancesession: 'attendance',
   announcement: 'announcement',
   announcements: 'announcement',
+
+  finance: 'finance',
+  finanzas: 'finance',
+  cobros: 'finance',
+  pagos: 'finance',
 };
 
 export const ACTIVITY_TAXONOMY: Record<
@@ -20,6 +25,7 @@ export const ACTIVITY_TAXONOMY: Record<
   enrollment: { label: 'Inscripciones', icon: 'how_to_reg', actionPrefix: 'enrollment.' },
   attendance: { label: 'Asistencia', icon: 'rule', actionPrefix: 'attendance.' },
   announcement: { label: 'Comunicados', icon: 'campaign', actionPrefix: 'announcement.' },
+  finance: { label: 'Finanzas', icon: 'paid', actionPrefix: 'finance.' },
 };
 
 export function normalizeActivityEntityType(value?: string | null): ActivityEntityType | null {

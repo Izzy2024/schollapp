@@ -1,0 +1,11 @@
+{
+  "plugin": [
+    [
+      "oc-plugin-vault-tec",
+      {
+        "enabled": true,
+        "mode": "append"
+      }
+    ]
+  ]
+}

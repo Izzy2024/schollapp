@@ -16,6 +16,7 @@ export default function NewEvaluationModal({ isOpen, onClose, sectionSubjectId, 
   const [type, setType] = useState('Examen');
   const [date, setDate] = useState('');
   const [maxScore, setMaxScore] = useState(100);
+  const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,11 +34,13 @@ export default function NewEvaluationModal({ isOpen, onClose, sectionSubjectId, 
     setLoading(true);
     try {
       const dateIso = new Date(date).toISOString();
-      const res = await createEvaluation(sectionSubjectId, termId, name, type, dateIso, maxScore, tenantSlug);
+      const dueDateIso = dueDate ? new Date(dueDate).toISOString() : undefined;
+      const res = await createEvaluation(sectionSubjectId, termId, name, type, dateIso, maxScore, tenantSlug, dueDateIso);
       if (res.success) {
         setName('');
         setDate('');
         setMaxScore(100);
+        setDueDate('');
         onClose();
       }
     } catch (err: unknown) {
@@ -99,6 +102,17 @@ export default function NewEvaluationModal({ isOpen, onClose, sectionSubjectId, 
                   className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors cursor-pointer"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Fecha límite de entrega (opcional)</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={e => setDueDate(e.target.value)}
+                className="w-full border border-gray-200 bg-gray-50 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors cursor-pointer"
+              />
+              <p className="text-xs text-gray-400 mt-1">Si la defines, los alumnos podrán entregar un archivo para esta evaluación.</p>
             </div>
 
             <div>

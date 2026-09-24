@@ -40,6 +40,22 @@ npm install
 npx prisma db push
 ```
 
+### Seed (recomendado para login y demos)
+
+Este repo usa un dataset demo determinista. Para cargarlo:
+
+```bash
+npx prisma db seed
+```
+
+Credenciales demo (todas usan password: `demo-hash-123`):
+
+- admin: `admin@demo.com`
+- director: `director@demo.com`
+- teacher: `docente1@demo.com`
+- parent: `padre@demo.com`
+- student: `alumno@demo.com`
+
 ### Levantar proyecto
 
 ```bash

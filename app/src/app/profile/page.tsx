@@ -72,7 +72,14 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            <div className="mt-12 flex justify-end">
+            <div className="mt-12 flex justify-end gap-3">
+              <a
+                href="/profile/change-password"
+                className="px-6 py-2.5 bg-gray-50 text-gray-700 font-semibold rounded-xl hover:bg-gray-100 transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">lock_reset</span>
+                Cambiar Contraseña
+              </a>
               <form action={logOut}>
                 <button type="submit" className="px-6 py-2.5 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-colors flex items-center gap-2">
                   <span className="material-symbols-outlined text-lg">logout</span>

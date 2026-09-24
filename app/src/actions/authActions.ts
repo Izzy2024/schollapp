@@ -1,13 +1,24 @@
 'use server';
 
-import { signIn, signOut } from '@/auth';
+import { auth, signIn, signOut } from '@/auth';
 import { AuthError } from 'next-auth';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
 import { resolveHomePath } from '@/lib/auth-guards.mjs';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { isTooManyAttemptsError } from '@/lib/authErrors';
 
 async function clearAuthCookies() {
-  const store = await cookies();
+  // ponytail: cookies() needs a Next.js request context; contract tests call
+  // changePassword() outside one, so this is a no-op there (no cookies to clear anyway).
+  let store;
+  try {
+    store = await cookies();
+  } catch {
+    return;
+  }
+
   const cookieNames = [
     'authjs.session-token',
     '__Secure-authjs.session-token',
@@ -24,6 +35,14 @@ async function clearAuthCookies() {
   }
 }
 
+class SeedRequiredError extends Error {
+  public readonly code = 'SEED_REQUIRED' as const;
+  constructor(message = 'Base sin datos iniciales (seed requerido)') {
+    super(message);
+    this.name = 'SeedRequiredError';
+  }
+}
+
 async function resolveLoginRedirectPath(email: string) {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -35,15 +54,32 @@ async function resolveLoginRedirectPath(email: string) {
           role: true,
         },
       },
+      memberships: true,
     },
   });
 
-  const dbRoles = user?.roles.map((userRole) => userRole.role.name.toLowerCase()) ?? [];
+  // If the user doesn't exist at all, this is almost always a missing seed in dev.
+  // We treat it as a handled error to avoid NextAuth wrapping it as CallbackRouteError.
+  if (!user) {
+    throw new SeedRequiredError(
+      'Base sin datos iniciales. Ejecuta: npx prisma db seed'
+    );
+  }
+
+  // Seed invariant: demo users should always have an active membership.
+  if (user.memberships.length === 0) {
+    throw new SeedRequiredError(
+      'Falta asociación a escuela (seed incompleto). Ejecuta: npx prisma db seed'
+    );
+  }
+
+  const dbRoles = user.roles.map((userRole) => userRole.role.name.toLowerCase());
 
   if (dbRoles.length > 0) {
     return resolveHomePath(dbRoles);
   }
 
+  // Legacy fallback (kept for safety).
   if (normalizedEmail.includes('director')) return '/director';
   if (normalizedEmail.includes('docente') || normalizedEmail.includes('teacher')) return '/teacher';
   if (normalizedEmail.includes('alumno') || normalizedEmail.includes('student')) return '/student';
@@ -64,16 +100,31 @@ export async function authenticate(
     await signIn('credentials', {
       ...data,
       redirect: false,
-      redirectTo: redirectPath,
     });
 
     return `REDIRECT:${redirectPath}`;
   } catch (error) {
+    // Handle seed-missing explicitly to avoid a generic CallbackRouteError and to give an actionable message.
+    if (error instanceof SeedRequiredError) {
+      console.error(`[auth][seed-missing] ${error.code}: ${error.message}`);
+      return `${error.code}: ${error.message}`;
+    }
+
     console.error('Login error:', error);
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
+          if (isTooManyAttemptsError(error)) {
+            return 'Demasiados intentos. Intenta de nuevo en unos minutos.';
+          }
           return 'Credenciales incorrectas.';
+        case 'CallbackRouteError':
+          // authorize() rejections (e.g. rate limiting) arrive wrapped here;
+          // only the rate-limit marker gets a distinctive message.
+          if (isTooManyAttemptsError(error)) {
+            return 'Demasiados intentos. Intenta de nuevo en unos minutos.';
+          }
+          return 'Algo salió mal. Intenta nuevamente.';
         default:
           return 'Algo salió mal. Intenta nuevamente.';
       }
@@ -88,4 +139,30 @@ export async function logOut() {
   } finally {
     await clearAuthCookies();
   }
+}
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ success: true } | { error: string }> {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+
+  if (typeof input.newPassword !== 'string' || input.newPassword.length < 8)
+    return { error: STABLE_ERROR.WEAK_PASSWORD };
+
+  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  if (!user) throw new Error('Unauthorized');
+
+  const isCurrentValid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+  if (!isCurrentValid) return { error: STABLE_ERROR.INVALID_CURRENT_PASSWORD };
+
+  const passwordHash = await bcrypt.hash(input.newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash, mustChangePassword: false },
+  });
+
+  await clearAuthCookies();
+  return { success: true };
 }

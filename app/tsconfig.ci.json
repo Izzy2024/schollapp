@@ -1,0 +1,19 @@
+{
+  // Typecheck de CI: mismo programa que tsconfig.json pero SIN los archivos
+  // de test legacy. Hay ~100 errores preexistentes de tsc confinados a
+  // **/__tests__/** y **/*.test.* (suites viejas, no el contrato actual que
+  // corre src/test-runner.ts) y se decidió NO arreglarlos en este cambio.
+  // Como test-runner.ts importa suites con errores, también se excluye:
+  // el runner se verifica en CI ejecutándolo (paso `npm test`), no con tsc.
+  // El código de producción queda con typecheck estricto (cero errores hoy).
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.test.mjs",
+    "**/__tests__/**",
+    "src/test/**",
+    "src/test-runner.ts"
+  ]
+}

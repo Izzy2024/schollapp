@@ -16,7 +16,7 @@ type AnnouncementWriteContext = {
   tenantId: string;
   tenantSlug: string;
   actorUserId: string;
-  role?: string | null;
+  roles: string[];
 };
 
 export type AnnouncementRow = {
@@ -44,12 +44,15 @@ async function getAnnouncementWriteContext(tenantSlug?: string): Promise<Announc
     tenantId: tenant.id,
     tenantSlug: resolvedTenantSlug,
     actorUserId: session.user.id,
-    role: session.user.role,
+    roles: Array.isArray((session.user as { roles?: string[] }).roles)
+      ? (session.user as { roles?: string[] }).roles ?? []
+      : [],
   };
 }
 
-function assertAnnouncementWriteAccess(role?: string | null) {
-  if (role === 'admin' || role === 'director') return;
+function assertAnnouncementWriteAccess(roles: string[]) {
+  const normalizedRoles = roles.map((role) => String(role).toLowerCase());
+  if (normalizedRoles.includes('admin') || normalizedRoles.includes('director')) return;
   throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 }
 
@@ -157,7 +160,7 @@ export async function createAnnouncement(
   tenantSlug?: string
 ) {
   const context = await getAnnouncementWriteContext(tenantSlug);
-  assertAnnouncementWriteAccess(context.role);
+  assertAnnouncementWriteAccess(context.roles);
 
   if (!data.title?.trim()) return { error: 'El título es requerido' };
   if (!data.body?.trim()) return { error: 'El cuerpo del comunicado es requerido' };
@@ -204,7 +207,7 @@ export async function createAnnouncement(
 
 export async function publishAnnouncement(id: string, tenantSlug?: string) {
   const context = await getAnnouncementWriteContext(tenantSlug);
-  assertAnnouncementWriteAccess(context.role);
+  assertAnnouncementWriteAccess(context.roles);
 
   const existing = await prisma.announcement.findFirst({
     where: { id, tenantId: context.tenantId },
@@ -238,7 +241,7 @@ export async function publishAnnouncement(id: string, tenantSlug?: string) {
 
 export async function deleteAnnouncement(id: string, tenantSlug?: string) {
   const context = await getAnnouncementWriteContext(tenantSlug);
-  assertAnnouncementWriteAccess(context.role);
+  assertAnnouncementWriteAccess(context.roles);
 
   const existing = await prisma.announcement.findFirst({
     where: { id, tenantId: context.tenantId },

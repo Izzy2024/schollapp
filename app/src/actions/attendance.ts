@@ -9,7 +9,7 @@ type AllowedAttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
 type AttendanceWriteContext = {
   userId: string;
-  role?: string | null;
+  roles: string[];
   staffId?: string | null;
   tenantId: string;
 };
@@ -45,16 +45,31 @@ async function getAttendanceWriteContext(tenantSlug?: string): Promise<Attendanc
   const tenant = await prisma.tenant.findUnique({ where: { slug: authSession.user.tenantSlug ?? tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  // ponytail: session never carries staffId (not set by auth.ts), so resolve it
+  // from the Staff table each call instead of trusting a field that's always undefined.
+  const staff = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, userId: authSession.user.id },
+  });
+
   return {
     userId: authSession.user.id,
-    role: authSession.user.role,
-    staffId: authSession.user.staffId,
+    roles: Array.isArray((authSession.user as { roles?: string[] }).roles)
+      ? (authSession.user as { roles?: string[] }).roles ?? []
+      : [],
+    staffId: staff?.id ?? null,
     tenantId: tenant.id,
   };
 }
 
-function assertRoleCanWriteAttendance(role?: string | null) {
-  const normalized = role ?? null;
+function getPrimaryAttendanceRole(roles: string[]) {
+  const normalizedRoles = roles.map((role) => String(role).toLowerCase());
+  if (normalizedRoles.includes('admin')) return 'admin';
+  if (normalizedRoles.includes('teacher')) return 'teacher';
+  return null;
+}
+
+function assertRoleCanWriteAttendance(roles: string[]) {
+  const normalized = getPrimaryAttendanceRole(roles);
   if (normalized === 'admin' || normalized === 'teacher') {
     return;
   }
@@ -136,13 +151,14 @@ export async function saveAttendanceSession(
   if (!sectionSubjectId?.trim()) throw new Error('sectionSubjectId requerido');
 
   const context = await getAttendanceWriteContext(tenantSlug);
-  assertRoleCanWriteAttendance(context.role);
+  assertRoleCanWriteAttendance(context.roles);
+  const primaryRole = getPrimaryAttendanceRole(context.roles);
 
   const ss = await prisma.sectionSubject.findUnique({ where: { id: sectionSubjectId } });
   if (!ss) throw new Error('Clase no encontrada');
 
   assertTenantScope(ss.tenantId, context.tenantId);
-  assertTeacherOwnership(context.role, context.staffId, ss.staffId);
+  assertTeacherOwnership(primaryRole, context.staffId, ss.staffId);
 
   const date = normalizeDate(dateIso);
   const normalizedRecords = sanitizeRecords(records);
@@ -272,13 +288,16 @@ export async function getAttendanceBySectionDate(
 
   const session = await prisma.attendanceSession.findFirst({
     where: { tenantId: tenant.id, sectionId, date },
-    include: { records: true }
+    include: { records: true, takenBy: { select: { fullName: true, roles: { where: { tenantId: tenant.id }, select: { role: { select: { name: true } } }, take: 1 } } } }
   });
 
   const recordMap = new Map(session?.records.map(r => [r.studentId, r]) ?? []);
 
   return {
     sessionId: session?.id ?? null,
+    takenBy: session?.takenBy
+      ? { name: session.takenBy.fullName, role: session.takenBy.roles[0]?.role.name ?? null }
+      : null,
     records: enrollments.map(e => ({
       studentId: e.student.id,
       studentName: `${e.student.firstName} ${e.student.lastName}`,
@@ -299,7 +318,7 @@ export async function saveAttendanceBySectionDate(
   tenantSlug?: string
 ) {
   const context = await getAttendanceWriteContext(tenantSlug);
-  assertRoleCanWriteAttendance(context.role);
+  assertRoleCanWriteAttendance(context.roles);
 
   const section = await prisma.section.findUnique({ where: { id: sectionId }, select: { id: true, tenantId: true } });
   if (!section) throw new Error('SECTION_NOT_FOUND');

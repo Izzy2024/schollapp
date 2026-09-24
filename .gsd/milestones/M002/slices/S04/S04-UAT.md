@@ -1,27 +1,28 @@
-# S04: Recovery placeholder UAT
+# S04 UAT: Comunicados Internos (M002)
 
-**Milestone:** M002
-**Written:** 2026-03-18T19:59:18.348Z
+## Objetivo
+Validar que Director/Admin puede crear, publicar y borrar comunicados con targets (escuela/grado/grupo).
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login Director: `director@demo.com` / `demo-hash-123` (o Admin)
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Crear comunicado para toda la escuela
+1. Ir a `/director/announcements`.
+2. Crear comunicado (título + cuerpo) target "Toda la escuela".
+3. Publicar.
+4. Expected: aparece como Publicado.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Target por grado/grupo
+1. Crear comunicado target "Un grado".
+2. Crear comunicado target "Un grupo".
+3. Expected: quedan publicados y con resumen de target correcto.
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Eliminar
+1. Eliminar un comunicado.
+2. Expected: desaparece de la lista.
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- No se aplican targets correctamente.
+- Errores silenciosos (sin mensaje estable).

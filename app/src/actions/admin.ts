@@ -74,6 +74,20 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     ? Math.round((presentRecordsToday / totalRecordsToday) * 100) 
     : null;
 
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+
+  const monthCollected = await db.financePayment.aggregate({
+    where: { tenantId: tenant.id, paidAt: { gte: startOfMonth } },
+    _sum: { amountCents: true },
+  });
+
+  const overdueCharges = await db.financeCharge.findMany({
+    where: { tenantId: tenant.id, status: 'overdue' },
+    select: { amountCents: true, studentId: true },
+  });
+  const financeOverdueCents = overdueCharges.reduce((sum, c) => sum + c.amountCents, 0);
+  const financeOverdueStudents = new Set(overdueCharges.map((c) => c.studentId)).size;
+
   const recentActivitiesRaw = await db.activityEvent.findMany({
     where: { tenantId: tenant.id },
     orderBy: { occurredAt: 'desc' },
@@ -108,5 +122,8 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     attendanceTodayPct,
     pendingBreakdown,
     recentActivities,
+    financeCollectedThisMonthCents: monthCollected._sum.amountCents ?? 0,
+    financeOverdueCents,
+    financeOverdueStudents,
   };
 }

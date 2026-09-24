@@ -1,27 +1,24 @@
-# S02: Recovery placeholder UAT
+# S02 UAT: Inscripciones y Matrícula (M002)
 
-**Milestone:** M002
-**Written:** 2026-03-18T18:05:50.794Z
+## Objetivo
+Validar inscripción/reinscripción con validación de cupo y consistencia de matrícula.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado: `node app/prisma/seed.ts`
+- Login Admin: `admin@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Inscribir alumno a grupo
+1. Ir a `/admin/enrollment`.
+2. Seleccionar un alumno (ej. STD-001) y un grupo (ej. 1° Primaria A).
+3. Confirmar inscripción.
+4. Expected: se crea enrollment y aparece en listados.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Validación de cupo
+1. Seleccionar un grupo con capacidad baja (si hay UI para editarla) o saturarlo inscribiendo múltiples alumnos.
+2. Intentar inscribir cuando excede cupo.
+3. Expected: error estable/visible (no inscripción parcial).
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
-
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Señales de fallo
+- Inscripción duplicada para mismo alumno+ciclo.
+- Se inscribe fuera del tenant derivado de sesión.

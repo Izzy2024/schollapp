@@ -5,29 +5,15 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Tabs } from 'antd';
 import ConceptsTab from './components/ConceptsTab';
 import ChargesTab from './components/ChargesTab';
+import StatementTab from './components/StatementTab';
+import InvoicesTab from './components/InvoicesTab';
+import PaymentsTab from './components/PaymentsTab';
+import DelinquencyTab from './components/DelinquencyTab';
+import DiscountsTab from './components/DiscountsTab';
+import PlansTab from './components/PlansTab';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const menuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: 'attendance', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: 'announcements', icon: 'campaign', label: 'Comunicados', href: '/admin/announcements' },
-      { key: 'reports', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-      { key: 'finances', icon: 'payments', label: 'Finanzas', href: '/admin/finances' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [{ key: 'academic', icon: 'calendar_month', label: 'Académico', href: '/admin/academic' }],
-  },
-];
+const menuGroups = getMenuGroupsForRoles(['admin']);
 
 export default function AdminFinancesPage() {
   return (
@@ -41,7 +27,7 @@ export default function AdminFinancesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Finanzas</h1>
-          <p className="text-sm text-gray-500">Conceptos y generación de cargos (idempotente por periodo)</p>
+          <p className="text-sm text-gray-500">Gestión de conceptos, cargos, facturas y cobranza</p>
         </div>
       </div>
 
@@ -49,14 +35,44 @@ export default function AdminFinancesPage() {
         <Tabs
           items={[
             {
-              key: 'concepts',
-              label: 'Conceptos',
-              children: <ConceptsTab />,
+              key: 'statement',
+              label: 'Estado de cuenta',
+              children: <StatementTab />,
+            },
+            {
+              key: 'invoices',
+              label: 'Facturas',
+              children: <InvoicesTab />,
+            },
+            {
+              key: 'payments',
+              label: 'Pagos',
+              children: <PaymentsTab />,
+            },
+            {
+              key: 'delinquency',
+              label: 'Morosidad',
+              children: <DelinquencyTab />,
             },
             {
               key: 'charges',
               label: 'Cargos',
               children: <ChargesTab />,
+            },
+            {
+              key: 'concepts',
+              label: 'Conceptos',
+              children: <ConceptsTab />,
+            },
+            {
+              key: 'discounts',
+              label: 'Descuentos',
+              children: <DiscountsTab />,
+            },
+            {
+              key: 'plans',
+              label: 'Planes de pago',
+              children: <PlansTab />,
             },
           ]}
         />

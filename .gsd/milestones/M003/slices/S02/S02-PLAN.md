@@ -66,28 +66,28 @@
   - Verify: `pnpm -C app test -- payments-and-statement.actions.test.ts` (debe fallar al inicio por acciones/modelo faltante)
   - Done when: El test file existe, corre, y falla por razones esperadas (missing model/actions), dejando asserts claros.
 
-- [ ] **T02: Añadir modelo Prisma FinancePayment + migración + errores estables nuevos** `est:1h`
+- [x] **T02: Añadir modelo Prisma FinancePayment + migración + errores estables nuevos** `est:1h`
   - Why: Persistir pagos y soportar queries deterministas de estado de cuenta con scoping por tenant.
   - Files: `app/prisma/schema.prisma`, `app/prisma/migrations/*`, `app/src/lib/errors.ts`
   - Do: Modelar `FinancePayment` ligado a `FinanceCharge` y `Student`, con `tenantId`, `amountCents`, `paidAt`, `method`, `note?`, `attachmentId?` (si Attachment aplica). Añadir stable errors: `FINANCE_CHARGE_NOT_FOUND`, `FINANCE_PAYMENT_INVALID_AMOUNT`.
   - Verify: `pnpm -C app prisma migrate dev` (o comando equivalente del repo) y `pnpm -C app test -- payments-and-statement.actions.test.ts` (aún rojo, pero ya compila el schema)
   - Done when: Prisma genera cliente/migración sin errores y tipos incluyen `FinancePayment`.
 
-- [ ] **T03: Implementar server actions: recordManual + getForParent (tenant-scope, RBAC, determinismo)** `est:1h`
+- [x] **T03: Implementar server actions: recordManual + getForParent (tenant-scope, RBAC, determinismo)** `est:1h`
   - Why: Cerrar el backend para registrar pagos y producir el statement real consumible por UI y tests.
   - Files: `app/src/actions/finance/payments.ts`, `app/src/actions/finance/statements.ts`, `app/src/actions/finance/_shared.ts`
   - Do: Implementar `recordManual` usando `getTenantIdFromSession()` + `assertFinanceWriteAccess()`; validar amount > 0; lookup charge por `{id, tenantId}`; crear payment en transacción; computar paid/partial si aplica (opcional). Implementar `getForParent` resolviendo students del parent (por relación existente), listando charges/payments por tenant+students, y devolviendo totales deterministas.
   - Verify: `pnpm -C app test -- payments-and-statement.actions.test.ts`
   - Done when: Los tests de T01 pasan (verde) y las acciones devuelven errores estables en paths negativos.
 
-- [ ] **T04: Construir UI Parent real en /parent/finances y remover mocks del dashboard parent** `est:1h`
+- [x] **T04: Construir UI Parent real en /parent/finances y remover mocks del dashboard parent** `est:1h`
   - Why: Entregar el resultado visible al usuario (Parent) y asegurar que finanzas ya no dependan de datos hardcoded.
   - Files: `app/src/app/parent/finances/page.tsx`, `app/src/actions/parent.ts`, `app/src/app/parent/page.tsx`
   - Do: Crear página `/parent/finances` que llama `financeStatement.getForParent()` y muestra por student: saldo, lista de cargos y pagos (fechas/montos). Actualizar `getParentDashboardData` para que el bloque financial provenga del statement real (o elimine secciones mock) y linkee a `/parent/finances`.
   - Verify: `pnpm -C app dev` + navegación a `/parent/finances` con un Parent sembrado; `pnpm -C app build`
   - Done when: `/parent/finances` renderiza datos reales (cero mocks) y falla con mensaje estable si la acción retorna error.
 
-- [ ] **T05: Superficie Admin mínima para registrar pago manual contra un cargo** `est:1h`
+- [x] **T05: Superficie Admin mínima para registrar pago manual contra un cargo** `est:1h`
   - Why: Completar el flujo MVP: Admin/Director puede registrar pago sin necesitar scripts/DB manual.
   - Files: `app/src/app/(admin)/finance/*` (o ruta existente de finanzas admin), `app/src/actions/finance/payments.ts`, `app/src/components/*` (si aplica)
   - Do: Añadir acción/botón “Registrar pago” en la lista de cargos (S01) que abre un form (monto, fecha, nota, método) y llama `recordManual({ chargeId, amountCents, paidAt, ... })`. Manejar errores estables en UI.

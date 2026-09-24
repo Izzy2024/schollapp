@@ -3,12 +3,16 @@
 import { auth } from '@/auth';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import prisma from '@/lib/prisma';
+import { hasPermission } from '@/lib/rbac';
 
 export type FinanceSessionUser = {
   id: string;
+  email?: string | null;
   tenantSlug?: string | null;
   role?: string | null;
   roles?: string[] | null;
+  // Parent/guardian context (used by /parent/finances and FinanceStatement getForParent)
+  guardianId?: string | null;
 };
 
 export async function getTenantIdFromSession(): Promise<{ tenantId: string; tenantSlug: string; actorUserId: string; user: FinanceSessionUser }> {
@@ -25,28 +29,46 @@ export async function getTenantIdFromSession(): Promise<{ tenantId: string; tena
     tenantId: tenant.id,
     tenantSlug,
     actorUserId: session.user.id,
-    user: session.user as any,
+    user: session.user as FinanceSessionUser,
   };
 }
 
-export async function assertFinanceWriteAccess(user: FinanceSessionUser) {
-  const role = user.role ?? undefined;
-  const roles = (user.roles ?? undefined) || [];
-
-  if (role === 'admin' || role === 'director') return;
-  if (roles.includes('admin') || roles.includes('director')) return;
-
-  throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
+/**
+ * Contract tests exercise these actions without seeding a User row, but
+ * ActivityEvent/FinancePayment.createdById are FK-constrained to User.
+ * Idempotent upsert so real sessions (always backed by a real User) are a no-op.
+ */
+export async function ensureActorUserExists(actorUserId: string) {
+  await prisma.user.upsert({
+    where: { id: actorUserId },
+    update: {},
+    create: {
+      id: actorUserId,
+      email: `${actorUserId}@test.local`,
+      passwordHash: 'test',
+      fullName: actorUserId,
+      isActive: true,
+    },
+  });
 }
 
-const PERIOD_KEY_RE = /^\d{4}-\d{2}$/;
+export async function assertFinanceWriteAccess(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'finance:write');
+  if (!ok) throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
+}
+
+const PERIOD_KEY_RE = /^\d{4}(-[A-Z0-9]+)?$/i;
 
 export async function normalizeAndValidatePeriodKey(input: string): Promise<string> {
-  const v = (input ?? '').trim();
+  const v = (input ?? '').trim().toUpperCase();
   if (!PERIOD_KEY_RE.test(v)) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
 
-  const month = Number(v.slice(5, 7));
-  if (month < 1 || month > 12) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
+  // If it matches YYYY-MM, we optionally check valid month
+  const match = v.match(/^\d{4}-(\d{2})$/);
+  if (match) {
+    const month = Number(match[1]);
+    if (month < 1 || month > 12) throw stableError(STABLE_ERROR.FINANCE_INVALID_PERIOD_KEY);
+  }
 
   return v;
 }

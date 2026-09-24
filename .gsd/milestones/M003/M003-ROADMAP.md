@@ -53,16 +53,16 @@ This milestone is complete only when all are true:
 - [x] **S01: Ledger mínimo (Conceptos + Cargos idempotentes) con UI Admin** `risk:high` `depends:[]`
   > After this: Un Admin/Director puede crear conceptos (mensual/único) y generar/ver cargos reales en una pantalla admin, sin duplicados por periodo al reintentar.
 
-- [ ] **S02: Registro manual de pagos + Estado de cuenta Parent (real, no mock)** `risk:high` `depends:[S01]`
+- [x] **S02: Registro manual de pagos + Estado de cuenta Parent (real, no mock)** `risk:high` `depends:[S01]`
   > After this: Un Admin/Director registra un pago manual y un Parent ve en `/parent/finances` el saldo e historial (cargos/pagos) calculado desde DB.
 
-- [ ] **S03: Observabilidad financiera (ActivityEvent) + superficie de auditoría** `risk:medium` `depends:[S01,S02]`
+- [x] **S03: Observabilidad financiera (ActivityEvent) + superficie de auditoría** `risk:medium` `depends:[S01,S02]`
   > After this: Cada creación de cargo y registro de pago aparece en el Activity Feed como `finance.*` con metadata mínima, facilitando diagnóstico post-lanzamiento.
 
-- [ ] **S04: Estabilización (lint/types/build) + suite de verificación sin mock.module** `risk:medium` `depends:[S01,S02,S03]`
+- [x] **S04: Estabilización (lint/types/build) + suite de verificación sin mock.module** `risk:medium` `depends:[S01,S02,S03]`
   > After this: El repo tiene una suite de tests confiable (sin `mock.module`) que cubre finanzas + un mínimo de RBAC/scope, y `lint/test/build` pasan como gate.
 
-- [ ] **S05: Slice de integración final “Lanzamiento” (happy path + failure visibility)** `risk:low` `depends:[S01,S02,S03,S04]`
+- [x] **S05: Slice de integración final “Lanzamiento” (happy path + failure visibility)** `risk:low` `depends:[S01,S02,S03,S04]`
   > After this: Se demuestra end-to-end en runtime real: Admin crea cargos y registra pago → Parent confirma saldo; errores estables se muestran en UI; no quedan mocks/placeholder en finanzas.
 
 ## Boundary Map

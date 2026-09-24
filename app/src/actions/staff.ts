@@ -4,10 +4,18 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
+
+async function assertStaffAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'staff:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
 
 export async function getStaffList(
-  search?: string, 
-  page = 1, 
+  search?: string,
+  page = 1,
   pageSize = 20,
   tenantSlug?: string
 ) {
@@ -19,13 +27,14 @@ export async function getStaffList(
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStaffAdmin(tenant.id, session.user.id);
 
   const where: Prisma.StaffWhereInput = { tenantId: tenant.id, isActive: true };
 
   if (search) {
     where.OR = [
-      { fullName: { contains: search } },
-      { email: { contains: search } }
+      { fullName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } }
     ];
   }
 
@@ -70,6 +79,7 @@ export async function createStaff(
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStaffAdmin(tenant.id, session.user.id);
 
   const staff = await prisma.staff.create({
     data: {
@@ -82,6 +92,18 @@ export async function createStaff(
     }
   });
 
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: data.fullName,
+      role: 'teacher',
+    });
+    await prisma.staff.update({ where: { id: staff.id }, data: { userId: result.userId } });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
   revalidatePath('/admin/staff');
-  return { success: true, staff };
+  return { success: true, staff, credentials };
 }

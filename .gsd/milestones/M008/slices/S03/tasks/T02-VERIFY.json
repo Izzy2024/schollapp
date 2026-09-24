@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M008/S03/T02",
+  "timestamp": 1775677157249,
+  "passed": false,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "Browser: teacher abre clase -> marca asistencia -> guardar -> recarga refleja cambios.",
+      "exitCode": 127,
+      "durationMs": 7,
+      "verdict": "fail"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

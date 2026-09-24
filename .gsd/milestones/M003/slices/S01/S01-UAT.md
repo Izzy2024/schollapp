@@ -1,27 +1,28 @@
-# S01: Recovery placeholder UAT
+# S01 UAT: Ledger mínimo (Conceptos + Cargos idempotentes) con UI Admin (M003)
 
-**Milestone:** M003
-**Written:** 2026-03-18T21:01:22.015Z
+## Objetivo
+Validar que el Admin puede crear conceptos y generar cargos **idempotentes** (sin duplicados por periodo), base del estado de cuenta.
 
-## Preconditions
-- Doctor created this placeholder because the expected UAT file was missing.
+## Precondiciones
+- App corriendo: `pnpm -C app dev`
+- Seed aplicado (usuarios demo). Nota: `node app/prisma/seed.ts`.
+- Login Admin: `admin@demo.com` / `demo-hash-123`
 
-## Smoke Test
-- Re-run the slice verification from the slice plan before shipping.
+## Caso 1 — Crear concepto mensual
+1. Ir a `/admin/finances`.
+2. Crear concepto "Colegiatura" (mensual) con monto (ej. 1000).
+3. Expected: aparece en lista de conceptos activos.
 
-## Test Cases
-### 1. Replace this placeholder
-1. Read the slice plan and task summaries.
-2. Write a real UAT script.
-3. **Expected:** This placeholder is replaced with meaningful human checks.
+## Caso 2 — Generar cargos para un periodo (idempotente)
+1. En el mismo módulo, elegir periodo (ej. mes actual o un `periodKey` que el UI soporte).
+2. Ejecutar "Generar cargos".
+3. Expected: se crean cargos para alumnos (tabla/lista de cargos).
+4. Repetir "Generar cargos" para el mismo periodo.
+5. Expected: **no** se duplican cargos (los conteos/montos no se inflan).
 
-## Edge Cases
-### Missing completion artifacts
-1. Confirm the summary, roadmap checkbox, and state file are coherent.
-2. **Expected:** GSD doctor reports no remaining completion drift for this slice.
+## Caso 3 — Señales de fallo
+- Al refrescar la página, aparecen cargos duplicados del mismo periodo para el mismo alumno.
+- Se permite generar cargos fuera del tenant (no debería).
 
-## Failure Signals
-- Placeholder content still present when treating the slice as done
-
-## Notes for Tester
-Doctor created this file only to restore the required artifact shape. Replace it with a real UAT script.
+## Notas
+- El contrato de dedupe está respaldado por unique key + tests contract (ver `finance` contract tests).

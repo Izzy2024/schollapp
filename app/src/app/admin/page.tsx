@@ -4,38 +4,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getAdminDashboardStats } from '@/actions/admin';
 import Link from 'next/link';
+import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 
-const baseMenuGroups = [
-  {
-    title: 'Menú Principal',
-    items: [
-      { key: '1', icon: 'home', label: 'Vista General', href: '/admin' },
-      { key: 'subjects', icon: 'menu_book', label: 'Materias', href: '/admin/subjects' },
-      { key: 'classes', icon: 'class', label: 'Gestión de Clases', href: '/admin/classes' },
-      { key: 'staff', icon: 'badge', label: 'Docentes / Staff', href: '/admin/staff' },
-      { key: 'class-requests', icon: 'pending_actions', label: 'Solicitudes de Clase', href: '/admin/class-requests' },
-      { key: 'schedule-requests', icon: 'schedule_send', label: 'Solicitudes de Horario', href: '/admin/schedule-requests' },
-      { key: 'students', icon: 'people', label: 'Estudiantes', href: '/admin/students' },
-      { key: 'enrollment', icon: 'how_to_reg', label: 'Inscripciones', href: '/admin/enrollment' },
-      { key: '2', icon: 'assignment', label: 'Preparación de Clase', href: '/admin/class-prep' },
-      { key: '3', icon: 'schedule', label: 'Asistencia', href: '/admin/attendance' },
-      { key: '4', icon: 'edit_note', label: 'Exámenes', href: '/admin/exams' },
-      { key: '5', icon: 'bookmark', label: 'Gestión de Tareas', href: '/admin/assignments' },
-      { key: '6', icon: 'access_time', label: 'Horarios', href: '/admin/schedule' },
-      { key: '8', icon: 'mail', label: 'Mensajes', href: '/admin/messages' },
-      { key: '9', icon: 'donut_large', label: 'Analítica', href: '/admin/analytics' },
-      { key: '10', icon: 'article', label: 'Reportes', href: '/admin/reports' },
-    ],
-  },
-  {
-    title: 'Configuración',
-    items: [
-      { key: '11', icon: 'campaign', label: 'Noticias', href: '/admin/news' },
-      { key: '12', icon: 'local_activity', label: 'Actividades', href: '/admin/activities' },
-      { key: '13', icon: 'settings', label: 'Configuración', href: '/admin/settings' },
-    ],
-  },
-];
+const baseMenuGroups = getMenuGroupsForRoles(['admin']);
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getAdminDashboardStats>> | null>(null);
@@ -114,6 +85,35 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Finance Stat Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Link href="/admin/finances" className="stat-card no-underline hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <span className="material-symbols-outlined">payments</span>
+                </div>
+              </div>
+              <h3 className="text-sm font-medium text-gray-500">Cobrado este mes</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                ${(stats.financeCollectedThisMonthCents / 100).toLocaleString('es-PA', { minimumFractionDigits: 2 })}
+              </p>
+            </Link>
+            <Link href="/admin/finances" className="stat-card no-underline hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start mb-3">
+                <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                  <span className="material-symbols-outlined">warning</span>
+                </div>
+              </div>
+              <h3 className="text-sm font-medium text-gray-500">Cartera vencida</h3>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                ${(stats.financeOverdueCents / 100).toLocaleString('es-PA', { minimumFractionDigits: 2 })}
+                {stats.financeOverdueStudents > 0 && (
+                  <span className="text-sm font-medium text-gray-400 ml-2">({stats.financeOverdueStudents} alumnos)</span>
+                )}
+              </p>
+            </Link>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
               <div className="flex justify-between items-center mb-6">
@@ -161,6 +161,21 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-yellow-600">arrow_forward</span>
+                  </Link>
+                )}
+
+                {stats.financeOverdueStudents > 0 && (
+                  <Link href="/admin/finances" className="flex items-center justify-between p-4 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-600 shadow-sm">
+                        <span className="material-symbols-outlined">account_balance_wallet</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-red-900">Cartera Vencida</h4>
+                        <p className="text-sm text-red-800 opacity-80">{stats.financeOverdueStudents} alumno(s) con pagos vencidos.</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-red-600">arrow_forward</span>
                   </Link>
                 )}
 

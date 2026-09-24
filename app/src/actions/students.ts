@@ -5,6 +5,14 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import { provisionUserAccount } from '@/lib/accountProvisioning';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+import { hasPermission } from '@/lib/rbac';
+
+async function assertStudentsAdmin(tenantId: string, userId: string) {
+  const ok = await hasPermission(tenantId, userId, 'students:manage');
+  if (!ok) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
 
 export async function getStudents(
   tenantSlug?: string, 
@@ -22,6 +30,7 @@ export async function getStudents(
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   const academicYear = await prisma.academicYear.findFirst({
     where: { tenantId: tenant.id, isActive: true },
@@ -32,9 +41,9 @@ export async function getStudents(
 
   if (search) {
     where.OR = [
-      { firstName: { contains: search } },
-      { lastName: { contains: search } },
-      { studentCode: { contains: search } }
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { studentCode: { contains: search, mode: 'insensitive' } }
     ];
   }
   
@@ -123,6 +132,7 @@ export async function createStudent(
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   let studentCode = data.studentCode;
   if (!studentCode) {
@@ -153,7 +163,18 @@ export async function createStudent(
     }
   });
 
-  return { success: true, student };
+  let credentials: { email: string; tempPassword: string } | null = null;
+  if (data.email) {
+    const result = await provisionUserAccount({
+      tenantId: tenant.id,
+      email: data.email,
+      fullName: `${data.firstName} ${data.lastName}`,
+      role: 'student',
+    });
+    if (result.tempPassword) credentials = { email: result.email, tempPassword: result.tempPassword };
+  }
+
+  return { success: true, student, credentials };
 }
 
 export async function getStudentById(studentId: string, tenantSlug?: string) {
@@ -165,6 +186,7 @@ export async function getStudentById(studentId: string, tenantSlug?: string) {
     where: { slug: tenantSlug },
   });
   if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
 
   const student = await prisma.student.findUnique({
     where: { id: studentId, tenantId: tenant.id },
@@ -183,4 +205,51 @@ export async function getStudentById(studentId: string, tenantSlug?: string) {
   });
 
   return student;
+}
+
+export async function updateStudent(
+  studentId: string,
+  data: { firstName?: string; lastName?: string; studentCode?: string; dob?: Date | null; email?: string; phone?: string; status?: string },
+  tenantSlug?: string
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error('Unauthorized');
+  tenantSlug = session.user.tenantSlug;
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { slug: tenantSlug },
+  });
+  if (!tenant) throw new Error('Tenant not found');
+  await assertStudentsAdmin(tenant.id, session.user.id);
+
+  // Check student belongs to tenant
+  const existing = await prisma.student.findFirst({
+    where: { id: studentId, tenantId: tenant.id }
+  });
+  if (!existing) throw new Error('Estudiante no encontrado');
+
+  // If studentCode is being changed, check for duplicates
+  if (data.studentCode && data.studentCode !== existing.studentCode) {
+    const duplicate = await prisma.student.findFirst({
+      where: { tenantId: tenant.id, studentCode: data.studentCode, id: { not: studentId } }
+    });
+    if (duplicate) {
+      return { error: 'La matrícula ya está en uso por otro estudiante' };
+    }
+  }
+
+  const student = await prisma.student.update({
+    where: { id: studentId },
+    data: {
+      ...(data.firstName !== undefined && { firstName: data.firstName }),
+      ...(data.lastName !== undefined && { lastName: data.lastName }),
+      ...(data.studentCode !== undefined && { studentCode: data.studentCode }),
+      ...(data.dob !== undefined && { dob: data.dob }),
+      ...(data.email !== undefined && { email: data.email || null }),
+      ...(data.phone !== undefined && { phone: data.phone || null }),
+      ...(data.status !== undefined && { status: data.status }),
+    }
+  });
+
+  return { success: true, student };
 }

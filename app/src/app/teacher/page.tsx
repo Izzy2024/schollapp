@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getTeacherDashboardData } from '@/actions/teacher';
 import ClassRequestModal from '@/components/ClassRequestModal';
@@ -32,6 +32,13 @@ export default function TeacherDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const router = useRouter();
 
+  type SortMode = 'name' | 'students_desc' | 'pending_desc';
+  const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const [onlyPending, setOnlyPending] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>('name');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+
   useEffect(() => {
     getTeacherDashboardData('school-demo')
       .then(setData)
@@ -43,6 +50,30 @@ export default function TeacherDashboard() {
   const totalStudents = data?.totalStudents || 0;
   const pendingGrades = data?.pendingGrades || 0;
   const todaySessions = data?.todaySessions || 0;
+
+  const subjects = useMemo(
+    () => Array.from(new Set((data?.classes || []).map((c) => c.name))).sort(),
+    [data]
+  );
+
+  const visibleClasses = useMemo(() => {
+    let list = data?.classes || [];
+    if (subjectFilter !== 'all') list = list.filter((c) => c.name === subjectFilter);
+    if (onlyPending) list = list.filter((c) => (c.pending ?? 0) > 0);
+
+    list = [...list];
+    if (sortMode === 'name') list.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortMode === 'students_desc') list.sort((a, b) => b.students - a.students);
+    else if (sortMode === 'pending_desc') list.sort((a, b) => (b.pending ?? 0) - (a.pending ?? 0));
+
+    return list;
+  }, [data, subjectFilter, onlyPending, sortMode]);
+
+  const SORT_LABELS: Record<SortMode, string> = {
+    name: 'Nombre (A-Z)',
+    students_desc: 'Más alumnos',
+    pending_desc: 'Más pendientes',
+  };
 
   return (
     <DashboardLayout
@@ -64,12 +95,51 @@ export default function TeacherDashboard() {
           <p className="text-sm text-gray-500">Resumen de tus asignaciones actuales</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-            <span className="material-symbols-outlined text-lg">tune</span>Filtrar
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
-            <span className="material-symbols-outlined text-lg">sort</span>Ordenar
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => { setFilterOpen((v) => !v); setSortOpen(false); }}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border transition-colors shadow-sm ${subjectFilter !== 'all' || onlyPending ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'}`}
+            >
+              <span className="material-symbols-outlined text-lg">tune</span>Filtrar
+            </button>
+            {filterOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-40 p-3">
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Materia</p>
+                <div className="space-y-0.5 mb-3">
+                  <button onClick={() => setSubjectFilter('all')} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>Todas</button>
+                  {subjects.map((s) => (
+                    <button key={s} onClick={() => setSubjectFilter(s)} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === s ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>{s}</button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-600 cursor-pointer">
+                  <input type="checkbox" checked={onlyPending} onChange={(e) => setOnlyPending(e.target.checked)} />
+                  Solo con pendientes
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => { setSortOpen((v) => !v); setFilterOpen(false); }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <span className="material-symbols-outlined text-lg">sort</span>Ordenar
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 z-40 p-1.5">
+                {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => { setSortMode(mode); setSortOpen(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${sortMode === mode ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    {SORT_LABELS[mode]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -113,8 +183,8 @@ export default function TeacherDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {!loading && data?.classes && data.classes.length > 0 ? (
-          data.classes.map((cls, i: number) => (
+        {!loading && visibleClasses.length > 0 ? (
+          visibleClasses.map((cls, i: number) => (
             <div 
               key={cls.id || i}
               onClick={() => router.push(`/teacher/classes/${cls.id}`)}
@@ -157,7 +227,11 @@ export default function TeacherDashboard() {
             </div>
           ))
         ) : (
-          !loading && <div className="col-span-full py-12 text-center text-gray-500">No tienes clases asignadas.</div>
+          !loading && (
+            <div className="col-span-full py-12 text-center text-gray-500">
+              {data?.classes && data.classes.length > 0 ? 'Ningún resultado con este filtro.' : 'No tienes clases asignadas.'}
+            </div>
+          )
         )}
         
         {/* Create New Class Card */}

@@ -1,6 +1,7 @@
 export type AuthSession = {
   user?: {
     id: string;
+    email?: string;
     role?: string;
     tenantSlug?: string;
     tenantId?: string;
@@ -9,9 +10,11 @@ export type AuthSession = {
 };
 
 export function getTestSession(): AuthSession | null {
-  return ((globalThis as any).__TEST_SESSION__ as AuthSession) ?? null;
+  const g = globalThis as unknown as { __TEST_SESSION__?: AuthSession };
+  return g.__TEST_SESSION__ ?? null;
 }
 
 export function getTestPrisma<T>(): T | null {
-  return ((globalThis as any).__TEST_PRISMA__ as T) ?? null;
+  const g = globalThis as unknown as { __TEST_PRISMA__?: T };
+  return g.__TEST_PRISMA__ ?? null;
 }

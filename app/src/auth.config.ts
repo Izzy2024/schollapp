@@ -2,6 +2,14 @@
 import type { NextAuthConfig } from 'next-auth';
 import { extractRoles, isServerActionRequest, resolveFallbackPath, resolveHomePath } from '@/lib/auth-guards.mjs';
 
+function resolveAuthSecret(): string {
+  if (process.env.AUTH_SECRET) return process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET must be set in production');
+  }
+  return 'secret-for-dev-only-change-in-prod';
+}
+
 export const authConfig = {
   pages: {
     signIn: '/login',
@@ -14,12 +22,14 @@ export const authConfig = {
           tenantId?: string;
           tenantSlug?: string;
           roles?: string[];
+          mustChangePassword?: boolean;
         };
 
         if (signedInUser.id) token.id = signedInUser.id;
         if (signedInUser.tenantId) token.tenantId = signedInUser.tenantId;
         if (signedInUser.tenantSlug) token.tenantSlug = signedInUser.tenantSlug;
         if (Array.isArray(signedInUser.roles)) token.roles = signedInUser.roles;
+        token.mustChangePassword = Boolean(signedInUser.mustChangePassword);
       }
 
       return token;
@@ -31,6 +41,7 @@ export const authConfig = {
           tenantId?: string;
           tenantSlug?: string;
           roles?: string[];
+          mustChangePassword?: boolean;
         };
 
         userWithClaims.id = typeof token.id === 'string' ? token.id : '';
@@ -39,6 +50,7 @@ export const authConfig = {
         userWithClaims.roles = Array.isArray(token.roles)
           ? token.roles.map((role) => String(role))
           : [];
+        userWithClaims.mustChangePassword = Boolean(token.mustChangePassword);
       }
 
       return session;
@@ -46,7 +58,13 @@ export const authConfig = {
     authorized({ auth, request }) {
       const { nextUrl } = request;
       const isLoggedIn = !!auth?.user;
-      const isPublicRoute = nextUrl.pathname.startsWith('/login') || nextUrl.pathname === '/';
+      const isPublicRoute =
+        nextUrl.pathname.startsWith('/login') ||
+        nextUrl.pathname.startsWith('/register') ||
+        nextUrl.pathname.startsWith('/forgot-password') ||
+        nextUrl.pathname.startsWith('/reset-password') ||
+        nextUrl.pathname.startsWith('/apply') ||
+        nextUrl.pathname === '/';
       const isApiRoute = nextUrl.pathname.startsWith('/api');
       const isServerAction = isServerActionRequest(request);
 
@@ -55,6 +73,12 @@ export const authConfig = {
 
       if (isLoggedIn) {
         const roles = extractRoles(auth?.user);
+        const path = nextUrl.pathname;
+
+        const mustChangePassword = Boolean((auth?.user as { mustChangePassword?: boolean } | undefined)?.mustChangePassword);
+        if (mustChangePassword && !path.startsWith('/profile/change-password')) {
+          return Response.redirect(new URL('/profile/change-password', nextUrl));
+        }
 
         // Redirect from login/index to dashboard
         if (isPublicRoute) {
@@ -62,7 +86,6 @@ export const authConfig = {
         }
 
         // Strict Path RBAC
-        const path = nextUrl.pathname;
         const fallbackPath = resolveFallbackPath(path, roles);
         if (fallbackPath) {
           return Response.redirect(new URL(fallbackPath, nextUrl));
@@ -80,5 +103,5 @@ export const authConfig = {
     },
   },
   providers: [], // Add providers with an empty array for now
-  secret: process.env.AUTH_SECRET || 'secret-for-dev-only-change-in-prod',
+  secret: resolveAuthSecret(),
 } satisfies NextAuthConfig;
