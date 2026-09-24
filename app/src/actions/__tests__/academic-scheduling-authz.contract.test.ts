@@ -17,6 +17,12 @@ import {
   assignTeacher,
   removeTeacher,
 } from '@/actions/adminClasses';
+import { createClassRequest, approveClassRequest, rejectClassRequest } from '@/actions/classRequests';
+import {
+  createScheduleRequest,
+  approveScheduleRequest,
+  rejectScheduleRequest,
+} from '@/actions/scheduleRequests';
 
 function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -142,6 +148,142 @@ describe('academic, subjects and admin classes authorization', () => {
       assert.equal(subjectB.name, fixturesB.subject.name);
       const sectionSubjectB = await prisma.sectionSubject.findUniqueOrThrow({ where: { id: fixturesB.sectionSubject.id } });
       assert.equal(sectionSubjectB.staffId, fixturesB.staff.id);
+    } finally {
+      clearTestSession();
+    }
+  });
+});
+
+describe('class and schedule request authorization', () => {
+  it('rejects class and schedule approvals without schedule:manage', async () => {
+    const tenant = await createTenant('t-request-role');
+    const fixtures = await createAcademicFixtures(tenant.id);
+    const classRequest = await prisma.classRequest.create({
+      data: {
+        tenantId: tenant.id,
+        staffId: fixtures.staff.id,
+        subjectId: fixtures.subject.id,
+        sectionId: fixtures.section.id,
+        justification: 'Solicitud de prueba',
+      },
+    });
+    const scheduleRequest = await prisma.scheduleRequest.create({
+      data: {
+        tenantId: tenant.id,
+        sectionSubjectId: fixtures.sectionSubject.id,
+        staffId: fixtures.staff.id,
+        type: 'new',
+        proposedDayOfWeek: 1,
+        proposedStartTime: '08:00',
+        proposedEndTime: '09:00',
+        reason: 'Solicitud de prueba',
+      },
+    });
+    const user = await createUser(tenant.id, 'request-reader');
+    setTestSession({ id: user.id, tenantSlug: tenant.slug, roles: ['teacher'] });
+
+    try {
+      await assert.rejects(() => approveClassRequest(classRequest.id), /UNAUTHORIZED_ROLE/);
+      await assert.rejects(() => rejectClassRequest(classRequest.id), /UNAUTHORIZED_ROLE/);
+      await assert.rejects(() => approveScheduleRequest(scheduleRequest.id), /(UNAUTHORIZED_ROLE|No autorizado)/);
+      await assert.rejects(() => rejectScheduleRequest(scheduleRequest.id, 'No autorizado'), /(UNAUTHORIZED_ROLE|No autorizado)/);
+    } finally {
+      clearTestSession();
+    }
+  });
+
+  it('derives the class request staff from the session instead of a client staffId', async () => {
+    const tenant = await createTenant('t-request-staff');
+    const fixtures = await createAcademicFixtures(tenant.id);
+    const otherUser = await createUser(tenant.id, 'other-teacher');
+    const otherStaff = await prisma.staff.create({
+      data: { tenantId: tenant.id, userId: otherUser.id, fullName: otherUser.fullName, isActive: true },
+    });
+    const requestedSubject = await prisma.subject.create({
+      data: { tenantId: tenant.id, name: `Requested-${uniqueSuffix()}`, code: `R-${uniqueSuffix()}` },
+    });
+    setTestSession({ id: fixtures.staff.userId!, tenantSlug: tenant.slug, roles: ['teacher'] });
+
+    try {
+      const result = await createClassRequest(
+        otherStaff.id,
+        requestedSubject.id,
+        fixtures.section.id,
+        'Necesito esta clase'
+      );
+      assert.equal(result.success, true);
+      const request = await prisma.classRequest.findFirstOrThrow({
+        where: { tenantId: tenant.id, subjectId: requestedSubject.id, sectionId: fixtures.section.id },
+      });
+      assert.equal(request.staffId, fixtures.staff.id);
+    } finally {
+      clearTestSession();
+    }
+  });
+
+  it('rejects a schedule request from a teacher who is not assigned to the class', async () => {
+    const tenant = await createTenant('t-request-assignment');
+    const fixtures = await createAcademicFixtures(tenant.id);
+    const otherUser = await createUser(tenant.id, 'unassigned-teacher');
+    const otherStaff = await prisma.staff.create({
+      data: { tenantId: tenant.id, userId: otherUser.id, fullName: otherUser.fullName, isActive: true },
+    });
+    setTestSession({ id: otherUser.id, tenantSlug: tenant.slug, roles: ['teacher'] });
+
+    try {
+      const result = await createScheduleRequest(
+        fixtures.sectionSubject.id,
+        'new',
+        1,
+        '08:00',
+        '09:00',
+        null,
+        'Solicitud de horario',
+        null,
+        null,
+        null,
+        null
+      );
+      assert.deepEqual(result, { success: false, error: 'No eres el docente asignado a esta clase.' });
+    } finally {
+      clearTestSession();
+    }
+  });
+
+  it('records the current session user as the class request reviewer', async () => {
+    const tenant = await createTenant('t-request-reviewer');
+    const fixtures = await createAcademicFixtures(tenant.id);
+    const decoy = await prisma.user.upsert({
+      where: { email: 'admin@demo.com' },
+      update: {},
+      create: { email: 'admin@demo.com', fullName: 'Demo admin', passwordHash: 'test', isActive: true },
+    });
+    await prisma.userMembership.upsert({
+      where: { tenantId_userId: { tenantId: tenant.id, userId: decoy.id } },
+      update: {},
+      create: { tenantId: tenant.id, userId: decoy.id, status: 'active' },
+    });
+    const reviewer = await createUser(tenant.id, 'reviewer', 'schedule:manage');
+    const request = await prisma.classRequest.create({
+      data: {
+        tenantId: tenant.id,
+        staffId: fixtures.staff.id,
+        subjectId: fixtures.subject.id,
+        sectionId: fixtures.section.id,
+        justification: 'Solicitud para aprobar',
+      },
+    });
+    setTestSession({ id: reviewer.id, tenantSlug: tenant.slug, roles: ['admin'] });
+
+    try {
+      const result = await approveClassRequest(request.id);
+      assert.equal(result.success, true);
+      const updated = await prisma.classRequest.findUniqueOrThrow({ where: { id: request.id } });
+      assert.equal(updated.reviewedById, reviewer.id);
+      const event = await prisma.activityEvent.findFirstOrThrow({
+        where: { tenantId: tenant.id, action: 'class_request_approved' },
+      });
+      assert.equal(event.actorUserId, reviewer.id);
     } finally {
       clearTestSession();
     }

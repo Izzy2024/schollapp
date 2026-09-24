@@ -6,6 +6,16 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { ensureDefaultPrimaryCatalog } from '@/lib/defaultPrimaryCatalog';
+import { requirePermission } from '@/lib/authz';
+
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    return;
+  }
+}
+
 
 export async function getSubjectsAndSections(tenantSlug?: string) {
   const session = await auth();
@@ -39,25 +49,36 @@ export async function getSubjectsAndSections(tenantSlug?: string) {
 }
 
 export async function createClassRequest(
-  staffId: string,
+  _staffId: string,
   subjectId: string,
   sectionId: string,
   justification: string,
-  tenantSlug?: string
+  _tenantSlug?: string
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+  const tenantSlug = session.user.tenantSlug;
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+
+  const staff = await prisma.staff.findFirst({
+    where: { tenantId: tenant.id, userId: session.user.id },
+  });
+  if (!staff) return { success: false, error: 'No se encontró tu perfil de docente' };
+
+  const [subject, section] = await Promise.all([
+    prisma.subject.findFirst({ where: { id: subjectId, tenantId: tenant.id }, select: { id: true } }),
+    prisma.section.findFirst({ where: { id: sectionId, tenantId: tenant.id }, select: { id: true } }),
+  ]);
+  if (!subject || !section) return { success: false, error: 'Materia o sección no encontrada' };
 
   const alreadyAssigned = await prisma.sectionSubject.findFirst({
     where: {
       tenantId: tenant.id,
       sectionId,
       subjectId,
-      staffId,
+      staffId: staff.id,
     }
   });
   if (alreadyAssigned) {
@@ -67,7 +88,7 @@ export async function createClassRequest(
   const existing = await prisma.classRequest.findFirst({
     where: {
       tenantId: tenant.id,
-      staffId,
+      staffId: staff.id,
       subjectId,
       sectionId,
       status: 'pending'
@@ -81,7 +102,7 @@ export async function createClassRequest(
   await prisma.classRequest.create({
     data: {
       tenantId: tenant.id,
-      staffId,
+      staffId: staff.id,
       subjectId,
       sectionId,
       justification,
@@ -130,39 +151,20 @@ export async function getClassRequests(tenantSlug?: string, status?: string) {
   }));
 }
 
-export async function approveClassRequest(requestId: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function approveClassRequest(requestId: string, _tenantSlug?: string) {
+  const ctx = await requirePermission('schedule:manage');
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
-
-  const req = await prisma.classRequest.findUnique({
-    where: { id: requestId }
+  const req = await prisma.classRequest.findFirst({
+    where: { id: requestId, tenantId: ctx.tenantId },
   });
   if (!req) throw new Error('Request not found');
-  if (req.tenantId !== tenant.id) throw new Error('Request does not belong to this tenant');
   if (req.status !== 'pending') return { success: false, error: 'La solicitud ya fue procesada.' };
-
-  const reviewer = await prisma.user.findFirst({
-    where: {
-      memberships: { some: { tenantId: tenant.id } },
-      OR: [{ email: 'admin@demo.com' }, { email: 'director@demo.com' }]
-    },
-    orderBy: { createdAt: 'asc' }
-  }) ?? await prisma.user.findFirst({
-    where: { memberships: { some: { tenantId: tenant.id } } },
-    orderBy: { createdAt: 'asc' }
-  });
 
   await prisma.classRequest.update({
     where: { id: requestId },
     data: {
       status: 'approved',
-      reviewedById: reviewer?.id ?? null,
+      reviewedById: ctx.userId,
       reviewedAt: new Date(),
     }
   });
@@ -171,13 +173,13 @@ export async function approveClassRequest(requestId: string, tenantSlug?: string
   const sectionSubject = await prisma.sectionSubject.upsert({
     where: {
       tenantId_sectionId_subjectId: {
-        tenantId: tenant.id,
+        tenantId: ctx.tenantId,
         sectionId: req.sectionId,
         subjectId: req.subjectId,
       }
     },
     create: {
-      tenantId: tenant.id,
+      tenantId: ctx.tenantId,
       sectionId: req.sectionId,
       subjectId: req.subjectId,
       staffId: req.staffId,
@@ -188,13 +190,13 @@ export async function approveClassRequest(requestId: string, tenantSlug?: string
   });
 
   const scheduleCount = await prisma.classSchedule.count({
-    where: { tenantId: tenant.id, sectionSubjectId: sectionSubject.id }
+    where: { tenantId: ctx.tenantId, sectionSubjectId: sectionSubject.id }
   });
 
   if (scheduleCount === 0) {
     const templateSchedules = await prisma.classSchedule.findMany({
       where: {
-        tenantId: tenant.id,
+        tenantId: ctx.tenantId,
         sectionSubject: { subjectId: req.subjectId },
         sectionSubjectId: { not: sectionSubject.id },
       },
@@ -205,7 +207,7 @@ export async function approveClassRequest(requestId: string, tenantSlug?: string
     if (templateSchedules.length > 0) {
       await prisma.classSchedule.createMany({
         data: templateSchedules.map((tpl) => ({
-          tenantId: tenant.id,
+          tenantId: ctx.tenantId,
           sectionSubjectId: sectionSubject.id,
           dayOfWeek: tpl.dayOfWeek,
           startTime: tpl.startTime,
@@ -219,8 +221,8 @@ export async function approveClassRequest(requestId: string, tenantSlug?: string
   // Create ActivityEvent
   await prisma.activityEvent.create({
     data: {
-      tenantId: tenant.id,
-      actorUserId: reviewer?.id ?? null,
+      tenantId: ctx.tenantId,
+      actorUserId: ctx.userId,
       entityType: 'sectionSubject',
       entityId: sectionSubject.id,
       action: 'class_request_approved',
@@ -229,54 +231,35 @@ export async function approveClassRequest(requestId: string, tenantSlug?: string
     }
   });
 
-  revalidatePath('/teacher');
-  revalidatePath('/teacher/schedule');
-  revalidatePath('/teacher/gradebook');
-  revalidatePath('/admin/class-requests');
-  revalidatePath('/director/class-requests');
+  safeRevalidate('/teacher');
+  safeRevalidate('/teacher/schedule');
+  safeRevalidate('/teacher/gradebook');
+  safeRevalidate('/admin/class-requests');
+  safeRevalidate('/director/class-requests');
 
   return { success: true };
 }
 
-export async function rejectClassRequest(requestId: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function rejectClassRequest(requestId: string, _tenantSlug?: string) {
+  const ctx = await requirePermission('schedule:manage');
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
-
-  const req = await prisma.classRequest.findUnique({
-    where: { id: requestId }
+  const req = await prisma.classRequest.findFirst({
+    where: { id: requestId, tenantId: ctx.tenantId },
   });
   if (!req) throw new Error('Request not found');
-  if (req.tenantId !== tenant.id) throw new Error('Request does not belong to this tenant');
   if (req.status !== 'pending') return { success: false, error: 'La solicitud ya fue procesada.' };
-
-  const reviewer = await prisma.user.findFirst({
-    where: {
-      memberships: { some: { tenantId: tenant.id } },
-      OR: [{ email: 'admin@demo.com' }, { email: 'director@demo.com' }]
-    },
-    orderBy: { createdAt: 'asc' }
-  }) ?? await prisma.user.findFirst({
-    where: { memberships: { some: { tenantId: tenant.id } } },
-    orderBy: { createdAt: 'asc' }
-  });
 
   await prisma.classRequest.update({
     where: { id: requestId },
     data: {
       status: 'rejected',
-      reviewedById: reviewer?.id ?? null,
+      reviewedById: ctx.userId,
       reviewedAt: new Date(),
     }
   });
 
-  revalidatePath('/admin/class-requests');
-  revalidatePath('/director/class-requests');
+  safeRevalidate('/admin/class-requests');
+  safeRevalidate('/director/class-requests');
 
   return { success: true };
 }
