@@ -57,20 +57,6 @@ async function setupSchool(prefix: string) {
   return { tenant, admin, director, teacher, year, grade, section };
 }
 
-// revalidatePath() exige un request context de Next.js y lanza
-// "static generation store missing" bajo tsx. Las escrituras en DB ya
-// ocurrieron antes de esa llamada, así que se tolera ese error puntual
-// y el test verifica el estado real en Postgres. En producción el flujo
-// es idéntico (no se toca código productivo).
-async function tolerateRevalidate<T>(fn: () => Promise<T>): Promise<T | null> {
-  try {
-    return await fn();
-  } catch (e: any) {
-    if (String(e?.message ?? e).includes('static generation store missing')) return null;
-    throw e;
-  }
-}
-
 describe('announcements actions contract (S04) — NO mock.module, Postgres real', () => {
   it('create: rechaza rol no autorizado con UNAUTHORIZED_ROLE', async () => {
     const school = await setupSchool('t-ann-role');
@@ -157,9 +143,8 @@ describe('announcements actions contract (S04) — NO mock.module, Postgres real
     const title = `Comunicado ${uniq('evt')}`;
     setTestSession({ id: school.admin.id, tenantSlug: school.tenant.slug, roles: ['admin'] });
     try {
-      await tolerateRevalidate(() =>
-        createAnnouncement({ title, body: 'Contenido', publishNow: true, targetType: 'all' })
-      );
+      const createResult = await createAnnouncement({ title, body: 'Contenido', publishNow: true, targetType: 'all' });
+      assert.ok(createResult.success);
 
       const created = await prisma.announcement.findFirst({
         where: { tenantId: school.tenant.id, title },
@@ -170,12 +155,14 @@ describe('announcements actions contract (S04) — NO mock.module, Postgres real
       assert.equal(created!.targets.length, 1);
       assert.equal(created!.targets[0].targetType, 'all');
 
-      await tolerateRevalidate(() => publishAnnouncement(created!.id));
+      const publishResult = await publishAnnouncement(created!.id);
+      assert.ok(publishResult.success);
 
       const published = await prisma.announcement.findUnique({ where: { id: created!.id } });
       assert.ok(published!.publishedAt);
 
-      await tolerateRevalidate(() => deleteAnnouncement(created!.id));
+      const deleteResult = await deleteAnnouncement(created!.id);
+      assert.ok(deleteResult.success);
 
       const deleted = await prisma.announcement.findUnique({ where: { id: created!.id } });
       assert.equal(deleted, null);
@@ -210,14 +197,12 @@ describe('announcements actions contract (S04) — NO mock.module, Postgres real
       const school = await setupSchool('t-ann-segl12');
       setTestSession({ id: school.admin.id, tenantSlug: school.tenant.slug, roles: ['admin'] });
       try {
-        await tolerateRevalidate(() =>
-          createAnnouncement({
-            title: `Borrador ${uniq('draft')}`,
-            body: 'Sin publicar',
-            publishNow: false,
-            targetType: 'all',
-          })
-        );
+        await createAnnouncement({
+          title: `Borrador ${uniq('draft')}`,
+          body: 'Sin publicar',
+          publishNow: false,
+          targetType: 'all',
+        });
       } finally {
         clearTestSession();
       }
