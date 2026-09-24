@@ -2,6 +2,7 @@ import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
+import { seedPermission } from '@/test/factories/rbac';
 import { getStudentAttendanceSummary } from '@/actions/attendance';
 
 function setTestSession(user: { id: string; tenantSlug: string; roles: string[] }) {
@@ -34,6 +35,8 @@ async function makeAdmin(tenantId: string) {
     select: { id: true },
   });
   await prisma.userMembership.create({ data: { tenantId, userId: admin.id } });
+  // getStudentAttendanceSummary now requires attendance:write (or self/guardian).
+  await seedPermission(tenantId, admin.id, 'attendance:write');
   return admin;
 }
 
@@ -111,27 +114,23 @@ describe('attendance reporting contract (real Postgres) — NO mock.module', () 
     clearTestSession();
   });
 
-  it(
-    'AUDIT SEG-H6: un rol sin vínculo con el alumno no puede leer su resumen',
-    { skip: 'AUDIT SEG-H6: attendance.ts:386 no verifica dueño; cualquier rol autenticado lee la asistencia de cualquier alumno' },
-    async () => {
-      const tenant = await makeTenant('att-audit-segh6');
-      const [section] = await makeSections(tenant.id, ['A']);
-      const student = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'Ajeno', lastName: 'Total' } });
-      await seedRecord(tenant.id, section.id, student.id, localDate(2026, 2, 1), 'present');
+  it('AUDIT SEG-H6: un rol sin vínculo con el alumno no puede leer su resumen', async () => {
+    const tenant = await makeTenant('att-audit-segh6');
+    const [section] = await makeSections(tenant.id, ['A']);
+    const student = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'Ajeno', lastName: 'Total' } });
+    await seedRecord(tenant.id, section.id, student.id, localDate(2026, 2, 1), 'present');
 
-      // A teacher who does not teach this student (no relationship at all).
-      const teacher = await prisma.user.create({
-        data: { email: `${uniq('att-segh6-teacher')}@ex.com`, fullName: 'Docente Ajeno', passwordHash: 'x', isActive: true },
-      });
-      await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: teacher.id } });
-      await prisma.staff.create({ data: { tenantId: tenant.id, userId: teacher.id, fullName: 'Docente Ajeno' } });
+    // A teacher who does not teach this student (no relationship at all).
+    const teacher = await prisma.user.create({
+      data: { email: `${uniq('att-segh6-teacher')}@ex.com`, fullName: 'Docente Ajeno', passwordHash: 'x', isActive: true },
+    });
+    await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: teacher.id } });
+    await prisma.staff.create({ data: { tenantId: tenant.id, userId: teacher.id, fullName: 'Docente Ajeno' } });
 
-      setTestSession({ id: teacher.id, tenantSlug: tenant.slug, roles: ['teacher'] });
+    setTestSession({ id: teacher.id, tenantSlug: tenant.slug, roles: ['teacher'] });
 
-      await assert.rejects(() => getStudentAttendanceSummary(student.id), /UNAUTHORIZED|FORBIDDEN/);
+    await assert.rejects(() => getStudentAttendanceSummary(student.id), /UNAUTHORIZED_ROLE/);
 
-      clearTestSession();
-    }
-  );
+    clearTestSession();
+  });
 });

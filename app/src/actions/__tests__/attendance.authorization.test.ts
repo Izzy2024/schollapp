@@ -110,47 +110,39 @@ describe('attendance authorization contract (real Postgres) — NO mock.module',
     clearTestSession();
   });
 
-  it(
-    'AUDIT SEG-M3: saveAttendanceBySectionDate rechaza a un docente que no es dueño de la sección',
-    { skip: 'AUDIT SEG-M3: attendance.ts:314 solo valida el rol; un docente escribe asistencia de cualquier sección del tenant' },
-    async () => {
-      const tenant = await makeTenant('att-audit-m3-owner');
-      const { section } = await makeClassroom(tenant.id);
-      const teacherUser = await makeUser('att-m3-teacher', 'Docente');
-      await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: teacherUser.id } });
-      await prisma.staff.create({ data: { tenantId: tenant.id, userId: teacherUser.id, fullName: 'Docente' } });
-      const student = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'A', lastName: 'B' } });
+  it('AUDIT SEG-M3: saveAttendanceBySectionDate rechaza a un docente que no es dueño de la sección', async () => {
+    const tenant = await makeTenant('att-audit-m3-owner');
+    const { section } = await makeClassroom(tenant.id);
+    const teacherUser = await makeUser('att-m3-teacher', 'Docente');
+    await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: teacherUser.id } });
+    await prisma.staff.create({ data: { tenantId: tenant.id, userId: teacherUser.id, fullName: 'Docente' } });
+    const student = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'A', lastName: 'B' } });
 
-      setTestSession({ id: teacherUser.id, tenantSlug: tenant.slug, roles: ['teacher'] });
+    setTestSession({ id: teacherUser.id, tenantSlug: tenant.slug, roles: ['teacher'] });
 
-      await assert.rejects(
-        () => saveAttendanceBySectionDate(section.id, '2026-03-01', [{ studentId: student.id, status: 'present' }]),
-        /UNAUTHORIZED_SCOPE/
-      );
+    await assert.rejects(
+      () => saveAttendanceBySectionDate(section.id, '2026-03-01', [{ studentId: student.id, status: 'present' }]),
+      /UNAUTHORIZED_SCOPE/
+    );
 
-      clearTestSession();
-    }
-  );
+    clearTestSession();
+  });
 
-  it(
-    'AUDIT SEG-M3: saveAttendanceBySectionDate rechaza studentId fuera de la inscripción',
-    { skip: 'AUDIT SEG-M3: attendance.ts:337 no valida studentId contra la inscripción de la sección' },
-    async () => {
-      const tenant = await makeTenant('att-audit-m3-enroll');
-      const { section } = await makeClassroom(tenant.id);
-      const adminUser = await makeUser('att-m3-admin', 'Admin');
-      await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: adminUser.id } });
-      // Student exists in the tenant but is NOT enrolled in the section.
-      const outsider = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'No', lastName: 'Inscrito' } });
+  it('AUDIT SEG-M3: saveAttendanceBySectionDate rechaza studentId fuera de la inscripción', async () => {
+    const tenant = await makeTenant('att-audit-m3-enroll');
+    const { section } = await makeClassroom(tenant.id);
+    const adminUser = await makeUser('att-m3-admin', 'Admin');
+    await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: adminUser.id } });
+    // Student exists in the tenant but is NOT enrolled in the section.
+    const outsider = await prisma.student.create({ data: { tenantId: tenant.id, firstName: 'No', lastName: 'Inscrito' } });
 
-      setTestSession({ id: adminUser.id, tenantSlug: tenant.slug, roles: ['admin'] });
+    setTestSession({ id: adminUser.id, tenantSlug: tenant.slug, roles: ['admin'] });
 
-      await assert.rejects(
-        () => saveAttendanceBySectionDate(section.id, '2026-03-01', [{ studentId: outsider.id, status: 'present' }]),
-        /NO_ENROLLMENT|INVALID_STUDENT/
-      );
+    await assert.rejects(
+      () => saveAttendanceBySectionDate(section.id, '2026-03-01', [{ studentId: outsider.id, status: 'present' }]),
+      /INVALID_TARGET/
+    );
 
-      clearTestSession();
-    }
-  );
+    clearTestSession();
+  });
 });

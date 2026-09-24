@@ -3,6 +3,8 @@
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { hasPermission } from '@/lib/rbac';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -99,6 +101,41 @@ function assertTenantScope(resourceTenantId?: string | null, tenantId?: string) 
   }
 }
 
+/**
+ * Class-level attendance read access: management permission (attendance:write)
+ * or the teacher actually assigned to that SectionSubject.
+ */
+async function assertAttendanceClassAccess(tenantId: string, sectionSubjectStaffId: string | null, userId: string): Promise<void> {
+  if (await hasPermission(tenantId, userId, 'attendance:write')) return;
+
+  const staff = await prisma.staff.findFirst({ where: { tenantId, userId } });
+  if (!staff || sectionSubjectStaffId !== staff.id) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
+}
+
+/**
+ * Student-level attendance read access: management permission, the student
+ * themself (session email matches Student.email), or a guardian linked through
+ * StudentGuardian. Mirrors assertHealthReadAccess in actions/health.ts.
+ */
+async function assertAttendanceStudentReadAccess(tenantId: string, studentId: string, userId: string, email?: string | null): Promise<void> {
+  if (await hasPermission(tenantId, userId, 'attendance:write')) return;
+
+  const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
+  if (student?.email && email && student.email === email) return;
+
+  const guardian = email ? await prisma.guardian.findFirst({ where: { tenantId, email } }) : null;
+  if (guardian) {
+    const link = await prisma.studentGuardian.findUnique({
+      where: { tenantId_studentId_guardianId: { tenantId, studentId, guardianId: guardian.id } },
+    });
+    if (link) return;
+  }
+
+  throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+}
+
 // ─── Teacher-facing actions (by sectionSubjectId) ─────────────────────────────
 
 export async function getAttendanceSession(sectionSubjectId: string, dateIso: string, tenantSlug?: string) {
@@ -111,8 +148,8 @@ export async function getAttendanceSession(sectionSubjectId: string, dateIso: st
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
-  const ss = await prisma.sectionSubject.findUnique({
-    where: { id: sectionSubjectId },
+  const ss = await prisma.sectionSubject.findFirst({
+    where: { id: sectionSubjectId, tenantId: tenant.id },
     include: {
       section: {
         include: { enrollments: { where: { status: 'enrolled' }, include: { student: true } } }
@@ -121,6 +158,8 @@ export async function getAttendanceSession(sectionSubjectId: string, dateIso: st
   });
 
   if (!ss) throw new Error('Clase no encontrada');
+
+  await assertAttendanceClassAccess(tenant.id, ss.staffId, authSession.user.id);
 
   const date = normalizeDate(dateIso);
 
@@ -288,6 +327,15 @@ export async function getAttendanceBySectionDate(
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
 
+  const canManageAttendance = await hasPermission(tenant.id, authSession.user.id, 'attendance:write');
+  if (!canManageAttendance) {
+    const staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id, userId: authSession.user.id } });
+    const teaches = staff
+      ? await prisma.sectionSubject.findFirst({ where: { tenantId: tenant.id, sectionId, staffId: staff.id }, select: { id: true } })
+      : null;
+    if (!teaches) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
+
   const date = normalizeDate(dateIso);
 
   const enrollments = await prisma.enrollment.findMany({
@@ -334,8 +382,38 @@ export async function saveAttendanceBySectionDate(
   if (!section) throw new Error('SECTION_NOT_FOUND');
   assertTenantScope(section.tenantId, context.tenantId);
 
+  // A teacher may only take attendance for a section they actually teach.
+  const primaryRole = getPrimaryAttendanceRole(context.roles);
+  if (primaryRole === 'teacher') {
+    const teaches = context.staffId
+      ? await prisma.sectionSubject.findFirst({
+          where: { tenantId: context.tenantId, sectionId, staffId: context.staffId },
+          select: { id: true },
+        })
+      : null;
+    if (!teaches) throw new Error('UNAUTHORIZED_SCOPE');
+  }
+
   const date = normalizeDate(dateIso);
   const normalizedRecords = sanitizeRecords(records);
+
+  // Every studentId must be actively enrolled in this section; otherwise the
+  // whole call is rejected (no silent partial writes).
+  if (normalizedRecords.length > 0) {
+    const enrolled = await prisma.enrollment.findMany({
+      where: {
+        tenantId: context.tenantId,
+        sectionId,
+        studentId: { in: normalizedRecords.map((r) => r.studentId) },
+        status: { in: ['enrolled', 'reenrolled'] },
+      },
+      select: { studentId: true },
+    });
+    const enrolledIds = new Set(enrolled.map((e) => e.studentId));
+    if (normalizedRecords.some((r) => !enrolledIds.has(r.studentId))) {
+      throw stableError(STABLE_ERROR.INVALID_TARGET);
+    }
+  }
 
   return await prisma.$transaction(async (tx) => {
     const session = await tx.attendanceSession.upsert({
@@ -400,6 +478,8 @@ export async function getStudentAttendanceSummary(studentId: string, tenantSlug?
 
   const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
   if (!tenant) throw new Error('Tenant not found');
+
+  await assertAttendanceStudentReadAccess(tenant.id, studentId, authSession.user.id, authSession.user.email);
 
   const rawRecords = await prisma.attendanceRecord.findMany({
     where: { tenantId: tenant.id, studentId },
