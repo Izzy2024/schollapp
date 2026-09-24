@@ -2,7 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
-import { getTenantIdFromSession } from './_shared';
+import { getTenantIdFromSession, type FinanceSessionUser } from './_shared';
+import { hasPermission } from '@/lib/rbac';
 
 export type FinanceStatementItemDTO = {
   type: 'charge' | 'payment';
@@ -60,6 +61,18 @@ function sumCents(rows: Array<{ amountCents: number }>): number {
   return rows.reduce((acc, r) => acc + (r.amountCents || 0), 0);
 }
 
+async function resolveGuardianId(tenantId: string, user: FinanceSessionUser): Promise<string | undefined> {
+  const sessionGuardianId = ('guardianId' in user ? (user.guardianId as string | undefined) : undefined) ?? undefined;
+  if (sessionGuardianId) return sessionGuardianId;
+
+  const email = user.email as string | undefined;
+  if (email) {
+    const g = await prisma.guardian.findFirst({ where: { tenantId, email } });
+    return g?.id;
+  }
+  return undefined;
+}
+
 export async function getForParent(): Promise<FinanceStatementDTO> {
   const ctx = await getTenantIdFromSession();
 
@@ -67,20 +80,7 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
   const roles = ctx.user.roles ?? [];
   if (role !== 'parent' && !roles.includes('parent')) throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
 
-  // Prefer guardianId injected into session when available.
-  // For the deterministic dev seed, we also support resolving guardianId by the user's email.
-  const sessionGuardianId = ('guardianId' in ctx.user ? (ctx.user.guardianId as string | undefined) : undefined) ?? undefined;
-
-  let guardianId = sessionGuardianId;
-
-  if (!guardianId) {
-    const email = ctx.user.email as string | undefined;
-    if (email) {
-      const g = await prisma.guardian.findFirst({ where: { tenantId: ctx.tenantId, email } });
-      guardianId = g?.id;
-    }
-  }
-
+  const guardianId = await resolveGuardianId(ctx.tenantId, ctx.user);
   if (!guardianId) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   // Resolve visible students (tenant-scoped) for this guardian.
@@ -98,12 +98,29 @@ export async function getForParent(): Promise<FinanceStatementDTO> {
 }
 
 /**
- * Admin/director-facing statement for a single student (estado de cuenta).
- * Any authenticated tenant staff can read (mirrors the read-access convention
- * used elsewhere in this module — writes are what's role-gated).
+ * Statement for a single student (estado de cuenta).
+ * Permitted for: (a) anyone with 'finance:write', or (b) the student's linked guardian.
  */
 export async function getForStudent(studentId: string): Promise<FinanceStatementStudentDTO | null> {
   const ctx = await getTenantIdFromSession();
+
+  let hasAccess = await hasPermission(ctx.tenantId, ctx.actorUserId, 'finance:write');
+
+  if (!hasAccess) {
+    const guardianId = await resolveGuardianId(ctx.tenantId, ctx.user);
+    if (guardianId) {
+      const link = await prisma.studentGuardian.findUnique({
+        where: { tenantId_studentId_guardianId: { tenantId: ctx.tenantId, studentId, guardianId } },
+      });
+      if (link) {
+        hasAccess = true;
+      }
+    }
+  }
+
+  if (!hasAccess) {
+    throw stableError(STABLE_ERROR.FINANCE_FORBIDDEN);
+  }
 
   const student = await prisma.student.findFirst({ where: { id: studentId, tenantId: ctx.tenantId }, select: { id: true } });
   if (!student) throw stableError(STABLE_ERROR.INVALID_TARGET);

@@ -1,7 +1,8 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { getTenantIdFromSession, assertFinanceWriteAccess, ensureActorUserExists } from './_shared';
+import { getTenantIdFromSession } from './_shared';
+import { assertFinanceWriteAccess, ensureActorUserExists } from './_shared-internal';
 import { settleChargeStatus } from './payments';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 

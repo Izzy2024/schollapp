@@ -1,47 +1,44 @@
 'use server';
 
-import { auth } from '@/auth';
-
 import prisma from '@/lib/prisma';
 import { getTestPrisma } from '@/lib/test-seams';
+import { requireTenant } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
-export async function getEnrollmentStats(tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function getEnrollmentStats(_legacyTenantSlug?: string) {
+  const ctx = await requireTenant();
+  if (!ctx.roles.includes('admin') && !ctx.roles.includes('director')) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
 
   const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
-
-  const tenant = await db.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
+  const tenantId = ctx.tenantId;
 
   const activeYear = await db.academicYear.findFirst({
-    where: { tenantId: tenant.id, isActive: true },
+    where: { tenantId, isActive: true },
   });
   if (!activeYear) throw new Error('No active academic year found');
 
   const totalEnrolled = await db.enrollment.count({
-    where: { tenantId: tenant.id, academicYearId: activeYear.id, status: 'enrolled' }
+    where: { tenantId, academicYearId: activeYear.id, status: 'enrolled' }
   });
 
   const enrolledIdsResult = await db.enrollment.findMany({
-    where: { tenantId: tenant.id, academicYearId: activeYear.id, status: 'enrolled' },
+    where: { tenantId, academicYearId: activeYear.id, status: 'enrolled' },
     select: { studentId: true }
   });
   const enrolledIds = enrolledIdsResult.map(e => e.studentId);
 
   const studentsWithoutEnrollment = await db.student.count({
     where: {
-      tenantId: tenant.id,
+      tenantId,
       status: 'active',
       id: { notIn: enrolledIds.length ? enrolledIds : undefined }
     }
   });
 
   const sectionsData = await db.section.findMany({
-    where: { tenantId: tenant.id, academicYearId: activeYear.id },
+    where: { tenantId, academicYearId: activeYear.id },
     include: {
       gradeLevel: true,
       _count: {

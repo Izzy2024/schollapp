@@ -1,26 +1,30 @@
 'use server';
 
-import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
+import { requireTenant, requirePermission } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-async function requireTenantOwner() {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: session.user.tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
+async function requireManagementAccess() {
+  const ctx = await requireTenant();
+  if (!ctx.roles.includes('admin') && !ctx.roles.includes('director')) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
+  return ctx;
+}
 
-  return { session, tenantId: tenant.id };
+function sanitizeCsvCell(cell: string): string {
+  if (/^[=+\-@]/.test(cell)) {
+    return `'${cell}`;
+  }
+  return cell;
 }
 
 // ─── 1. KPIs Globales ─────────────────────────────────────────────────────────
 
 export async function getReportDashboardKPIs() {
-  const { tenantId } = await requireTenantOwner();
+  const { tenantId } = await requireManagementAccess();
 
   // Active Students
   const activeStudents = await prisma.student.count({
@@ -63,7 +67,7 @@ export async function getReportDashboardKPIs() {
 // ─── 2. Matrícula por Grupo ───────────────────────────────────────────────────
 
 export async function getEnrollmentStatsBySection() {
-  const { tenantId } = await requireTenantOwner();
+  const { tenantId } = await requireManagementAccess();
 
   const activeYear = await prisma.academicYear.findFirst({
     where: { tenantId, isActive: true },
@@ -97,7 +101,7 @@ export async function getEnrollmentStatsBySection() {
 // ─── 3. Asistencia Reciente (Últimos 7 días) ──────────────────────────────────
 
 export async function getRecentAttendanceStats() {
-  const { tenantId } = await requireTenantOwner();
+  const { tenantId } = await requireManagementAccess();
   
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -149,7 +153,7 @@ export async function getRecentAttendanceStats() {
 // ─── 4. CSV Export (MVP) ──────────────────────────────────────────────────────
 
 export async function exportActiveStudentsCsv() {
-  const { tenantId } = await requireTenantOwner();
+  const { tenantId } = await requireManagementAccess();
 
   const students = await prisma.student.findMany({
     where: { tenantId, status: 'active' },
@@ -173,13 +177,13 @@ export async function exportActiveStudentsCsv() {
   const lines = ['Matricula,Nombre,Apellidos,Grado,Grupo,Estatus'];
   
   students.forEach(st => {
-    const matricula = st.studentCode || '';
-    const name = st.firstName.replace(/,/g, '');
-    const lastName = st.lastName.replace(/,/g, '');
+    const matricula = sanitizeCsvCell(st.studentCode || '');
+    const name = sanitizeCsvCell(st.firstName.replace(/,/g, ''));
+    const lastName = sanitizeCsvCell(st.lastName.replace(/,/g, ''));
     const activeEnrollment = st.enrollments[0];
-    const grado = activeEnrollment ? activeEnrollment.section.gradeLevel.name : 'Sin inscribir';
-    const grupo = activeEnrollment ? activeEnrollment.section.name : '-';
-    const estatus = st.status;
+    const grado = sanitizeCsvCell(activeEnrollment ? activeEnrollment.section.gradeLevel.name : 'Sin inscribir');
+    const grupo = sanitizeCsvCell(activeEnrollment ? activeEnrollment.section.name : '-');
+    const estatus = sanitizeCsvCell(st.status);
 
     lines.push(`${matricula},${name},${lastName},${grado},${grupo},${estatus}`);
   });
@@ -202,7 +206,7 @@ export type DirectorFinancialSummary = {
 };
 
 export async function getDirectorFinancialSummary(): Promise<DirectorFinancialSummary> {
-  const { tenantId } = await requireTenantOwner();
+  const { tenantId } = await requirePermission('finance:write');
 
   const [charges, payments] = await Promise.all([
     prisma.financeCharge.findMany({
@@ -222,8 +226,6 @@ export async function getDirectorFinancialSummary(): Promise<DirectorFinancialSu
   ]);
 
   const totalChargesCents = charges.reduce((s, c) => s + c.amountCents, 0);
-  const totalPaymentsCents = payments.reduce((s, p) => s + p.amountCents, 0) + // only last 10 above, need all
-    0; // We'll use aggregate for total
 
   const [totalPaymentsAgg] = await Promise.all([
     prisma.financePayment.aggregate({ where: { tenantId }, _sum: { amountCents: true } }),

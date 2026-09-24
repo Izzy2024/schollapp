@@ -1,38 +1,44 @@
 'use server';
 
-import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireTenant, requirePermission } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
+
+function safeRevalidate(path: string, type?: 'layout' | 'page') {
+  try {
+    if (type) revalidatePath(path, type);
+    else revalidatePath(path);
+  } catch {
+    // no-op outside a Next.js request context (e.g. tests)
+  }
+}
 
 // 1. Get Tenant Profile
-export async function getTenantProfile(tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  
-  const resolvedSlug = tenantSlug || session.user.tenantSlug;
+export async function getTenantProfile() {
+  const { tenantId } = await requireTenant();
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: resolvedSlug }
+    where: { id: tenantId },
+    select: {
+      id: true,
+      name: true,
+      logoUrl: true,
+    },
   });
 
-  if (!tenant) throw new Error('Tenant no encontrado');
+  if (!tenant) throw stableError(STABLE_ERROR.TENANT_NOT_FOUND);
   return {
     id: tenant.id,
     name: tenant.name,
-    slug: tenant.slug,
-    // NOTE: schema doesn't have a custom-domain field; this app isn't routed
-    // by tenant domain, so it's kept as a display-only field for now.
-    domain: '',
-    logoUrl: tenant.logoUrl || ''
+    logoUrl: tenant.logoUrl || '',
   };
 }
 
 // 2. Update Tenant Profile
 export async function updateTenantProfile(
-  tenantId: string,
   data: { name: string; domain?: string; logoUrl?: string }
 ) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
+  const { tenantId } = await requirePermission('settings:manage');
 
   const name = data.name.trim();
   if (!name) throw new Error('El nombre del colegio es requerido');
@@ -54,45 +60,31 @@ export async function updateTenantProfile(
     }
   }
 
-  const tenant = await prisma.tenant.findFirst({
-    where: { id: tenantId, slug: session.user.tenantSlug }
-  });
-
-  if (!tenant) throw new Error('Operación no permitida');
-
   await prisma.tenant.update({
     where: { id: tenantId },
     data: {
       name,
       logoUrl,
-    }
+    },
   });
 
-  revalidatePath('/admin/settings');
-  revalidatePath('/', 'layout');
+  safeRevalidate('/admin/settings');
+  safeRevalidate('/', 'layout');
 
   return { success: true };
 }
 
 // 3. Import Students CSV (MVP)
-export async function importStudentsCsv(tenantSlug: string, csvContent: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  
-  const resolvedSlug = tenantSlug || session.user.tenantSlug;
-  const tenant = await prisma.tenant.findUnique({ where: { slug: resolvedSlug } });
-  if (!tenant) throw new Error('Tenant no encontrado');
+export async function importStudentsCsv(csvContent: string) {
+  const { tenantId, userId } = await requirePermission('settings:manage');
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) throw stableError(STABLE_ERROR.TENANT_NOT_FOUND);
 
   // Simple CSV parse
   const lines = csvContent.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length < 2) throw new Error('El archivo CSV está vacío o no tiene encabezados válidos');
 
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const expectedHeaders = ['matricula', 'nombres', 'apellidos', 'curp', 'correo', 'grado', 'grupo'];
-  
-  // Verify basic headers exist somehow (or loosely mapping)
-  // Let's assume columns are fixed: matricula,nombres,apellidos,curp,correo
-  
   let successCount = 0;
   let errorCount = 0;
   const logs: string[] = [];
@@ -101,14 +93,14 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
   for (let i = 1; i < lines.length; i++) {
     const row = lines[i].split(',').map(c => c.trim());
     if (row.length < 3) continue; // Skip broken rows
-    
+
     // We expect: [0]=studentCode, [1]=firstName, [2]=lastName, [3]=nationalId(curp), [4]=email
     const studentCode = row[0];
     const firstName = row[1];
     const lastName = row[2];
     const nationalId = row[3] || null;
     const email = row[4] || null;
-    
+
     if (!firstName || !lastName || !studentCode) {
       errorCount++;
       logs.push(`Fila ${i + 1}: Faltan campos obligatorios (nombres, apellidos, matrícula)`);
@@ -124,7 +116,7 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
           lastName,
           nationalId,
           email,
-          status: 'active'
+          status: 'active',
         },
         create: {
           tenantId: tenant.id,
@@ -133,8 +125,8 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
           lastName,
           nationalId,
           email,
-          status: 'active'
-        }
+          status: 'active',
+        },
       });
       successCount++;
     } catch (e: any) {
@@ -147,42 +139,40 @@ export async function importStudentsCsv(tenantSlug: string, csvContent: string) 
   await prisma.activityEvent.create({
     data: {
       tenantId: tenant.id,
-      actorUserId: session.user.id,
+      actorUserId: userId,
       entityType: 'IMPORT',
       entityId: 'csv-students',
       action: 'students_imported',
-      metadata: JSON.stringify({ successCount, errorCount, totalLines: lines.length - 1 })
-    }
+      metadata: JSON.stringify({ successCount, errorCount, totalLines: lines.length - 1 }),
+    },
   });
 
-  revalidatePath('/admin/settings');
-  revalidatePath('/admin/students');
-  
+  safeRevalidate('/admin/settings');
+  safeRevalidate('/admin/students');
+
   return {
     success: true,
     message: `Proceso finalizado. Éxitos: ${successCount}, Errores: ${errorCount}`,
-    logs
+    logs,
   };
 }
 
 // 4. Get Tenant Settings (including Panama fiscal)
-export async function getTenantSettings(tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  
-  const resolvedSlug = tenantSlug || session.user.tenantSlug;
+export async function getTenantSettings() {
+  const { tenantId } = await requirePermission('settings:manage');
+
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: resolvedSlug },
+    where: { id: tenantId },
     select: {
       panamaRUC: true,
       panamaDV: true,
       panamaNIT: true,
       panamaPACApiKey: true,
-    }
+    },
   });
 
-  if (!tenant) throw new Error('Tenant no encontrado');
-  
+  if (!tenant) throw stableError(STABLE_ERROR.TENANT_NOT_FOUND);
+
   return {
     panamaRUC: tenant.panamaRUC,
     panamaDV: tenant.panamaDV,
@@ -193,7 +183,6 @@ export async function getTenantSettings(tenantSlug?: string) {
 
 // 5. Update Tenant Settings (Panama fiscal)
 export async function updateTenantSettings(
-  tenantSlug: string,
   data: {
     panamaRUC?: string | null;
     panamaDV?: string | null;
@@ -201,31 +190,19 @@ export async function updateTenantSettings(
     panamaPACApiKey?: string | null;
   }
 ) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug }
-  });
-  
-  if (!tenant) throw new Error('Tenant no encontrado');
-  
-  // Verify the user belongs to this tenant
-  if (session.user.tenantSlug !== tenantSlug) {
-    throw new Error('No autorizado para modificar este tenant');
-  }
+  const { tenantId } = await requirePermission('settings:manage');
 
   await prisma.tenant.update({
-    where: { id: tenant.id },
+    where: { id: tenantId },
     data: {
       panamaRUC: data.panamaRUC || null,
       panamaDV: data.panamaDV || null,
       panamaNIT: data.panamaNIT || null,
       panamaPACApiKey: data.panamaPACApiKey || null,
-    }
+    },
   });
 
-  revalidatePath('/admin/settings');
-  
+  safeRevalidate('/admin/settings');
+
   return { success: true };
 }

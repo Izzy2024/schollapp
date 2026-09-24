@@ -21,5 +21,5 @@ export async function getDirectorRecentActivities(
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
 
-  return getRecentActivities(session.user.tenantSlug, filterEntityType, page, limit);
+  return getRecentActivities(filterEntityType, page, limit);
 }

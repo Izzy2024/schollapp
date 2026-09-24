@@ -2,7 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
-import { assertFinanceWriteAccess, getTenantIdFromSession, normalizeAndValidatePeriodKey } from './_shared';
+import { getTenantIdFromSession } from './_shared';
+import { assertFinanceWriteAccess, normalizeAndValidatePeriodKey } from './_shared-internal';
 
 export async function generateForPeriod(input: { periodKey: string; conceptId: string; studentIds?: string[] }) {
   const ctx = await getTenantIdFromSession();
@@ -158,6 +159,7 @@ export async function voidCharge(input: { chargeId: string; reason: string }) {
 
 export async function listByPeriod(input: { periodKey: string; conceptId?: string }) {
   const ctx = await getTenantIdFromSession();
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   const periodKey = await normalizeAndValidatePeriodKey(input.periodKey);
 
   return prisma.financeCharge.findMany({
@@ -181,6 +183,7 @@ export async function listByPeriod(input: { periodKey: string; conceptId?: strin
  */
 export async function listOpenChargesForStudent(studentId: string) {
   const ctx = await getTenantIdFromSession();
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
 
   const charges = await prisma.financeCharge.findMany({
     where: { tenantId: ctx.tenantId, studentId, status: { in: ['pending', 'overdue'] } },
@@ -213,6 +216,7 @@ export async function listOpenChargesForStudent(studentId: string) {
 
 export async function listStudentsForSelect() {
   const ctx = await getTenantIdFromSession();
+  await assertFinanceWriteAccess(ctx.tenantId, ctx.actorUserId);
   
   const activeYear = await prisma.academicYear.findFirst({
     where: { tenantId: ctx.tenantId, isActive: true },

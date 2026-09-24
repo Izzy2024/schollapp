@@ -1,49 +1,45 @@
 'use server';
 
-import { auth } from '@/auth';
-
 import prisma from '@/lib/prisma';
 import { getTestPrisma } from '@/lib/test-seams';
+import { requireTenant } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
-export async function getAdminDashboardStats(tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function getAdminDashboardStats(_legacyTenantSlug?: string) {
+  const ctx = await requireTenant();
+  if (!ctx.roles.includes('admin') && !ctx.roles.includes('director')) {
+    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
+  }
 
   const db: typeof prisma = (getTestPrisma<typeof prisma>() ?? prisma) as any;
-
-  const tenant = await db.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-
-  if (!tenant) throw new Error('Tenant not found');
+  const tenantId = ctx.tenantId;
 
   const studentsCount = await db.student.count({
-    where: { tenantId: tenant.id, status: 'active' },
+    where: { tenantId, status: 'active' },
   });
 
   const teachersCount = await db.staff.count({
-    where: { tenantId: tenant.id, isActive: true },
+    where: { tenantId, isActive: true },
   });
 
   const activeYear = await db.academicYear.findFirst({
-    where: { tenantId: tenant.id, isActive: true }
+    where: { tenantId, isActive: true }
   });
 
   const sectionsCount = activeYear 
-    ? await db.section.count({ where: { tenantId: tenant.id, academicYearId: activeYear.id } })
+    ? await db.section.count({ where: { tenantId, academicYearId: activeYear.id } })
     : 0;
 
   const pendingRequestsCount = await db.classRequest.count({
-    where: { tenantId: tenant.id, status: 'pending' },
+    where: { tenantId, status: 'pending' },
   });
 
   const pendingBreakdown = {
     classRequests: pendingRequestsCount,
     scheduleRequests: 0,
     announcementsToPublish: 0,
-    role: (session.user as any).role ?? 'ADMIN',
-    scopeTenantId: tenant.id,
+    role: ctx.roles[0] ?? 'admin',
+    scopeTenantId: tenantId,
   };
 
   // Today's attendance (UTC daily window)
@@ -53,7 +49,7 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
 
   const totalRecordsToday = await db.attendanceRecord.count({
     where: {
-      tenantId: tenant.id,
+      tenantId,
       attendanceSession: {
         date: { gte: startOfToday, lte: endOfToday }
       }
@@ -62,7 +58,7 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
 
   const presentRecordsToday = await db.attendanceRecord.count({
     where: {
-      tenantId: tenant.id,
+      tenantId,
       status: 'present',
       attendanceSession: {
         date: { gte: startOfToday, lte: endOfToday }
@@ -77,19 +73,19 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
 
   const monthCollected = await db.financePayment.aggregate({
-    where: { tenantId: tenant.id, paidAt: { gte: startOfMonth } },
+    where: { tenantId, paidAt: { gte: startOfMonth } },
     _sum: { amountCents: true },
   });
 
   const overdueCharges = await db.financeCharge.findMany({
-    where: { tenantId: tenant.id, status: 'overdue' },
+    where: { tenantId, status: 'overdue' },
     select: { amountCents: true, studentId: true },
   });
   const financeOverdueCents = overdueCharges.reduce((sum, c) => sum + c.amountCents, 0);
   const financeOverdueStudents = new Set(overdueCharges.map((c) => c.studentId)).size;
 
   const recentActivitiesRaw = await db.activityEvent.findMany({
-    where: { tenantId: tenant.id },
+    where: { tenantId },
     orderBy: { occurredAt: 'desc' },
     take: 10,
     include: { actorUser: true },
@@ -100,7 +96,6 @@ export async function getAdminDashboardStats(tenantSlug?: string) {
     const actionMap: Record<string, string> = {
       'teacher_assigned': 'Docente asignado a clase',
       'class_request_approved': 'Solicitud de clase aprobada',
-      // Add other descriptions as needed based on enum
     };
     description = actionMap[act.action] || `Actividad: ${act.action}`;
 

@@ -1,7 +1,8 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { getTenantIdFromSession, assertFinanceWriteAccess } from './_shared';
+import { getTenantIdFromSession } from './_shared';
+import { assertFinanceWriteAccess } from './_shared-internal';
 import {
   getPanamaConfig,
   sendInvoiceToPAC,

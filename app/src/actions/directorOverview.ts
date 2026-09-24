@@ -33,7 +33,7 @@ export async function getDirectorOverviewStats(tenantSlug?: string) {
 
   if (!tenant) throw new Error('Tenant not found');
 
-  const enrollment = await getEnrollmentStats(session.user.tenantSlug);
+  const enrollment = await getEnrollmentStats();
 
   const pendingClassRequests = await db.classRequest.count({
     where: { tenantId: tenant.id, status: 'pending' },

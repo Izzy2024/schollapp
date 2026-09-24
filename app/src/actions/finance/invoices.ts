@@ -2,7 +2,8 @@
 
 import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
-import { assertFinanceWriteAccess, getTenantIdFromSession } from './_shared';
+import { getTenantIdFromSession } from './_shared';
+import { assertFinanceWriteAccess } from './_shared-internal';
 
 // ============================================================================
 // Types
