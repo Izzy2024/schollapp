@@ -34,7 +34,7 @@ export default function StudentPeersPage() {
     <DashboardLayout roleTitle="Alumno" userName="Alumno" userRole="Estudiante" menuGroups={menuGroups} breadcrumbs={['Alumno', 'Compañeros']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Compañeros</h1>
-        {sectionName && <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">{sectionName}</span>}
+        {sectionName && <span className="px-3 py-1 bg-info/15 text-info rounded-full text-sm font-bold">{sectionName}</span>}
       </div>
 
       {loading ? (

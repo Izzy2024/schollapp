@@ -8,9 +8,9 @@ import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 const menuGroups = getMenuGroupsForRoles(['student']);
 
 const TYPE_COLORS: Record<string, string> = {
-  exam: 'bg-red-100 text-red-800', quiz: 'bg-blue-100 text-blue-800',
-  homework: 'bg-amber-100 text-amber-800', project: 'bg-purple-100 text-purple-800',
-  participation: 'bg-green-100 text-green-800',
+  exam: 'bg-danger/15 text-danger', quiz: 'bg-info/15 text-info',
+  homework: 'bg-warning/15 text-warning', project: 'bg-purple-100 text-purple-800',
+  participation: 'bg-success/15 text-success',
 };
 const TYPE_LABELS: Record<string, string> = { exam: 'Examen', quiz: 'Quiz', homework: 'Tarea', project: 'Proyecto', participation: 'Participación' };
 
@@ -44,7 +44,7 @@ export default function StudentExamsPage() {
     <DashboardLayout roleTitle="Alumno" userName="Alumno" userRole="Estudiante" menuGroups={menuGroups} breadcrumbs={['Alumno', 'Exámenes']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Exámenes y Evaluaciones</h1>
-        {upcoming.length > 0 && <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-bold">{upcoming.length} próximas</span>}
+        {upcoming.length > 0 && <span className="px-3 py-1 bg-danger/15 text-danger rounded-full text-sm font-bold">{upcoming.length} próximas</span>}
       </div>
 
       <div className="flex items-center gap-2 mb-6">

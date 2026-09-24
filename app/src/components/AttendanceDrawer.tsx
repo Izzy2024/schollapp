@@ -170,7 +170,7 @@ export default function AttendanceDrawer({
             </div>
           )}
 
-          <button onClick={() => markAll('present')} className="w-full py-2 bg-indigo-50 text-indigo-700 font-medium rounded-lg hover:bg-indigo-100 transition-colors">
+          <button onClick={() => markAll('present')} className="w-full py-2 bg-brand-secondary text-brand-primary font-medium rounded-lg hover:bg-brand-secondary transition-colors">
             Marcar todos presentes
           </button>
         </div>
@@ -197,7 +197,7 @@ export default function AttendanceDrawer({
                   >R</button>
                   <button
                     onClick={() => updateStatus(rec.studentId, 'excused')}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rec.status === 'excused' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}`}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${rec.status === 'excused' ? 'bg-brand-secondary text-brand-accent border border-brand-secondary' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}`}
                   >J</button>
                 </div>
               </div>
@@ -215,7 +215,7 @@ export default function AttendanceDrawer({
           <button
             onClick={handleSave}
             disabled={saving || loading || !dirty}
-            className="w-full py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+            className="w-full py-3 bg-brand-primary text-white font-medium rounded-xl hover:bg-brand-primary transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
           >
             {saving ? 'Guardando...' : dirty ? 'Guardar Asistencia' : 'Sin cambios'}
           </button>

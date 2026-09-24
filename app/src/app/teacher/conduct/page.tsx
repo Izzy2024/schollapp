@@ -7,6 +7,7 @@ import { getTeacherStudentsData } from '@/actions/teacherStudents';
 import { getStudentConductRecords, createConductRecord, type ConductRecordRow } from '@/actions/conduct';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['teacher']);
 
@@ -49,8 +50,7 @@ export default function TeacherConductPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!selectedStudent) return;
     if (!form.description.trim()) {
       message.error('La descripción es requerida');
@@ -64,14 +64,16 @@ export default function TeacherConductPage() {
         points: Number(form.points) || 0,
       });
       if ('error' in res) {
-        message.error(res.error);
-      } else {
-        message.success('Registro guardado');
-        setForm({ type: 'demerit', category: '', description: '', points: '-1' });
-        openStudent(selectedStudent);
+        throw new Error(res.error);
       }
+      message.success('Registro guardado');
+      openStudent(selectedStudent);
+      setTimeout(() => {
+        setForm({ type: 'demerit', category: '', description: '', points: '-1' });
+      }, 900);
     } catch (e: any) {
       message.error(e.message || 'Error al guardar');
+      throw e;
     }
   };
 
@@ -87,7 +89,7 @@ export default function TeacherConductPage() {
             setSelectedClassId(e.target.value);
             setSelectedStudent(null);
           }}
-          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
         >
           <option value="">Selecciona una clase...</option>
           {classes.map((c) => (
@@ -105,7 +107,7 @@ export default function TeacherConductPage() {
                 <button
                   key={s.id}
                   onClick={() => openStudent(s)}
-                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${selectedStudent?.id === s.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                  className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${selectedStudent?.id === s.id ? 'bg-brand-secondary text-brand-primary font-medium' : 'text-gray-700'}`}
                 >
                   {s.lastName}, {s.firstName}
                 </button>
@@ -122,7 +124,7 @@ export default function TeacherConductPage() {
               <div className="space-y-6">
                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
                   <h3 className="font-bold text-gray-900 mb-3">Registrar para {selectedStudent.firstName} {selectedStudent.lastName}</h3>
-                  <form onSubmit={handleSubmit} className="space-y-3">
+                  <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <select
                         value={form.type}
@@ -156,9 +158,9 @@ export default function TeacherConductPage() {
                       rows={2}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
                     />
-                    <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
+                    <SaveButton onClick={handleSubmit} className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90">
                       Guardar
-                    </button>
+                    </SaveButton>
                   </form>
                 </div>
 

@@ -51,7 +51,7 @@ export default function StudentLibraryPage() {
                 {active.map((l) => (
                   <div key={l.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center justify-between">
                     <span className="font-medium text-gray-900 text-sm">{l.bookTitle}</span>
-                    <span className={`text-xs font-semibold ${l.isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                    <span className={`text-xs font-semibold ${l.isOverdue ? 'text-danger' : 'text-gray-500'}`}>
                       Vence: {new Date(l.dueDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
                       {l.isOverdue ? ' (vencido)' : ''}
                     </span>

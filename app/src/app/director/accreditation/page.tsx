@@ -47,7 +47,7 @@ export default function DirectorAccreditationPage() {
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
-              { label: 'Eventos Registrados', value: totalEvents.toString(), icon: 'verified', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Eventos Registrados', value: totalEvents.toString(), icon: 'verified', color: 'bg-brand-bg text-brand-accent' },
               { label: 'Categorías', value: Object.keys(byType).length.toString(), icon: 'category', color: 'bg-green-50 text-green-600' },
               { label: 'Estado', value: 'Activo', icon: 'check_circle', color: 'bg-emerald-50 text-emerald-600' },
             ].map(kpi => (

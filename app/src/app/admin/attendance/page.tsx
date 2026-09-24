@@ -9,6 +9,7 @@ import {
 } from '@/actions/attendance';
 import { App, Modal } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -20,7 +21,7 @@ const STATUS_CONFIG = {
   present:  { label: 'Presente',  short: 'P', color: 'bg-green-100 text-green-700 border-green-200',  active: 'bg-green-500 text-white border-green-500' },
   absent:   { label: 'Falta',     short: 'F', color: 'bg-red-50   text-red-600   border-red-200',    active: 'bg-red-500   text-white border-red-500'   },
   late:     { label: 'Retardo',   short: 'R', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', active: 'bg-yellow-400 text-white border-yellow-400' },
-  excused:  { label: 'Justific.', short: 'J', color: 'bg-blue-50   text-blue-600  border-blue-200',   active: 'bg-blue-500  text-white border-blue-500'  },
+  excused:  { label: 'Justific.', short: 'J', color: 'bg-brand-bg   text-brand-accent  border-brand-secondary',   active: 'bg-brand-bg0  text-white border-brand-bg0'  },
 } as const;
 
 type StatusKey = keyof typeof STATUS_CONFIG;
@@ -66,7 +67,6 @@ export default function AttendancePage() {
   const [takenBy, setTakenBy] = useState<TakenBy>(null);
   const [editUnlocked, setEditUnlocked] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
@@ -126,7 +126,6 @@ export default function AttendancePage() {
   };
 
   const handleSave = async () => {
-    setSaving(true);
     setSaveStatus('idle');
     setSaveFeedback(null);
     try {
@@ -139,15 +138,15 @@ export default function AttendancePage() {
       setSaveStatus('success');
       setSaveFeedback(successText);
       message.success('¡Asistencia guardada exitosamente!');
-      setDirty(false);
-      await loadRecords();
+      setTimeout(() => {
+        loadRecords();
+      }, 900);
     } catch (e: unknown) {
       const resolved = resolveErrorMessage(e, 'Error al guardar asistencia');
       setSaveStatus('error');
       setSaveFeedback(resolved.text);
       message.error(resolved.text);
-    } finally {
-      setSaving(false);
+      throw e;
     }
   };
 
@@ -202,18 +201,9 @@ export default function AttendancePage() {
           <p className="text-sm text-gray-500 mt-1">Pase de lista por grupo</p>
         </div>
         {dirty && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-bold rounded-xl hover:bg-green-700 transition-colors shadow-lg shadow-green-700/20 disabled:opacity-60 animate-pulse"
-          >
-            {saving ? (
-              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-            ) : (
-              <span className="material-symbols-outlined text-sm">save</span>
-            )}
-            {saving ? 'Guardando...' : 'Guardar Asistencia'}
-          </button>
+          <SaveButton type="primary" onClick={handleSave}>
+            Guardar Asistencia
+          </SaveButton>
         )}
       </div>
 
@@ -284,7 +274,7 @@ export default function AttendancePage() {
                       onClick={() => setSelectedSectionId(s.id)}
                       className={`w-full flex items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-gray-50 last:border-0 ${
                         selectedSectionId === s.id
-                          ? 'bg-gray-900 text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'hover:bg-gray-50 text-gray-700'
                       }`}
                     >
@@ -332,7 +322,7 @@ export default function AttendancePage() {
                   <>
                     <div className="h-full bg-green-500 transition-all" style={{ width: `${(summary.present / records.length) * 100}%` }} />
                     <div className="h-full bg-yellow-400 transition-all" style={{ width: `${(summary.late    / records.length) * 100}%` }} />
-                    <div className="h-full bg-blue-400  transition-all" style={{ width: `${(summary.excused  / records.length) * 100}%` }} />
+                    <div className="h-full bg-brand-accent  transition-all" style={{ width: `${(summary.excused  / records.length) * 100}%` }} />
                     <div className="h-full bg-red-400   transition-all" style={{ width: `${(summary.absent   / records.length) * 100}%` }} />
                   </>
                 )}
@@ -340,7 +330,7 @@ export default function AttendancePage() {
               <div className="flex justify-between mt-3 text-xs text-gray-500 font-medium">
                 <span className="text-green-600">P: {summary.present}</span>
                 <span className="text-yellow-600">R: {summary.late}</span>
-                <span className="text-blue-600">J: {summary.excused}</span>
+                <span className="text-brand-accent">J: {summary.excused}</span>
                 <span className="text-red-600">F: {summary.absent}</span>
                 <span className="text-gray-400">Total: {records.length}</span>
               </div>
@@ -386,7 +376,7 @@ export default function AttendancePage() {
                         rec.status === 'present' ? 'bg-green-100 text-green-700' :
                         rec.status === 'absent'  ? 'bg-red-100   text-red-600'   :
                         rec.status === 'late'    ? 'bg-yellow-100 text-yellow-700' :
-                        rec.status === 'excused' ? 'bg-blue-100  text-blue-600'  :
+                        rec.status === 'excused' ? 'bg-brand-secondary  text-brand-accent'  :
                         'bg-gray-100 text-gray-500'
                       }`}>
                         {rec.studentName.charAt(0)}
@@ -421,22 +411,13 @@ export default function AttendancePage() {
 
           {records.length > 0 && (
             <div className="flex justify-end">
-              <button
+              <SaveButton
+                type="primary"
+                disabled={!dirty}
                 onClick={handleSave}
-                disabled={saving || !dirty}
-                className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-xl transition-all ${
-                  dirty
-                    ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-700/20'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
               >
-                {saving ? (
-                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                ) : (
-                  <span className="material-symbols-outlined text-sm">save</span>
-                )}
-                {saving ? 'Guardando...' : dirty ? 'Guardar Asistencia' : 'Sin cambios'}
-              </button>
+                {dirty ? 'Guardar Asistencia' : 'Sin cambios'}
+              </SaveButton>
             </div>
           )}
         </div>

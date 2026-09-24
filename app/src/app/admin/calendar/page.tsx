@@ -6,6 +6,7 @@ import { App, Button, Card, DatePicker, Input, Modal, Switch } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { createCalendarEvent, deleteCalendarEvent, listCalendarEvents } from '@/actions/calendar';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 type CalendarRow = Awaited<ReturnType<typeof listCalendarEvents>>[number];
 
@@ -31,7 +32,6 @@ export default function AdminCalendarPage() {
   const [newAllDay, setNewAllDay] = useState(true);
   const [newStartAt, setNewStartAt] = useState<Dayjs | null>(dayjs());
   const [newEndAt, setNewEndAt] = useState<Dayjs | null>(null);
-  const [saving, setSaving] = useState(false);
 
   async function refresh() {
     setLoading(true);
@@ -64,7 +64,6 @@ export default function AdminCalendarPage() {
     if (!title) return antdMessage.warning('Título requerido');
     if (!newStartAt) return antdMessage.warning('Selecciona fecha/hora de inicio');
 
-    setSaving(true);
     try {
       await createCalendarEvent({
         title,
@@ -74,17 +73,16 @@ export default function AdminCalendarPage() {
         allDay: newAllDay,
       });
       antdMessage.success('Evento creado');
-      setNewOpen(false);
       setNewTitle('');
       setNewDescription('');
       setNewAllDay(true);
       setNewStartAt(dayjs());
       setNewEndAt(null);
       await refresh();
+      setTimeout(() => setNewOpen(false), 900);
     } catch (e: any) {
       antdMessage.error(e?.message || 'No se pudo crear el evento');
-    } finally {
-      setSaving(false);
+      throw e;
     }
   }
 
@@ -176,11 +174,15 @@ export default function AdminCalendarPage() {
       <Modal
         open={newOpen}
         title="Nuevo evento"
-        okText="Crear"
-        cancelText="Cancelar"
-        confirmLoading={saving}
-        onOk={handleCreate}
         onCancel={() => setNewOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setNewOpen(false)}>
+            Cancelar
+          </Button>,
+          <SaveButton key="save" type="primary" onClick={handleCreate}>
+            Crear
+          </SaveButton>,
+        ]}
       >
         <div className="space-y-3">
           <div>

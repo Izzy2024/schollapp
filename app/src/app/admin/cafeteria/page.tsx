@@ -15,6 +15,7 @@ import {
 import { getStudents } from '@/actions/students';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -72,16 +73,22 @@ export default function CafeteriaPage() {
     loadAccount(id);
   };
 
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddItem = async () => {
     const priceCents = Math.round(Number(itemForm.priceCents) * 100);
-    const res = await createMenuItem({ name: itemForm.name, priceCents });
-    if ('error' in res) message.error(res.error);
-    else {
+    try {
+      const res = await createMenuItem({ name: itemForm.name, priceCents });
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Producto agregado');
-      setItemFormOpen(false);
-      setItemForm({ name: '', priceCents: '' });
       loadItems();
+      setTimeout(() => {
+        setItemFormOpen(false);
+        setItemForm({ name: '', priceCents: '' });
+      }, 900);
+    } catch (error: any) {
+      message.error(error.message || 'Error al agregar producto');
+      throw error;
     }
   };
 
@@ -96,12 +103,19 @@ export default function CafeteriaPage() {
       return;
     }
     const amountCents = Math.round(Number(topUpAmount) * 100);
-    const res = await topUpAccount(selectedStudentId, amountCents);
-    if ('error' in res) message.error(res.error);
-    else {
+    try {
+      const res = await topUpAccount(selectedStudentId, amountCents);
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Saldo recargado');
-      setTopUpAmount('');
       loadAccount(selectedStudentId);
+      setTimeout(() => {
+        setTopUpAmount('');
+      }, 900);
+    } catch (error: any) {
+      message.error(error.message || 'Error al recargar saldo');
+      throw error;
     }
   };
 
@@ -127,15 +141,15 @@ export default function CafeteriaPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-gray-900">Menú</h3>
-            <button onClick={() => setItemFormOpen(true)} className="text-sm text-blue-600 hover:underline">
+            <button onClick={() => setItemFormOpen(true)} className="text-sm text-brand-accent hover:underline">
               + Agregar producto
             </button>
           </div>
           {itemFormOpen && (
-            <form onSubmit={handleAddItem} className="flex gap-2 mb-4">
+            <form onSubmit={(e) => e.preventDefault()} className="flex gap-2 mb-4">
               <input required placeholder="Producto" value={itemForm.name} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
               <input required type="number" step="0.01" min="0" placeholder="Precio" value={itemForm.priceCents} onChange={(e) => setItemForm({ ...itemForm, priceCents: e.target.value })} className="w-24 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-              <button type="submit" className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm">Guardar</button>
+              <SaveButton onClick={handleAddItem} className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm">Guardar</SaveButton>
             </form>
           )}
           <div className="space-y-2">
@@ -143,7 +157,7 @@ export default function CafeteriaPage() {
               <div key={item.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                 <span>{item.name} · {formatMoney(item.priceCents)}</span>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => handlePurchase(item.id)} className="text-xs text-blue-600 hover:underline" disabled={!selectedStudentId}>
+                  <button onClick={() => handlePurchase(item.id)} className="text-xs text-brand-accent hover:underline" disabled={!selectedStudentId}>
                     Cobrar
                   </button>
                   <button onClick={() => handleDeactivate(item.id)} className="text-xs text-red-600 hover:underline">
@@ -184,14 +198,14 @@ export default function CafeteriaPage() {
 
           {account && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-indigo-50 rounded-xl px-4 py-3">
-                <span className="text-sm font-medium text-indigo-900">Saldo actual</span>
-                <span className="text-xl font-bold text-indigo-700">{formatMoney(account.balanceCents)}</span>
+              <div className="flex items-center justify-between bg-brand-secondary rounded-xl px-4 py-3">
+                <span className="text-sm font-medium text-brand-primary">Saldo actual</span>
+                <span className="text-xl font-bold text-brand-primary">{formatMoney(account.balanceCents)}</span>
               </div>
 
               <div className="flex gap-2">
                 <input type="number" step="0.01" min="0" placeholder="Monto a recargar" value={topUpAmount} onChange={(e) => setTopUpAmount(e.target.value)} className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                <button onClick={handleTopUp} className="px-3 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium">Recargar</button>
+                <SaveButton onClick={handleTopUp} className="px-3 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium">Recargar</SaveButton>
               </div>
 
               <div>

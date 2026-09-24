@@ -12,9 +12,9 @@ export default async function TeacherStudentsPage({ searchParams }: { searchPara
   }
 
   return (
-    <TeacherStudentsClient 
-      options={options} 
-      initialClassId={defaultClassId || ''} 
+    <TeacherStudentsClient
+      options={options}
+      initialClassId={defaultClassId || ''}
       tenantSlug="school-demo"
     />
   );

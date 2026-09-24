@@ -12,6 +12,7 @@ import {
 import { getSectionsForAttendance } from '@/actions/attendance';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -57,7 +58,6 @@ function NewAnnouncementModal({
     targetType: 'all' as 'all' | 'grade' | 'section',
     targetId: '',
   });
-  const [saving, setSaving] = useState(false);
 
   const gradeOptions = useMemo(
     () => Array.from(new Map(sections.map(s => [s.gradeLevelId, s.gradeLevelName])).entries()),
@@ -69,33 +69,40 @@ function NewAnnouncementModal({
     [sections, form.targetType]
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim()) return message.warning('El título es requerido');
-    if (!form.body.trim()) return message.warning('El contenido es requerido');
-    if (form.targetType !== 'all' && !form.targetId) return message.warning('Selecciona el destinatario');
-
-    setSaving(true);
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!form.title.trim()) {
+      message.warning('El título es requerido');
+      throw new Error('El título es requerido');
+    }
+    if (!form.body.trim()) {
+      message.warning('El contenido es requerido');
+      throw new Error('El contenido es requerido');
+    }
+    if (form.targetType !== 'all' && !form.targetId) {
+      message.warning('Selecciona el destinatario');
+      throw new Error('Selecciona el destinatario');
+    }
+    let res;
     try {
-      const res = await createAnnouncement({
+      res = await createAnnouncement({
         title: form.title,
         body: form.body,
         publishNow: form.publishNow,
         targetType: form.targetType,
         targetId: form.targetId || undefined,
       });
-      if ('error' in res && res.error) {
-        message.error(res.error as string);
-      } else {
-        message.success('Comunicado creado exitosamente');
-        onCreated();
-        onClose();
-      }
-    } catch (e: any) {
-      message.error(e.message || 'Error al crear comunicado');
-    } finally {
-      setSaving(false);
+    } catch (err: any) {
+      message.error(err.message || 'Error al crear comunicado');
+      throw err;
     }
+    if ('error' in res && res.error) {
+      message.error(res.error as string);
+      throw new Error(res.error as string);
+    }
+    message.success('Comunicado creado exitosamente');
+    onCreated();
+    setTimeout(() => onClose(), 900);
   };
 
   return (
@@ -157,7 +164,7 @@ function NewAnnouncementModal({
                   onClick={() => setForm({ ...form, targetType: t, targetId: '' })}
                   className={`p-3 rounded-xl border-2 text-sm font-medium transition-all text-left ${
                     form.targetType === t
-                      ? 'border-gray-900 bg-gray-900 text-white'
+                      ? 'border-gray-900 bg-brand-primary text-white'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
                   }`}
                 >
@@ -216,19 +223,12 @@ function NewAnnouncementModal({
           <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-800 transition-colors">
             Cancelar
           </button>
-          <button
-            type="submit"
+          <SaveButton
+            type="primary"
             onClick={handleSubmit}
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20 disabled:opacity-60"
           >
-            {saving ? (
-              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-            ) : (
-              <span className="material-symbols-outlined text-sm">send</span>
-            )}
-            {saving ? 'Publicando...' : form.publishNow ? 'Publicar' : 'Guardar borrador'}
-          </button>
+            {form.publishNow ? 'Publicar' : 'Guardar borrador'}
+          </SaveButton>
         </div>
       </div>
     </div>
@@ -376,7 +376,7 @@ export default function AnnouncementsPage() {
         </div>
         <button
           onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors shadow-lg"
         >
           <span className="material-symbols-outlined text-lg">add</span>
           Nuevo Comunicado
@@ -409,7 +409,7 @@ export default function AnnouncementsPage() {
             key={f}
             onClick={() => setFilterStatus(f)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              filterStatus === f ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              filterStatus === f ? 'bg-brand-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
             }`}
           >
             {f === 'all' ? 'Todos' : f === 'published' ? 'Publicados' : 'Borradores'}
@@ -432,7 +432,7 @@ export default function AnnouncementsPage() {
           </p>
           <button
             onClick={() => setShowNew(true)}
-            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+            className="px-5 py-2.5 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors"
           >
             Crear primer comunicado
           </button>
@@ -457,7 +457,7 @@ export default function AnnouncementsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-gray-900 truncate group-hover:text-indigo-700 transition-colors">
+                      <h3 className="font-bold text-gray-900 truncate group-hover:text-brand-primary transition-colors">
                         {row.title}
                       </h3>
                       {row.publishedAt ? (

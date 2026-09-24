@@ -83,9 +83,15 @@ export default function TeacherDashboard() {
       menuGroups={TEACHER_MENU_GROUPS}
       breadcrumbs={['Docentes', 'Mis Clases']}
       headerAction={
-        <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg">
-          <span className="material-symbols-outlined text-lg">add</span>
-          Nueva Clase
+        <button
+          type="button"
+          aria-label="Nueva Clase"
+          title="Nueva Clase"
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-primary text-white text-xs sm:text-sm font-medium rounded-lg hover:opacity-90 transition-colors shadow-lg"
+        >
+          <span className="material-symbols-outlined text-base sm:text-lg">add</span>
+          <span className="hidden sm:inline">Nueva Clase</span>
         </button>
       }
     >
@@ -98,7 +104,7 @@ export default function TeacherDashboard() {
           <div className="relative">
             <button
               onClick={() => { setFilterOpen((v) => !v); setSortOpen(false); }}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border transition-colors shadow-sm ${subjectFilter !== 'all' || onlyPending ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'}`}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border transition-colors shadow-sm ${subjectFilter !== 'all' || onlyPending ? 'bg-brand-secondary text-brand-primary border-brand-primary' : 'text-gray-700 bg-white border-gray-200 hover:bg-gray-50'}`}
             >
               <span className="material-symbols-outlined text-lg">tune</span>Filtrar
             </button>
@@ -106,9 +112,9 @@ export default function TeacherDashboard() {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 z-40 p-3">
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Materia</p>
                 <div className="space-y-0.5 mb-3">
-                  <button onClick={() => setSubjectFilter('all')} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === 'all' ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>Todas</button>
+                  <button onClick={() => setSubjectFilter('all')} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === 'all' ? 'bg-brand-secondary text-brand-primary font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>Todas</button>
                   {subjects.map((s) => (
-                    <button key={s} onClick={() => setSubjectFilter(s)} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === s ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>{s}</button>
+                    <button key={s} onClick={() => setSubjectFilter(s)} className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${subjectFilter === s ? 'bg-brand-secondary text-brand-primary font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}>{s}</button>
                   ))}
                 </div>
                 <label className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-600 cursor-pointer">
@@ -132,7 +138,7 @@ export default function TeacherDashboard() {
                   <button
                     key={mode}
                     onClick={() => { setSortMode(mode); setSortOpen(false); }}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${sortMode === mode ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-sm ${sortMode === mode ? 'bg-brand-secondary text-brand-primary font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
                   >
                     {SORT_LABELS[mode]}
                   </button>
@@ -145,7 +151,7 @@ export default function TeacherDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 mt-6">
         <div className="stat-card flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-brand-primary/15 text-brand-primary rounded-xl">
             <span className="material-symbols-outlined text-2xl">school</span>
           </div>
           <div>
@@ -154,7 +160,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
         <div className="stat-card flex items-center gap-4">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+          <div className="p-3 bg-brand-accent/15 text-brand-accent rounded-xl">
             <span className="material-symbols-outlined text-2xl">groups</span>
           </div>
           <div>
@@ -185,7 +191,7 @@ export default function TeacherDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {!loading && visibleClasses.length > 0 ? (
           visibleClasses.map((cls, i: number) => (
-            <div 
+            <div
               key={cls.id || i}
               onClick={() => router.push(`/teacher/classes/${cls.id}`)}
               className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all cursor-pointer border-b-4 ${cls.borderColor}`}
@@ -204,7 +210,7 @@ export default function TeacherDashboard() {
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex -space-x-2">
                     {[...Array(Math.min(3, cls.students))].map((_, j) => (
-                      <div key={j} className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm ${['bg-amber-400', 'bg-emerald-400', 'bg-blue-400'][j]}`}>
+                      <div key={j} className={`w-7 h-7 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm ${['bg-amber-400', 'bg-emerald-400', 'bg-brand-accent'][j]}`}>
                         {String.fromCharCode(65 + j)}
                       </div>
                     ))}
@@ -233,16 +239,16 @@ export default function TeacherDashboard() {
             </div>
           )
         )}
-        
+
         {/* Create New Class Card */}
-        <div 
+        <div
           onClick={() => setModalOpen(true)}
-          className="bg-white rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer min-h-[220px] group"
+          className="bg-white rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 hover:border-brand-primary hover:bg-brand-secondary/30 transition-all cursor-pointer min-h-[220px] group"
         >
-          <div className="w-12 h-12 text-gray-300 mb-3 flex items-center justify-center group-hover:text-indigo-400 transition-colors">
+          <div className="w-12 h-12 text-gray-300 mb-3 flex items-center justify-center group-hover:text-brand-primary transition-colors">
             <span className="material-symbols-outlined text-4xl">add</span>
           </div>
-          <h3 className="text-base font-semibold text-gray-700 mb-1 group-hover:text-indigo-700 transition-colors">Crear Nueva Clase</h3>
+          <h3 className="text-base font-semibold text-gray-700 mb-1 group-hover:text-brand-primary transition-colors">Crear Nueva Clase</h3>
           <p className="text-xs text-gray-400 text-center px-4">Solicita una nueva asignación al director</p>
         </div>
       </div>

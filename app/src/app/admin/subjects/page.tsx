@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@/actions/subjects';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -83,10 +84,13 @@ export default function SubjectsPage() {
         message.success('Materia creada');
       }
 
-      closeModal();
       await loadSubjects();
+      setTimeout(() => {
+        closeModal();
+      }, 900);
     } catch (error: any) {
       message.error(error.message || 'Error al guardar materia');
+      throw error;
     }
   };
 
@@ -111,7 +115,7 @@ export default function SubjectsPage() {
       headerAction={
         <button
           onClick={openCreate}
-          className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-medium"
+          className="px-4 py-2 bg-brand-accent text-white rounded-xl hover:bg-brand-accent transition-colors text-sm font-medium"
         >
           + Nueva Materia
         </button>
@@ -202,7 +206,7 @@ export default function SubjectsPage() {
                   <input
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-bg0"
                     placeholder="Matemáticas"
                   />
                 </div>
@@ -211,7 +215,7 @@ export default function SubjectsPage() {
                   <input
                     value={formCode}
                     onChange={(e) => setFormCode(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-bg0"
                     placeholder="MAT"
                   />
                 </div>
@@ -223,12 +227,12 @@ export default function SubjectsPage() {
                 >
                   Cancelar
                 </button>
-                <button
+                <SaveButton
                   onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 text-sm font-semibold"
+                  className="px-4 py-2 bg-brand-accent text-white rounded-xl hover:bg-brand-accent text-sm font-semibold"
                 >
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </div>
           </div>

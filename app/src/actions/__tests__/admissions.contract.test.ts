@@ -7,6 +7,9 @@ import {
   getPublicApplicationInfo,
   submitApplication,
   getApplicants,
+  getAdmissionConfig,
+  saveAdmissionConfig,
+  recordExamScore,
   recordExamResult,
   decideApplicant,
   convertApplicantToStudent,
@@ -113,5 +116,38 @@ describe('Admissions contract (public form + admin pipeline) — NO mock.module'
   it('submitApplication rejects an unknown tenant slug', async () => {
     const result = await submitApplication('does-not-exist-tenant', { firstName: 'A', lastName: 'B' });
     assert.deepEqual(result, { error: 'TENANT_NOT_FOUND' });
+  });
+
+  it('rejects invalid admission weights', async () => {
+    const { tenant, admin } = await makeTenantWithAdmin('t-adm-config-invalid');
+    setTestSession({ id: admin.id, tenantSlug: tenant.slug, roles: ['admin'] });
+    await assert.rejects(() => saveAdmissionConfig({ passPercent: 70, exams: [{ name: 'Académico', weight: 60 }, { name: 'Entrevista', weight: 30 }] }), /ADMISSION_WEIGHTS_INVALID/);
+    clearTestSession();
+  });
+
+  it('calculates weighted scores, waits for all exams, and applies the threshold', async () => {
+    const { tenant, admin } = await makeTenantWithAdmin('t-adm-weighted');
+    const applicant = await prisma.applicant.create({ data: { tenantId: tenant.id, firstName: 'Ana', lastName: 'Pérez' } });
+    const below = await prisma.applicant.create({ data: { tenantId: tenant.id, firstName: 'Beto', lastName: 'López' } });
+    const exact = await prisma.applicant.create({ data: { tenantId: tenant.id, firstName: 'Cata', lastName: 'Ruiz' } });
+    setTestSession({ id: admin.id, tenantSlug: tenant.slug, roles: ['admin'] });
+
+    await saveAdmissionConfig({ passPercent: 70, exams: [{ name: 'Académico', weight: 60 }, { name: 'Entrevista', weight: 40 }] });
+    const exams = (await getAdmissionConfig()).exams;
+    await recordExamScore(applicant.id, exams[0].id, 80);
+    assert.equal((await getApplicants())[0].status, 'submitted');
+    await recordExamScore(applicant.id, exams[1].id, 90);
+    const weighted = (await getApplicants()).find((item) => item.id === applicant.id);
+    assert.equal(weighted?.weightedPercent, 84);
+    assert.equal(weighted?.status, 'exam_passed');
+
+    await recordExamScore(below.id, exams[0].id, 60);
+    await recordExamScore(below.id, exams[1].id, 84);
+    assert.equal((await getApplicants()).find((item) => item.id === below.id)?.status, 'exam_failed');
+
+    await recordExamScore(exact.id, exams[0].id, 70);
+    await recordExamScore(exact.id, exams[1].id, 70);
+    assert.equal((await getApplicants()).find((item) => item.id === exact.id)?.status, 'exam_passed');
+    clearTestSession();
   });
 });

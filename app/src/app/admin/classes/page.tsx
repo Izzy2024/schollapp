@@ -2,17 +2,18 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  getSectionSubjects, 
-  createSectionSubject, 
-  assignTeacher, 
-  removeTeacher, 
-  getStaffList, 
-  getSectionsForTenant 
+import {
+  getSectionSubjects,
+  createSectionSubject,
+  assignTeacher,
+  removeTeacher,
+  getStaffList,
+  getSectionsForTenant
 } from '@/actions/adminClasses';
 import { getSubjects } from '@/actions/subjects';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 // Match the updated admin menu groups
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -90,20 +91,20 @@ export default function ClassesPage() {
     setAssignModalOpen(true);
   };
 
-  const handleAssignTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAssignTeacher = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!assignTarget) return;
 
     try {
       await assignTeacher(assignTarget.id, selectedStaffId, 'school-demo');
-      message.success('Docente asignado con éxito');
-      setAssignModalOpen(false);
-      // Refresh classes
-      const cls = await getSectionSubjects('school-demo');
-      setClasses(cls);
     } catch (error: any) {
       message.error(error.message || 'Error al asignar docente');
+      throw error;
     }
+    message.success('Docente asignado con éxito');
+    const cls = await getSectionSubjects('school-demo');
+    setClasses(cls);
+    setTimeout(() => setAssignModalOpen(false), 900);
   };
 
   const handleRemoveTeacher = async (id: string) => {
@@ -119,33 +120,35 @@ export default function ClassesPage() {
     }
   };
 
-  const handleCreateClass = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateClass = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!newClassForm.sectionId || !newClassForm.subjectId) {
       message.error('Sección y Materia son requeridos');
-      return;
+      throw new Error('Sección y Materia son requeridos');
     }
-    
+
+    let res;
     try {
-      const res = await createSectionSubject(
+      res = await createSectionSubject(
         newClassForm.sectionId,
         newClassForm.subjectId,
         newClassForm.staffId || null,
         'school-demo'
       );
-      
-      if ('error' in res && res.error) {
-        message.error((res as {error: string}).error);
-      } else {
-        message.success('Clase creada con éxito');
-        setNewClassModalOpen(false);
-        setNewClassForm({ sectionId: '', subjectId: '', staffId: '' });
-        const cls = await getSectionSubjects('school-demo');
-        setClasses(cls);
-      }
     } catch (error: any) {
       message.error(error.message || 'Error al crear clase');
+      throw error;
     }
+
+    if ('error' in res && res.error) {
+      message.error((res as {error: string}).error);
+      throw new Error((res as {error: string}).error);
+    }
+    message.success('Clase creada con éxito');
+    setNewClassForm({ sectionId: '', subjectId: '', staffId: '' });
+    const cls = await getSectionSubjects('school-demo');
+    setClasses(cls);
+    setTimeout(() => setNewClassModalOpen(false), 900);
   };
 
   // Derived filter options
@@ -187,18 +190,21 @@ export default function ClassesPage() {
     >
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Gestión de Clases</h1>
-        <button 
+        <button
+          type="button"
+          aria-label="Nueva Clase"
+          title="Nueva Clase"
           onClick={() => setNewClassModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-primary text-white text-xs sm:text-sm font-medium rounded-lg hover:opacity-90 transition-colors shadow-lg"
         >
-          <span className="material-symbols-outlined text-lg">add</span>
-          Nueva Clase
+          <span className="material-symbols-outlined text-base sm:text-lg">add</span>
+          <span className="hidden sm:inline">Nueva Clase</span>
         </button>
       </div>
 
       {/* Filter Bar */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-4">
-        <select 
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
           value={filterGrade}
           onChange={(e) => setFilterGrade(e.target.value)}
@@ -208,8 +214,8 @@ export default function ClassesPage() {
             <option key={g.id} value={g.id}>{g.name}</option>
           ))}
         </select>
-        
-        <select 
+
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
           value={filterSection}
           onChange={(e) => setFilterSection(e.target.value)}
@@ -220,7 +226,7 @@ export default function ClassesPage() {
           ))}
         </select>
 
-        <select 
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
           value={filterSubject}
           onChange={(e) => setFilterSubject(e.target.value)}
@@ -232,8 +238,8 @@ export default function ClassesPage() {
         </select>
 
         <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
             checked={filterNoTeacher}
             onChange={(e) => setFilterNoTeacher(e.target.checked)}
@@ -284,7 +290,7 @@ export default function ClassesPage() {
                       {!c.staffId ? (
                         <button
                           onClick={() => openAssignModal(c)}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
+                          className="px-3 py-1.5 bg-brand-bg text-brand-accent rounded-lg text-xs font-medium hover:bg-brand-secondary transition-colors"
                         >
                           Asignar Docente
                         </button>
@@ -292,11 +298,11 @@ export default function ClassesPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => openAssignModal(c)}
-                            className="px-3 py-1.5 text-blue-600 rounded-lg text-xs font-medium border border-blue-200 hover:bg-blue-50 transition-colors"
+                            className="px-3 py-1.5 text-brand-accent rounded-lg text-xs font-medium border border-brand-secondary hover:bg-brand-bg transition-colors"
                           >
                             Cambiar
                           </button>
-                          
+
                           {removeConfirmId === c.id ? (
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-red-600 font-medium">¿Seguro?</span>
@@ -339,7 +345,7 @@ export default function ClassesPage() {
               <h3 className="text-lg font-bold text-gray-900">
                 {assignTarget.staffId ? 'Cambiar Docente' : 'Asignar Docente'}
               </h3>
-              <button 
+              <button
                 onClick={() => setAssignModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -355,7 +361,7 @@ export default function ClassesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Seleccionar Docente <span className="text-red-500">*</span>
                   </label>
-                  <select 
+                  <select
                     value={selectedStaffId}
                     onChange={(e) => setSelectedStaffId(e.target.value)}
                     required
@@ -376,12 +382,9 @@ export default function ClassesPage() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
-                >
+                <SaveButton type="primary" onClick={handleAssignTeacher}>
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -393,7 +396,7 @@ export default function ClassesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">Nueva Clase</h3>
-              <button 
+              <button
                 onClick={() => setNewClassModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -406,7 +409,7 @@ export default function ClassesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Sección <span className="text-red-500">*</span>
                   </label>
-                  <select 
+                  <select
                     value={newClassForm.sectionId}
                     onChange={(e) => setNewClassForm({...newClassForm, sectionId: e.target.value})}
                     required
@@ -418,12 +421,12 @@ export default function ClassesPage() {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Materia <span className="text-red-500">*</span>
                   </label>
-                  <select 
+                  <select
                     value={newClassForm.subjectId}
                     onChange={(e) => setNewClassForm({...newClassForm, subjectId: e.target.value})}
                     required
@@ -440,7 +443,7 @@ export default function ClassesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Docente <span className="text-gray-400 font-normal">(Opcional)</span>
                   </label>
-                  <select 
+                  <select
                     value={newClassForm.staffId}
                     onChange={(e) => setNewClassForm({...newClassForm, staffId: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -460,12 +463,9 @@ export default function ClassesPage() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
-                >
+                <SaveButton type="primary" onClick={handleCreateClass}>
                   Crear Clase
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>

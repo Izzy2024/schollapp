@@ -9,9 +9,9 @@ import { getMenuGroupsForRoles } from '@/lib/nav/menu';
 const menuGroups = getMenuGroupsForRoles(['student']);
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
-  submitted: { label: 'Entregada', className: 'bg-green-100 text-green-800' },
-  late: { label: 'Entregada tarde', className: 'bg-amber-100 text-amber-800' },
-  graded: { label: 'Calificada', className: 'bg-indigo-100 text-indigo-800' },
+  submitted: { label: 'Entregada', className: 'bg-success/15 text-success' },
+  late: { label: 'Entregada tarde', className: 'bg-warning/15 text-warning' },
+  graded: { label: 'Calificada', className: 'bg-brand-primary/15 text-brand-primary' },
 };
 
 export default function StudentAssignmentsPage() {
@@ -63,13 +63,13 @@ export default function StudentAssignmentsPage() {
     <DashboardLayout roleTitle="Alumno" userName="Alumno" userRole="Estudiante" menuGroups={menuGroups} breadcrumbs={['Alumno', 'Tareas']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Tareas</h1>
-        {pending.length > 0 && <span className="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-bold">{pending.length} pendientes</span>}
+        {pending.length > 0 && <span className="px-3 py-1 bg-warning/15 text-warning rounded-full text-sm font-bold">{pending.length} pendientes</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
         {[
-          { label: 'Pendientes', value: pending.length.toString(), icon: 'pending_actions', color: 'bg-amber-50 text-amber-600' },
-          { label: 'Entregadas', value: completed.length.toString(), icon: 'task_alt', color: 'bg-green-50 text-green-600' },
+          { label: 'Pendientes', value: pending.length.toString(), icon: 'pending_actions', color: 'bg-warning/15 text-warning' },
+          { label: 'Entregadas', value: completed.length.toString(), icon: 'task_alt', color: 'bg-success/15 text-success' },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
             <div className={`p-2.5 rounded-xl ${kpi.color}`}><span className="material-symbols-outlined text-xl">{kpi.icon}</span></div>
@@ -90,10 +90,10 @@ export default function StudentAssignmentsPage() {
           {[...pending, ...completed].map((a) => {
             const statusInfo = a.submission ? STATUS_LABEL[a.submission.status] : null;
             return (
-              <div key={a.evaluationId} className={`bg-white rounded-2xl border shadow-sm p-5 ${a.submission ? 'border-gray-100' : 'border-amber-200'}`}>
+              <div key={a.evaluationId} className={`bg-white rounded-2xl border shadow-sm p-5 ${a.submission ? 'border-gray-100' : 'border-warning/30'}`}>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-warning/15 text-warning flex items-center justify-center flex-shrink-0">
                       <span className="material-symbols-outlined text-lg">assignment</span>
                     </div>
                     <div>
@@ -103,7 +103,7 @@ export default function StudentAssignmentsPage() {
                         Entrega antes de: {new Date(a.dueDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })} • Máx: {a.maxScore} pts
                       </p>
                       {a.submission?.feedback && (
-                        <p className="text-xs text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 mt-2">
+                        <p className="text-xs text-brand-primary bg-brand-primary/15 rounded-lg px-3 py-2 mt-2">
                           <strong>Retroalimentación:</strong> {a.submission.feedback}
                         </p>
                       )}
@@ -115,7 +115,7 @@ export default function StudentAssignmentsPage() {
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${statusInfo.className}`}>{statusInfo.label}</span>
                     )}
                     {a.submission?.fileUrl && (
-                      <a href={a.submission.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">
+                      <a href={a.submission.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-primary hover:underline">
                         Ver archivo entregado
                       </a>
                     )}

@@ -58,7 +58,7 @@ export default function StudentReportsPage() {
                   <h2 className="text-lg font-bold text-gray-900">{subject}</h2>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">Promedio:</span>
-                    <span className={`text-lg font-bold ${avg >= 7 ? 'text-green-600' : 'text-amber-600'}`}>{avg}</span>
+                    <span className={`text-lg font-bold ${avg >= 7 ? 'text-success' : 'text-warning'}`}>{avg}</span>
                   </div>
                 </div>
                 <table className="w-full text-sm">

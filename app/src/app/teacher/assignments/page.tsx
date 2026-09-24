@@ -11,6 +11,7 @@ import {
 } from '@/actions/submissions';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['teacher']);
 
@@ -62,6 +63,7 @@ export default function TeacherAssignmentsPage() {
       }
     } catch (e: any) {
       message.error(e.message || 'Error al guardar');
+      throw e;
     }
   };
 
@@ -111,7 +113,7 @@ export default function TeacherAssignmentsPage() {
                               {row.fileUrl && (
                                 <>
                                   {' · '}
-                                  <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                                  <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-brand-accent hover:underline">
                                     Ver archivo
                                   </a>
                                 </>
@@ -124,15 +126,15 @@ export default function TeacherAssignmentsPage() {
                             onChange={(e) => setFeedbackDrafts({ ...feedbackDrafts, [row.studentId]: e.target.value })}
                             placeholder="Retroalimentación..."
                             disabled={!row.submissionId}
-                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:opacity-50"
                           />
-                          <button
+                          <SaveButton
                             onClick={() => handleSaveFeedback(row)}
                             disabled={!row.submissionId}
-                            className="px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors disabled:opacity-40"
+                            className="px-3 py-2 bg-brand-primary text-white rounded-lg text-xs font-medium hover:opacity-90 transition-colors disabled:opacity-40"
                           >
                             Guardar
-                          </button>
+                          </SaveButton>
                         </div>
                       ))}
                     </div>

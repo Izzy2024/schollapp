@@ -12,7 +12,7 @@ import { TopicAttachments } from './TopicAttachments';
 type Topic = { id: string; name: string; date: string | null; description: string | null };
 type Unit = { id: string; name: string; startDate: string | null; endDate: string | null; topics: Topic[] };
 
-export default function PlanningClient({ options, initialClassId, initialTermId, tenantSlug }: { 
+export default function PlanningClient({ options, initialClassId, initialTermId, tenantSlug }: {
   options: { classes: { id: string; name: string }[]; terms: { id: string; name: string }[] };
   initialClassId: string;
   initialTermId: string;
@@ -23,14 +23,14 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
 
   const [classId, setClassId] = useState(initialClassId);
   const [termId, setTermId] = useState(initialTermId);
-  
+
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [topicModalOpen, setTopicModalOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [activeUnitId, setActiveUnitId] = useState('');
-  
+
   const [expandedUnits, setExpandedUnits] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -90,31 +90,31 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
         breadcrumbs={['Docentes', 'Planificación']}
       >
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full min-h-[600px] mt-[2px]">
-          
+
           <div className="p-6 border-b border-gray-100 flex items-center gap-4 flex-wrap bg-gray-50/30">
             <h1 className="text-xl font-bold text-gray-900 mr-auto">Planificación Curricular</h1>
-            
-            <select 
-              value={classId} 
+
+            <select
+              value={classId}
               onChange={e => setClassId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm"
             >
               {options.classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
 
-            <select 
-              value={termId} 
+            <select
+              value={termId}
               onChange={e => setTermId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm"
             >
               {options.terms.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
 
-            <button 
+            <button
               onClick={() => setUnitModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-900 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
             >
@@ -128,12 +128,12 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
               <div className="text-center text-gray-400 font-medium py-12">Cargando planificación...</div>
             ) : units.length === 0 ? (
               <div className="p-20 text-center flex flex-col items-center">
-                <div className="w-16 h-16 bg-white border border-gray-100 shadow-sm rounded-full flex items-center justify-center mb-4 text-indigo-100 bg-indigo-50/50">
-                  <span className="material-symbols-outlined text-3xl text-indigo-500">auto_stories</span>
+                <div className="w-16 h-16 bg-white border border-gray-100 shadow-sm rounded-full flex items-center justify-center mb-4 text-gray-800 bg-brand-secondary/50">
+                  <span className="material-symbols-outlined text-3xl text-gray-8000">auto_stories</span>
                 </div>
                 <h3 className="text-gray-900 font-bold mb-1">Sin planificación</h3>
                 <p className="text-sm text-gray-500 max-w-sm mb-6">No hay unidades creadas para este periodo. Organiza tu semestre agregando el contenido.</p>
-                <button onClick={() => setUnitModalOpen(true)} className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
+                <button onClick={() => setUnitModalOpen(true)} className="px-5 py-2.5 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors shadow-lg">
                   Agregar Primera Unidad
                 </button>
               </div>
@@ -154,7 +154,7 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md">
+                        <span className="text-xs font-bold px-2 py-1 bg-brand-secondary text-brand-primary rounded-md">
                           {unit.topics.length} temas
                         </span>
                         <div className="flex items-center gap-1">
@@ -184,14 +184,14 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
                       <div className="p-6 border-t border-gray-100">
                         <div className="space-y-3 mb-4">
                           {unit.topics.map((topic, index) => (
-                            <div key={topic.id} className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:border-indigo-100 hover:bg-indigo-50/10 transition-colors group">
-                              <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            <div key={topic.id} className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:border-brand-secondary hover:bg-brand-secondary/10 transition-colors group">
+                              <div className="w-8 h-8 rounded-full bg-brand-secondary text-brand-primary font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
                                 {index + 1}
                               </div>
                               <div className="flex-1">
                                 <h4 className="text-[14px] font-bold text-gray-900 mb-1">{topic.name}</h4>
                                 {topic.description && <p className="text-[13px] text-gray-500 mb-2 leading-relaxed">{topic.description}</p>}
-                                <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium bg-indigo-50 w-fit px-2 py-1 rounded-md">
+                                <div className="flex items-center gap-1.5 text-xs text-brand-primary font-medium bg-brand-secondary w-fit px-2 py-1 rounded-md">
                                   <span className="material-symbols-outlined text-[14px]">calendar_today</span>
                                   {topic.date ? new Date(topic.date).toLocaleDateString('es-ES', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Falta fecha'}
                                 </div>
@@ -208,10 +208,10 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
                             </div>
                           ))}
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={(e) => { e.stopPropagation(); openNewTopicModal(unit.id); }}
-                          className="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 text-sm font-semibold rounded-xl hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50/50 transition-colors flex items-center justify-center gap-2"
+                          className="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 text-sm font-semibold rounded-xl hover:border-brand-primary hover:text-brand-primary hover:bg-brand-secondary/50 transition-colors flex items-center justify-center gap-2"
                         >
                           <span className="material-symbols-outlined text-lg">add_circle</span>
                           Agregar Tema
@@ -226,8 +226,8 @@ export default function PlanningClient({ options, initialClassId, initialTermId,
         </div>
       </DashboardLayout>
 
-      <NewTopicModal 
-        isOpen={topicModalOpen} 
+      <NewTopicModal
+        isOpen={topicModalOpen}
         onClose={() => {
           setTopicModalOpen(false);
           window.location.reload();

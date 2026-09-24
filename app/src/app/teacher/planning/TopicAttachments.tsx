@@ -86,13 +86,13 @@ export function TopicAttachments({ topicId }: { topicId: string }) {
   };
 
   return (
-    <div className="mt-3 pl-4 border-l-2 border-indigo-100">
+    <div className="mt-3 pl-4 border-l-2 border-brand-secondary">
       <div className="flex items-center justify-between mb-2">
         <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Material de Apoyo</h5>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 disabled:opacity-50"
+          className="text-xs text-brand-primary hover:text-brand-primary font-medium flex items-center gap-1 disabled:opacity-50"
         >
           <span className="material-symbols-outlined text-[14px]">
             {uploading ? 'hourglass_empty' : 'upload_file'}
@@ -115,18 +115,18 @@ export function TopicAttachments({ topicId }: { topicId: string }) {
       ) : (
         <div className="flex flex-col gap-2 mt-2">
           {attachments.map((a) => (
-            <div key={a.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-md p-2 shadow-sm hover:border-indigo-200 transition-colors group">
-              <a 
-                href={a.fileKey} 
-                target="_blank" 
+            <div key={a.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-md p-2 shadow-sm hover:border-brand-primary transition-colors group">
+              <a
+                href={a.fileKey}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 flex-1 min-w-0"
                 title={a.fileName}
               >
-                <span className="material-symbols-outlined text-gray-400 text-sm group-hover:text-indigo-500">
+                <span className="material-symbols-outlined text-gray-400 text-sm group-hover:text-gray-8000">
                   {getIcon(a.contentType)}
                 </span>
-                <span className="text-xs text-gray-700 truncate group-hover:text-indigo-700 font-medium">
+                <span className="text-xs text-gray-700 truncate group-hover:text-brand-primary font-medium">
                   {a.fileName}
                 </span>
                 <span className="text-[10px] text-gray-400 ml-1">

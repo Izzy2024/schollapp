@@ -54,7 +54,7 @@ export default function ParentDashboard() {
               <div key={child.id} className="stat-card p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg">
+                    <div className="w-12 h-12 bg-brand-primary/15 text-brand-primary rounded-full flex items-center justify-center font-bold text-lg">
                       {child.name.charAt(0)}
                     </div>
                     <div>
@@ -63,10 +63,10 @@ export default function ParentDashboard() {
                     </div>
                   </div>
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                    child.status === 'Presente' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                    child.status === 'Presente' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      child.status === 'Presente' ? 'bg-green-500' : 'bg-orange-500'
+                      child.status === 'Presente' ? 'bg-success' : 'bg-warning'
                     }`}></span>
                     {child.status}
                   </span>
@@ -76,7 +76,7 @@ export default function ParentDashboard() {
                     <span className="block text-xs text-gray-400 font-medium uppercase tracking-wide">Asistencia Mensual</span>
                     <span className="font-bold text-gray-900 text-lg">{child.attendance}</span>
                   </div>
-                  <Link href="/parent/report-card" className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-auto transition-colors no-underline">
+                  <Link href="/parent/report-card" className="text-sm font-medium text-brand-primary hover:opacity-80 flex items-center gap-1 ml-auto transition-colors no-underline">
                     <span className="material-symbols-outlined text-base">visibility</span>
                     Ver Calificaciones
                   </Link>
@@ -88,7 +88,7 @@ export default function ParentDashboard() {
 
         {/* Financial Panel */}
         <div className="space-y-6">
-          <div className="stat-card p-6 bg-gradient-to-b from-white to-blue-50/30">
+          <div className="stat-card p-6 bg-gradient-to-b from-white to-brand-secondary/20">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Estado de Cuenta</h2>
               <a
@@ -101,7 +101,7 @@ export default function ParentDashboard() {
             </div>
             <div className="text-center mb-6">
               <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">Saldo Pendiente</span>
-              <p className="text-3xl font-bold text-blue-600 mt-2">
+              <p className="text-3xl font-bold text-brand-primary mt-2">
                 {typeof data?.financial?.balanceDueCents === 'number'
                   ? new Intl.NumberFormat('es-MX', {
                       style: 'currency',
@@ -116,7 +116,7 @@ export default function ParentDashboard() {
                       maximumFractionDigits: 2,
                     }).format(0)}
               </p>
-              <span className="text-xs text-red-500 font-medium">{data?.financial?.balanceDueCents ? 'Pendiente' : 'Al corriente'}</span>
+              <span className={`text-xs font-medium ${data?.financial?.balanceDueCents ? 'text-danger' : 'text-success'}`}>{data?.financial?.balanceDueCents ? 'Pendiente' : 'Al corriente'}</span>
             </div>
             <div className="border-t border-gray-100 pt-4">
               <h5 className="font-semibold text-gray-700 text-sm mb-3">Próximos Cargos</h5>

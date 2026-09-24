@@ -39,7 +39,7 @@ export default function StudentSchedulePage() {
     <DashboardLayout roleTitle="Alumno" userName="Alumno" userRole="Estudiante" menuGroups={menuGroups} breadcrumbs={['Alumno', 'Horarios']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Mi Horario</h1>
-        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">{schedules.length} clases</span>
+        <span className="px-3 py-1 bg-info/15 text-info rounded-full text-sm font-bold">{schedules.length} clases</span>
       </div>
 
       {loading ? (
@@ -69,7 +69,7 @@ export default function StudentSchedulePage() {
                       <div className="font-semibold text-gray-900">{s.subjectName}</div>
                       <div className="text-sm text-gray-500">{s.teacherName}</div>
                     </div>
-                    {s.room && <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">{s.room}</span>}
+                    {s.room && <span className="px-3 py-1 bg-info/15 text-info text-xs font-medium rounded-lg">{s.room}</span>}
                   </div>
                 ))}
               </div>

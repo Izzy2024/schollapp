@@ -16,10 +16,10 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <PlanningClient 
-      options={options} 
-      initialClassId={defaultClassId || ''} 
-      initialTermId={defaultTermId || ''} 
+    <PlanningClient
+      options={options}
+      initialClassId={defaultClassId || ''}
+      initialTermId={defaultTermId || ''}
       tenantSlug="school-demo"
     />
   );

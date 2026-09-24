@@ -44,9 +44,9 @@ export default function StudentCafeteriaPage() {
         </div>
       ) : (
         <div className="max-w-lg space-y-6">
-          <div className="flex items-center justify-between bg-indigo-50 rounded-xl px-5 py-4">
-            <span className="text-sm font-medium text-indigo-900">Saldo actual</span>
-            <span className="text-2xl font-bold text-indigo-700">{formatMoney(account.balanceCents)}</span>
+          <div className="flex items-center justify-between bg-brand-primary/15 rounded-xl px-5 py-4">
+            <span className="text-sm font-medium text-brand-primary">Saldo actual</span>
+            <span className="text-2xl font-bold text-brand-primary">{formatMoney(account.balanceCents)}</span>
           </div>
 
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
@@ -55,7 +55,7 @@ export default function StudentCafeteriaPage() {
               {account.transactions.map((t) => (
                 <div key={t.id} className="flex items-center justify-between text-sm border-b border-gray-50 pb-2 last:border-0">
                   <span>{t.type === 'topup' ? 'Recarga' : t.menuItemName || 'Consumo'}</span>
-                  <span className={t.type === 'topup' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                  <span className={t.type === 'topup' ? 'text-success font-semibold' : 'text-danger font-semibold'}>
                     {t.type === 'topup' ? '+' : '-'}{formatMoney(t.amountCents)}
                   </span>
                 </div>

@@ -90,7 +90,7 @@ function IntegrationsPageInner() {
                 <>
                   <p className="text-sm text-gray-600 mb-4">Cuenta: {classroom.accountEmail}</p>
                   <div className="flex gap-2 mb-4">
-                    <button onClick={handleListCourses} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm">Ver cursos</button>
+                    <button onClick={handleListCourses} className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm">Ver cursos</button>
                     <button onClick={handleDisconnect} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm">Desconectar</button>
                   </div>
                   {courses && (
@@ -103,7 +103,7 @@ function IntegrationsPageInner() {
                   )}
                 </>
               ) : classroom.available ? (
-                <button onClick={handleConnect} className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
+                <button onClick={handleConnect} className="px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90">
                   Conectar con Google
                 </button>
               ) : (

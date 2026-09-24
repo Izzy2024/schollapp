@@ -37,7 +37,7 @@ export default function ParentNewsPage() {
     >
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Noticias</h1>
-        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">
+        <span className="px-3 py-1 bg-brand-primary/15 text-brand-primary rounded-full text-sm font-bold">
           {rows.length} noticias
         </span>
       </div>
@@ -61,11 +61,11 @@ export default function ParentNewsPage() {
               className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 cursor-pointer hover:border-gray-300 hover:shadow-md transition-all group"
             >
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center flex-shrink-0">
                   <span className="material-symbols-outlined text-lg">article</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">{row.title}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-brand-primary transition-colors">{row.title}</h3>
                   <p className="text-sm text-gray-500 line-clamp-2 mb-2">{row.body}</p>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>
@@ -93,7 +93,7 @@ export default function ParentNewsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSelected(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg">Noticia</span>
+              <span className="px-2.5 py-1 bg-brand-primary/15 text-brand-primary text-xs font-bold rounded-lg">Noticia</span>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>

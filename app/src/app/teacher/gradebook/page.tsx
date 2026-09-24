@@ -16,10 +16,10 @@ export default async function GradebookPage({ searchParams }: { searchParams: Pr
   }
 
   return (
-    <GradebookClient 
-      options={options} 
-      initialClassId={defaultClassId || ''} 
-      initialTermId={defaultTermId || ''} 
+    <GradebookClient
+      options={options}
+      initialClassId={defaultClassId || ''}
+      initialTermId={defaultTermId || ''}
       tenantSlug="school-demo"
     />
   );

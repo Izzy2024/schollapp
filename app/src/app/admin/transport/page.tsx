@@ -17,6 +17,7 @@ import {
 import { getStudents } from '@/actions/students';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -82,25 +83,28 @@ export default function TransportPage() {
     loadRoutes();
   };
 
-  const handleAddRoute = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddRoute = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    let res;
     try {
-      const res = await createRoute({
+      res = await createRoute({
         name: addForm.name,
         driverName: addForm.driverName || undefined,
         vehiclePlate: addForm.vehiclePlate || undefined,
         capacity: addForm.capacity ? Number(addForm.capacity) : undefined,
       });
-      if ('error' in res) message.error(res.error);
-      else {
-        message.success('Ruta creada');
-        setAddFormOpen(false);
-        setAddForm({ name: '', driverName: '', vehiclePlate: '', capacity: '' });
-        loadRoutes();
-      }
-    } catch (e: any) {
-      message.error(e.message || 'Error al crear ruta');
+    } catch (err: any) {
+      message.error(err.message || 'Error al crear ruta');
+      throw err;
     }
+    if ('error' in res) {
+      message.error(res.error);
+      throw new Error(res.error || 'Error al crear ruta');
+    }
+    message.success('Ruta creada');
+    setAddForm({ name: '', driverName: '', vehiclePlate: '', capacity: '' });
+    loadRoutes();
+    setTimeout(() => setAddFormOpen(false), 900);
   };
 
   const handleDeleteRoute = async (id: string) => {
@@ -160,7 +164,7 @@ export default function TransportPage() {
     <DashboardLayout roleTitle="Admin / Control Escolar" userName="Administrador" userRole="Administrador" menuGroups={menuGroups} breadcrumbs={['Admin', 'Transporte']}>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Transporte Escolar</h1>
-        <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">
+        <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90">
           <span className="material-symbols-outlined text-lg">add</span>
           Nueva ruta
         </button>
@@ -206,7 +210,7 @@ export default function TransportPage() {
                       <input required placeholder="Nombre de parada" value={stopForm.name} onChange={(e) => setStopForm({ ...stopForm, name: e.target.value })} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex-1 min-w-[140px]" />
                       <input type="time" value={stopForm.pickupTime} onChange={(e) => setStopForm({ ...stopForm, pickupTime: e.target.value })} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
                       <input type="time" value={stopForm.dropoffTime} onChange={(e) => setStopForm({ ...stopForm, dropoffTime: e.target.value })} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                      <button type="submit" className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium">Agregar</button>
+                      <button type="submit" className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-medium">Agregar</button>
                     </form>
                   </div>
 
@@ -257,7 +261,7 @@ export default function TransportPage() {
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
-                      <button onClick={handleAssign} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium">Asignar</button>
+                      <button onClick={handleAssign} className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-medium">Asignar</button>
                     </div>
                   </div>
                 </div>
@@ -287,9 +291,9 @@ export default function TransportPage() {
                 <button type="button" onClick={() => setAddFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton type="primary" onClick={handleAddRoute}>
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>

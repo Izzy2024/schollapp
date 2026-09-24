@@ -37,8 +37,8 @@ export default function RootLayout({
               token: {
                 // Tailwind default font family
                 fontFamily: "var(--font-geist-sans), Arial, sans-serif",
-                colorPrimary: "#1890ff", // We can customize this per role later
-                colorBgLayout: "#f0f2f5",
+                colorPrimary: "#4B6B4E",
+                colorBgLayout: "#F6F3EC",
                 borderRadius: 6,
               },
             }}

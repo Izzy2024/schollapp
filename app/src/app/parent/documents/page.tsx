@@ -44,7 +44,7 @@ export default function ParentDocumentsPage() {
     <DashboardLayout roleTitle="Tutor / Padre" userName="Familia" userRole="Tutor" menuGroups={menuGroups} breadcrumbs={['Familia', 'Documentos']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Documentos</h1>
-        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-bold">{documents.length} archivos</span>
+        <span className="px-3 py-1 bg-brand-primary/15 text-brand-primary rounded-full text-sm font-bold">{documents.length} archivos</span>
       </div>
 
       {loading ? (
@@ -59,7 +59,7 @@ export default function ParentDocumentsPage() {
         <div className="space-y-3">
           {documents.map(doc => (
             <div key={doc.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:border-gray-300 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center flex-shrink-0">
                 <span className="material-symbols-outlined text-xl">{fileIcon(doc.fileType)}</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -70,7 +70,7 @@ export default function ParentDocumentsPage() {
                 </div>
               </div>
               {doc.url && (
-                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-xl hover:bg-emerald-100 transition-colors flex items-center gap-1.5">
+                <a href={doc.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-brand-primary/10 text-brand-primary text-sm font-semibold rounded-xl hover:bg-brand-primary/15 transition-colors flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">download</span>
                   Descargar
                 </a>

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { Prisma } from '@prisma/client';
 
-export type ProvisionRole = 'teacher' | 'student' | 'parent';
+export type ProvisionRole = 'teacher' | 'student' | 'parent' | 'admin';
 
 export type ProvisionResult = {
   userId: string;

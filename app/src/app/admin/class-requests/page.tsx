@@ -99,10 +99,10 @@ export default function ClassRequestsAdminPage() {
         <div className="flex border-b border-gray-100">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`flex-1 py-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+            className={`flex-1 py-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'pending' ? 'text-brand-accent border-b-2 border-brand-accent bg-brand-bg/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
           >
             Pendientes
-            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'pending' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{counts.pending}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${activeTab === 'pending' ? 'bg-brand-secondary text-brand-accent' : 'bg-gray-100 text-gray-600'}`}>{counts.pending}</span>
           </button>
           <button
             onClick={() => setActiveTab('approved')}
@@ -151,7 +151,7 @@ export default function ClassRequestsAdminPage() {
                     <td className="px-6 py-4">{req.subjectName}</td>
                     <td className="px-6 py-4">{req.gradeLevelName} {req.sectionName}</td>
                     <td className="px-6 py-4">
-                      <span 
+                      <span
                         title={req.justification}
                         className="block w-full max-w-[200px] sm:max-w-xs md:max-w-sm lg:max-w-md xl:max-w-lg truncate text-gray-600"
                       >

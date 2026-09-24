@@ -16,12 +16,13 @@ import {
 import { getStaffList } from '@/actions/staff';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   available: { label: 'Disponible', className: 'bg-green-100 text-green-800' },
-  assigned: { label: 'Asignado', className: 'bg-indigo-100 text-indigo-800' },
+  assigned: { label: 'Asignado', className: 'bg-brand-secondary text-brand-primary' },
   maintenance: { label: 'Mantenimiento', className: 'bg-amber-100 text-amber-800' },
   retired: { label: 'Dado de baja', className: 'bg-gray-100 text-gray-600' },
 };
@@ -51,15 +52,21 @@ export default function InventoryPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const handleAddAsset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await createAsset(addForm);
-    if ('error' in res) message.error(res.error);
-    else {
+  const handleAddAsset = async () => {
+    try {
+      const res = await createAsset(addForm);
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Activo agregado');
-      setAddFormOpen(false);
-      setAddForm({ name: '', category: '', serialNumber: '', location: '' });
       loadAssets();
+      setTimeout(() => {
+        setAddFormOpen(false);
+        setAddForm({ name: '', category: '', serialNumber: '', location: '' });
+      }, 900);
+    } catch (error: any) {
+      message.error(error.message || 'Error al agregar activo');
+      throw error;
     }
   };
 
@@ -112,7 +119,7 @@ export default function InventoryPage() {
     <DashboardLayout roleTitle="Admin / Control Escolar" userName="Administrador" userRole="Administrador" menuGroups={menuGroups} breadcrumbs={['Admin', 'Inventario']}>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Inventario de Activos</h1>
-        <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">
+        <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90">
           <span className="material-symbols-outlined text-lg">add</span>
           Nuevo activo
         </button>
@@ -153,7 +160,7 @@ export default function InventoryPage() {
                             <option key={s.id} value={s.id}>{s.fullName}</option>
                           ))}
                         </select>
-                        <button onClick={() => handleAssign(a.id)} className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm">Asignar</button>
+                        <button onClick={() => handleAssign(a.id)} className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm">Asignar</button>
                       </>
                     )}
                     {a.status === 'assigned' && (
@@ -201,7 +208,7 @@ export default function InventoryPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleAddAsset} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <input required placeholder="Nombre *" value={addForm.name} onChange={(e) => setAddForm({ ...addForm, name: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Categoría" value={addForm.category} onChange={(e) => setAddForm({ ...addForm, category: e.target.value })} className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
@@ -212,9 +219,9 @@ export default function InventoryPage() {
                 <button type="button" onClick={() => setAddFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton onClick={handleAddAsset} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>

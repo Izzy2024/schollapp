@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { updateTenantProfile, importStudentsCsv, getTenantSettings, updateTenantSettings } from '@/actions/settings';
 import { ADMIN_MENU_GROUPS } from '@/lib/adminMenu';
@@ -8,13 +8,13 @@ import { App } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-export default function SettingsClient({ initProfile, tenantSlug }: { 
+export default function SettingsClient({ initProfile, tenantSlug }: {
   initProfile: { id: string, name: string, slug: string, domain: string, logoUrl: string } | null;
   tenantSlug: string;
 }) {
   const { message } = App.useApp();
   const router = useRouter();
-  
+
   const [activeTab, setActiveTab] = useState<'profile' | 'modules' | 'import' | 'panama'>('modules');
   const [profileData, setProfileData] = useState({
     name: initProfile?.name || '',
@@ -22,6 +22,9 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
     logoUrl: initProfile?.logoUrl || ''
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [logoFileName, setLogoFileName] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Panama fiscal config
   const [panamaData, setPanamaData] = useState({
@@ -37,6 +40,49 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
   const [uploading, setUploading] = useState(false);
   const [importLogs, setImportLogs] = useState<string[]>([]);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoError(null);
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setLogoError('Selecciona una imagen PNG, JPG o WebP.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setLogoError('La imagen original no puede superar 8 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 512 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('No se pudo procesar la imagen');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const optimizedLogo = canvas.toDataURL('image/webp', 0.82);
+      if (optimizedLogo.length > 700_000) throw new Error('La imagen no pudo comprimirse por debajo de 512 KB');
+      setProfileData((current) => ({ ...current, logoUrl: optimizedLogo }));
+      setLogoFileName(file.name);
+    } catch (err: unknown) {
+      setLogoError(err instanceof Error ? err.message : 'No se pudo procesar la imagen');
+      e.target.value = '';
+    }
+  };
+
+  const clearLogo = () => {
+    setProfileData((current) => ({ ...current, logoUrl: '' }));
+    setLogoFileName(null);
+    setLogoError(null);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +109,7 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
     setUploading(true);
     setImportLogs([]);
     setImportMessage(null);
-    
+
     try {
       const text = await csvFile.text();
       const res = await importStudentsCsv(tenantSlug, text);
@@ -131,33 +177,33 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
       breadcrumbs={['Admin', 'Configuración de la Escuela']}
     >
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full min-h-[600px] mt-[2px]">
-        
+
         {/* Header Options */}
         <div className="p-6 border-b border-gray-100 bg-gray-50/30">
           <h1 className="text-xl font-bold text-gray-900 mb-6">Configuración de la Plataforma</h1>
-          
+
           <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
-            <button 
+            <button
               onClick={() => setActiveTab('modules')}
               className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'modules' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Módulos del Sistema
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('profile')}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Perfil del Colegio
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('import')}
               className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'import' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Importador Masivo
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('panama')}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'panama' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'panama' ? 'bg-white text-brand-accent shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               Panamá Fiscal
             </button>
@@ -166,16 +212,16 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
 
         {/* Content Views */}
         <div className="p-8 flex-1 bg-gray-50/20">
-          
+
           {/* TAB 1: MODULES DIRECTORY */}
           {activeTab === 'modules' && (
             <div className="max-w-4xl space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 
+
                  {/* Academic */}
                  <Link href="/admin/academic" className="group">
-                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all">
-                     <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mb-4 text-indigo-600 group-hover:scale-110 transition-transform">
+                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-primary hover:shadow-md transition-all">
+                     <div className="w-12 h-12 bg-brand-secondary rounded-full flex items-center justify-center mb-4 text-brand-primary group-hover:scale-110 transition-transform">
                        <span className="material-symbols-outlined text-2xl">event_note</span>
                      </div>
                      <h3 className="text-lg font-bold text-gray-900 mb-1">Años Académicos</h3>
@@ -194,18 +240,18 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                  </Link>
 
                  <Link href="/admin/subjects" className="group">
-                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-purple-300 hover:shadow-md transition-all">
-                     <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center mb-4 text-purple-600 group-hover:scale-110 transition-transform">
+                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-accent hover:shadow-md transition-all">
+                     <div className="w-12 h-12 bg-brand-bg rounded-full flex items-center justify-center mb-4 text-brand-accent group-hover:scale-110 transition-transform">
                        <span className="material-symbols-outlined text-2xl">menu_book</span>
                      </div>
                      <h3 className="text-lg font-bold text-gray-900 mb-1">Catálogo de Materias</h3>
                      <p className="text-sm text-gray-500">Crea materias y asígnalas a los diferentes grupos incluyendo la asignación de docentes responsables.</p>
                    </div>
                  </Link>
-                 
+
                  <Link href="/admin/staff" className="group">
-                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all">
-                     <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-blue-600 group-hover:scale-110 transition-transform">
+                   <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-brand-accent hover:shadow-md transition-all">
+                     <div className="w-12 h-12 bg-brand-bg rounded-full flex items-center justify-center mb-4 text-brand-accent group-hover:scale-110 transition-transform">
                        <span className="material-symbols-outlined text-2xl">switch_account</span>
                      </div>
                      <h3 className="text-lg font-bold text-gray-900 mb-1">Personal (Staff)</h3>
@@ -221,48 +267,67 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
           {activeTab === 'profile' && (
             <div className="max-w-2xl bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Información General de la Sucursal</h2>
-                
+
                 <form onSubmit={handleProfileSubmit} className="space-y-5">
                    <div>
                      <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre Oficial del Colegio</label>
-                     <input 
-                       type="text" 
-                       required 
-                       value={profileData.name} 
-                       onChange={e => setProfileData({...profileData, name: e.target.value})} 
-                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none" 
+                     <input
+                       type="text"
+                       required
+                       value={profileData.name}
+                       onChange={e => setProfileData({...profileData, name: e.target.value})}
+                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary focus:bg-white transition-all outline-none"
                      />
                    </div>
 
                    <div>
                      <label className="block text-sm font-semibold text-gray-700 mb-1">Dominio Institucional (Opcional)</label>
-                     <input 
-                       type="text" 
+                     <input
+                       type="text"
                        placeholder="demo-school.com"
-                       value={profileData.domain} 
-                       onChange={e => setProfileData({...profileData, domain: e.target.value})} 
-                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none" 
+                       value={profileData.domain}
+                       onChange={e => setProfileData({...profileData, domain: e.target.value})}
+                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary focus:bg-white transition-all outline-none"
                      />
                    </div>
 
                    <div>
-                     <label className="block text-sm font-semibold text-gray-700 mb-1">URL del Logotipo (Opcional)</label>
-                     <input 
-                       type="url" 
+                     <label className="block text-sm font-semibold text-gray-700 mb-1">Logotipo del Colegio (Opcional)</label>
+                     <input
+                       type="url"
                        placeholder="https://..."
-                       value={profileData.logoUrl} 
-                       onChange={e => setProfileData({...profileData, logoUrl: e.target.value})} 
-                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none" 
+                       value={profileData.logoUrl.startsWith('data:') ? '' : profileData.logoUrl}
+                       onChange={e => {
+                         setProfileData({ ...profileData, logoUrl: e.target.value });
+                         setLogoFileName(null);
+                         setLogoError(null);
+                       }}
+                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary focus:bg-white transition-all outline-none"
                      />
-                     <p className="text-xs text-gray-400 mt-1 italic">Provee un enlace directo a la imagen. (jpg, png, svg)</p>
+                     <p className="text-xs text-gray-400 mt-1">También puedes subir una imagen propia (PNG, JPG o WebP).</p>
+                     <div className="mt-3 flex items-center gap-4">
+                       <div className="h-20 w-20 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center">
+                         {profileData.logoUrl ? (
+                           <img src={profileData.logoUrl} alt="Vista previa del logotipo" className="h-full w-full object-contain" />
+                         ) : (
+                           <span className="material-symbols-outlined text-3xl text-gray-300">image</span>
+                         )}
+                       </div>
+                       <div className="flex-1 space-y-2">
+                         <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoChange} className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-secondary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-brand-primary hover:file:bg-brand-secondary" />
+                         {logoFileName && <p className="text-xs text-gray-500 truncate">Imagen seleccionada: {logoFileName}</p>}
+                         {profileData.logoUrl && <button type="button" onClick={clearLogo} className="text-xs font-semibold text-red-600 hover:text-red-700">Quitar logotipo</button>}
+                       </div>
+                     </div>
+                     {logoError && <p className="mt-2 text-xs font-semibold text-red-600">{logoError}</p>}
                    </div>
-                   
+
                    <hr className="my-6 border-gray-100" />
-                   
-                   <button 
-                     type="submit" 
+
+                   <button
+                     type="submit"
                      disabled={savingProfile}
-                     className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-md w-full"
+                     className="px-6 py-2.5 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary disabled:opacity-50 transition-colors shadow-md w-full"
                    >
                      {savingProfile ? 'Actualizando...' : 'Guardar Cambios'}
                    </button>
@@ -291,11 +356,11 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                 </div>
 
                 <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 hover:bg-gray-50 transition-colors text-center relative mb-4">
-                  <input 
-                    type="file" 
-                    accept=".csv" 
+                  <input
+                    type="file"
+                    accept=".csv"
                     onChange={handleCsvChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                   <div className="pointer-events-none">
                      <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">cloud_upload</span>
@@ -306,10 +371,10 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                   </div>
                 </div>
 
-                <button 
+                <button
                   onClick={processCsv}
                   disabled={!csvFile || uploading}
-                  className="px-6 py-2.5 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-md w-full"
+                  className="px-6 py-2.5 bg-brand-primary text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-colors shadow-md w-full"
                 >
                   {uploading ? 'Procesando archivo...' : 'Comenzar Importación'}
                 </button>
@@ -331,7 +396,7 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
           {activeTab === 'panama' && (
              <div className="max-w-2xl bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
-                   <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                   <div className="w-10 h-10 bg-brand-bg text-brand-accent rounded-full flex items-center justify-center">
                      <span className="material-symbols-outlined">receipt_long</span>
                    </div>
                    <div>
@@ -340,9 +405,9 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                    </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6">
-                  <p className="text-sm text-blue-800">
-                    <strong>Requisito legal:</strong> Según Ley 256/2021 y Decreto 766/2020, las escuelas deben emitir facturas electrónicas 
+                <div className="bg-brand-bg p-4 rounded-xl border border-brand-secondary mb-6">
+                  <p className="text-sm text-gray-800">
+                    <strong>Requisito legal:</strong> Según Ley 256/2021 y Decreto 766/2020, las escuelas deben emitir facturas electrónicas
                     a través de un PAC (Proveedor Autorizado Calificado). Configura tus datos y obtén tu API key del PAC.
                   </p>
                 </div>
@@ -354,25 +419,25 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">RUC de la Escuela</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="123456789"
-                          value={panamaData.ruc} 
-                          onChange={e => setPanamaData({...panamaData, ruc: e.target.value})} 
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                          value={panamaData.ruc}
+                          onChange={e => setPanamaData({...panamaData, ruc: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-bg0 focus:bg-white transition-all outline-none font-mono"
                         />
                         <p className="text-xs text-gray-400 mt-1">Registro Único de Contribuyente</p>
                       </div>
 
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-1">DV</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           placeholder="12"
                           maxLength={2}
-                          value={panamaData.dv} 
-                          onChange={e => setPanamaData({...panamaData, dv: e.target.value})} 
-                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                          value={panamaData.dv}
+                          onChange={e => setPanamaData({...panamaData, dv: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-bg0 focus:bg-white transition-all outline-none font-mono"
                         />
                         <p className="text-xs text-gray-400 mt-1">Dígito Verificador (2 dígitos)</p>
                       </div>
@@ -380,12 +445,12 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">NIT (Opcional)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="1234567890"
-                        value={panamaData.nit} 
-                        onChange={e => setPanamaData({...panamaData, nit: e.target.value})} 
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                        value={panamaData.nit}
+                        onChange={e => setPanamaData({...panamaData, nit: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-bg0 focus:bg-white transition-all outline-none font-mono"
                       />
                       <p className="text-xs text-gray-400 mt-1">Número de Identificación Tributaria</p>
                     </div>
@@ -394,31 +459,31 @@ export default function SettingsClient({ initProfile, tenantSlug }: {
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1">API Key del PAC</label>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         placeholder="sk_live_..."
-                        value={panamaData.pacApiKey} 
-                        onChange={e => setPanamaData({...panamaData, pacApiKey: e.target.value})} 
-                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none font-mono" 
+                        value={panamaData.pacApiKey}
+                        onChange={e => setPanamaData({...panamaData, pacApiKey: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-bg0 focus:bg-white transition-all outline-none font-mono"
                       />
                       <p className="text-xs text-gray-400 mt-1">
-                        Clave API proporcionada por tu PAC (Alegra, etc.). <a href="https://dgi-fep.mef.gob.pa" target="_blank" rel="noopener" className="text-blue-600 hover:underline">Lista de PAC autorizados →</a>
+                        Clave API proporcionada por tu PAC (Alegra, etc.). <a href="https://dgi-fep.mef.gob.pa" target="_blank" rel="noopener" className="text-brand-accent hover:underline">Lista de PAC autorizados →</a>
                       </p>
                     </div>
 
                     <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
                       <span className={`w-3 h-3 rounded-full ${panamaData.ruc && panamaData.dv && panamaData.pacApiKey ? 'bg-green-500' : 'bg-yellow-400'}`}></span>
                       <span className="text-sm font-medium text-gray-700">
-                        {panamaData.ruc && panamaData.dv && panamaData.pacApiKey 
-                          ? 'Facturación electrónica: ✅ Lista para emitir' 
+                        {panamaData.ruc && panamaData.dv && panamaData.pacApiKey
+                          ? 'Facturación electrónica: ✅ Lista para emitir'
                           : 'Facturación electrónica: ⚠️ Configuración incompleta'}
                       </span>
                     </div>
-                    
-                    <button 
-                      type="submit" 
+
+                    <button
+                      type="submit"
                       disabled={savingPanama}
-                      className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md w-full"
+                      className="px-6 py-2.5 bg-brand-accent text-white font-bold rounded-xl hover:bg-brand-accent disabled:opacity-50 transition-colors shadow-md w-full"
                     >
                       {savingPanama ? 'Guardando...' : 'Guardar Configuración Fiscal'}
                     </button>

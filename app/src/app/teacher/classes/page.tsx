@@ -40,7 +40,7 @@ export default async function TeacherClassesPage() {
               <Link
                 key={c.id}
                 href={`/teacher/classes/${c.id}`}
-                className="no-underline block bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:border-indigo-200 hover:shadow-md transition"
+                className="no-underline block bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:border-brand-primary hover:shadow-md transition"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -52,7 +52,7 @@ export default async function TeacherClassesPage() {
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-gray-50 border border-gray-200 text-gray-700">
                       {c.students} alumnos
                     </span>
-                    <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-indigo-50 border border-indigo-100 text-indigo-700">
+                    <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-brand-secondary border border-brand-secondary text-brand-primary">
                       {c.nextLesson}
                     </span>
                   </div>

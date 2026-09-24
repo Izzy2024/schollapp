@@ -10,11 +10,11 @@ const menuGroups = getMenuGroupsForRoles(['student']);
 type CalEvent = { id: string; title: string; description: string | null; startDate: string; endDate: string | null; type: string | null };
 
 const TYPE_COLORS: Record<string, string> = {
-  holiday: 'bg-red-50 text-red-700 border-red-200',
-  event: 'bg-blue-50 text-blue-700 border-blue-200',
-  deadline: 'bg-amber-50 text-amber-700 border-amber-200',
+  holiday: 'bg-danger/15 text-danger border-danger/30',
+  event: 'bg-info/15 text-info border-info/30',
+  deadline: 'bg-warning/15 text-warning border-warning/30',
   exam: 'bg-purple-50 text-purple-700 border-purple-200',
-  meeting: 'bg-green-50 text-green-700 border-green-200',
+  meeting: 'bg-success/15 text-success border-success/30',
 };
 
 export default function StudentActivitiesPage() {
@@ -44,7 +44,7 @@ export default function StudentActivitiesPage() {
     <DashboardLayout roleTitle="Alumno" userName="Alumno" userRole="Estudiante" menuGroups={menuGroups} breadcrumbs={['Alumno', 'Actividades']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Actividades y Eventos</h1>
-        {upcoming.length > 0 && <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">{upcoming.length} próximos</span>}
+        {upcoming.length > 0 && <span className="px-3 py-1 bg-info/15 text-info rounded-full text-sm font-bold">{upcoming.length} próximos</span>}
       </div>
 
       {loading ? (

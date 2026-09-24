@@ -104,7 +104,7 @@ export default function ScheduleRequestsDirectorPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === tab ? 'text-brand-accent border-b-2 border-brand-accent bg-brand-bg/30' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
             >
               {tab === 'pending' ? 'Pendientes' : tab === 'approved' ? 'Aprobadas' : 'Rechazadas'} ({counts[tab]})
             </button>

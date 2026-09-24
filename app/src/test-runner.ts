@@ -102,3 +102,6 @@ import './actions/__tests__/authRateLimit.contract.test';
 
 // staff/students/guardians authorization contract suite
 import './actions/__tests__/staffStudentsGuardians.authz.test';
+
+// Tenant self-activation (key -> tenant + admin with default RBAC) contract suite
+import './actions/__tests__/tenantActivation.contract.test';

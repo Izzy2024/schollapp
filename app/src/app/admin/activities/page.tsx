@@ -42,14 +42,14 @@ export default function AdminActivitiesPage() {
     <DashboardLayout roleTitle="Admin" userName="Administrador" userRole="Administrador" menuGroups={menuGroups} breadcrumbs={['Admin', 'Actividades']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Actividades</h1>
-        <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">Registro de actividad</span>
+        <span className="px-3 py-1 bg-brand-secondary text-gray-800 rounded-full text-sm font-bold">Registro de actividad</span>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-6">
-        <button onClick={() => { setFilter(undefined); setPage(1); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${!filter ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>Todas</button>
+        <button onClick={() => { setFilter(undefined); setPage(1); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${!filter ? 'bg-brand-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>Todas</button>
         {entityTypes.map(t => (
-          <button key={t} onClick={() => { setFilter(t); setPage(1); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors capitalize ${filter === t ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>{t === 'enrollment' ? 'Inscripciones' : t === 'announcement' ? 'Comunicados' : t === 'attendance' ? 'Asistencia' : 'Finanzas'}</button>
+          <button key={t} onClick={() => { setFilter(t); setPage(1); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors capitalize ${filter === t ? 'bg-brand-primary text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>{t === 'enrollment' ? 'Inscripciones' : t === 'announcement' ? 'Comunicados' : t === 'attendance' ? 'Asistencia' : 'Finanzas'}</button>
         ))}
       </div>
 

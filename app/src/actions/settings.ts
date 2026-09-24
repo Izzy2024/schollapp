@@ -33,25 +33,44 @@ export async function updateTenantProfile(
 ) {
   const session = await auth();
   if (!session?.user) throw new Error('Unauthorized');
-  
-  // Verify ownership
+
+  const name = data.name.trim();
+  if (!name) throw new Error('El nombre del colegio es requerido');
+  if (name.length > 160) throw new Error('El nombre del colegio es demasiado largo');
+
+  const logoUrl = data.logoUrl?.trim() || null;
+  if (logoUrl) {
+    if (logoUrl.startsWith('data:')) {
+      const match = logoUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
+      if (!match) throw new Error('El logo debe ser PNG, JPG o WebP válido');
+      if (logoUrl.length > 700_000) throw new Error('El logo optimizado no puede superar 512 KB');
+    } else {
+      try {
+        const parsed = new URL(logoUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+      } catch {
+        throw new Error('La URL del logotipo no es válida');
+      }
+    }
+  }
+
   const tenant = await prisma.tenant.findFirst({
     where: { id: tenantId, slug: session.user.tenantSlug }
   });
-  
+
   if (!tenant) throw new Error('Operación no permitida');
 
   await prisma.tenant.update({
     where: { id: tenantId },
     data: {
-      name: data.name,
-      logoUrl: data.logoUrl?.trim() || null,
+      name,
+      logoUrl,
     }
   });
 
   revalidatePath('/admin/settings');
-  revalidatePath('/', 'layout'); // Update main layout if logo changed
-  
+  revalidatePath('/', 'layout');
+
   return { success: true };
 }
 

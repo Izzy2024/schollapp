@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="stat-card">
               <div className="flex justify-between items-start mb-3">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <div className="p-2 bg-brand-primary/15 text-brand-primary rounded-lg">
                   <span className="material-symbols-outlined">school</span>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export default function AdminDashboard() {
             </div>
             <div className="stat-card">
               <div className="flex justify-between items-start mb-3">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <div className="p-2 bg-brand-accent/15 text-brand-accent rounded-lg">
                   <span className="material-symbols-outlined">badge</span>
                 </div>
               </div>
@@ -65,7 +65,7 @@ export default function AdminDashboard() {
             </div>
             <div className="stat-card">
               <div className="flex justify-between items-start mb-3">
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                <div className="p-2 bg-brand-secondary text-gray-700 rounded-lg">
                   <span className="material-symbols-outlined">class</span>
                 </div>
               </div>
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
             </div>
             <div className="stat-card">
               <div className="flex justify-between items-start mb-3">
-                <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+                <div className="p-2 bg-brand-bg text-brand-accent border border-brand-secondary rounded-lg">
                   <span className="material-symbols-outlined">rule</span>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   {stats.recentActivities.map((act) => (
                     <div key={act.id} className="flex gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-brand-bg text-brand-accent flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-lg">history</span>
                       </div>
                       <div className="flex-1">
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-900">Acciones Recomendadas</h3>
               </div>
-              
+
               <div className="space-y-4">
                 {stats.pendingRequestsCount > 0 && (
                   <Link href="/admin/class-requests" className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-100 rounded-xl hover:bg-yellow-100 transition-colors">

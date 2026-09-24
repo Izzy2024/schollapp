@@ -64,7 +64,7 @@ export default function DirectorAcademicPage() {
     >
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Rendimiento Académico</h1>
-        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-bold">
+        <span className="px-3 py-1 bg-brand-secondary text-brand-primary rounded-full text-sm font-bold">
           Indicadores
         </span>
       </div>
@@ -80,7 +80,7 @@ export default function DirectorAcademicPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
               { label: 'Asistencia Promedio (7 días)', value: avgAttendance !== null ? `${avgAttendance}%` : '—', icon: 'how_to_reg', color: avgAttendance !== null && avgAttendance >= 90 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600' },
-              { label: 'Alumnos Inscritos', value: totalEnrolled.toString(), icon: 'school', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Alumnos Inscritos', value: totalEnrolled.toString(), icon: 'school', color: 'bg-brand-bg text-brand-accent' },
               { label: 'Ocupación General', value: totalCapacity > 0 ? `${Math.round((totalEnrolled / totalCapacity) * 100)}%` : '—', icon: 'pie_chart', color: 'bg-violet-50 text-violet-600' },
             ].map(kpi => (
               <div key={kpi.label} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
@@ -136,7 +136,7 @@ export default function DirectorAcademicPage() {
                       <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
-                            s.occupancyPct >= 90 ? 'bg-red-400' : s.occupancyPct >= 70 ? 'bg-amber-400' : 'bg-blue-400'
+                            s.occupancyPct >= 90 ? 'bg-red-400' : s.occupancyPct >= 70 ? 'bg-amber-400' : 'bg-brand-accent'
                           }`}
                           style={{ width: `${s.occupancyPct}%` }}
                         />

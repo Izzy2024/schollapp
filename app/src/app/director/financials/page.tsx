@@ -68,7 +68,7 @@ export default function DirectorFinancialsPage() {
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
-              { label: 'Cargos Totales', value: formatCents(data.totalChargesCents), icon: 'receipt_long', color: 'bg-blue-50 text-blue-600', sub: `${data.chargeCount} cargos` },
+              { label: 'Cargos Totales', value: formatCents(data.totalChargesCents), icon: 'receipt_long', color: 'bg-brand-bg text-brand-accent', sub: `${data.chargeCount} cargos` },
               { label: 'Pagos Recibidos', value: formatCents(data.totalPaymentsCents), icon: 'payments', color: 'bg-green-50 text-green-600', sub: `${data.paymentCount} pagos` },
               { label: 'Saldo Pendiente', value: formatCents(data.balanceDueCents), icon: 'account_balance_wallet', color: data.balanceDueCents > 0 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600', sub: data.balanceDueCents > 0 ? 'Por cobrar' : 'Al corriente' },
             ].map(kpi => (

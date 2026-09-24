@@ -5,6 +5,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { getGradeWeights, setGradeWeights } from '@/actions/reportCards';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -14,7 +15,6 @@ export default function GradeWeightsPage() {
   const { message } = App.useApp();
   const [weights, setWeights] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getGradeWeights()
@@ -33,16 +33,14 @@ export default function GradeWeightsPage() {
   const handleSave = async () => {
     if (total !== 100) {
       message.error('Los porcentajes deben sumar 100');
-      return;
+      throw new Error('Los porcentajes deben sumar 100');
     }
-    setSaving(true);
     try {
       await setGradeWeights(EVALUATION_TYPES.map((type) => ({ type, weightPercent: weights[type] || 0 })));
       message.success('Ponderación guardada');
     } catch (error: any) {
       message.error(error.message || 'Error al guardar');
-    } finally {
-      setSaving(false);
+      throw error;
     }
   };
 
@@ -77,7 +75,7 @@ export default function GradeWeightsPage() {
                     max={100}
                     value={weights[type] ?? 0}
                     onChange={(e) => setWeights({ ...weights, [type]: Number(e.target.value) })}
-                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                   <span className="text-sm text-gray-500">%</span>
                 </div>
@@ -89,13 +87,13 @@ export default function GradeWeightsPage() {
               <span className="text-sm font-bold">{total}%</span>
             </div>
 
-            <button
+            <SaveButton
+              type="primary"
               onClick={handleSave}
-              disabled={saving}
-              className="w-full mt-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+              className="w-full mt-2"
             >
-              {saving ? 'Guardando...' : 'Guardar ponderación'}
-            </button>
+              Guardar ponderación
+            </SaveButton>
           </div>
         )}
       </div>

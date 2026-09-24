@@ -110,17 +110,17 @@ export default function DirectorEnrollmentPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="stat-card">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <div className="p-2 bg-brand-secondary text-brand-primary rounded-lg">
                   <span className="material-symbols-outlined">groups</span>
                 </div>
               </div>
               <h3 className="text-sm font-medium text-gray-500">Total Inscritos</h3>
               <p className="text-3xl font-bold text-gray-900 mt-1">{stats?.totalEnrolled}</p>
             </div>
-            
+
             <div className="stat-card">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <div className="p-2 bg-brand-bg text-brand-accent rounded-lg">
                   <span className="material-symbols-outlined">class</span>
                 </div>
               </div>
@@ -130,7 +130,7 @@ export default function DirectorEnrollmentPage() {
 
             <div className="stat-card">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                <div className="p-2 bg-brand-bg text-brand-accent rounded-lg">
                   <span className="material-symbols-outlined">pie_chart</span>
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function DirectorEnrollmentPage() {
               <div className="flex items-center gap-3 mt-1">
                 <p className="text-3xl font-bold text-gray-900">{avgOccupancy}%</p>
                 <div className="flex-1 max-w-[100px] bg-gray-100 rounded-full h-2 mt-2">
-                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${avgOccupancy}%` }}></div>
+                  <div className="bg-brand-bg0 h-2 rounded-full" style={{ width: `${avgOccupancy}%` }}></div>
                 </div>
               </div>
             </div>
@@ -183,8 +183,8 @@ export default function DirectorEnrollmentPage() {
                           <div className="flex items-center gap-2">
                             <span className={`w-8 text-right font-medium ${s.pct >= 100 ? 'text-red-600' : 'text-gray-700'}`}>{s.pct}%</span>
                             <div className="w-16 bg-gray-100 rounded-full h-1.5 flex-shrink-0">
-                              <div 
-                                className={`h-1.5 rounded-full ${s.pct >= 100 ? 'bg-red-500' : s.pct >= 85 ? 'bg-yellow-500' : 'bg-indigo-500'}`} 
+                              <div
+                                className={`h-1.5 rounded-full ${s.pct >= 100 ? 'bg-red-500' : s.pct >= 85 ? 'bg-yellow-500' : 'bg-brand-primary'}`}
                                 style={{ width: `${Math.min(100, s.pct)}%` }}
                               ></div>
                             </div>

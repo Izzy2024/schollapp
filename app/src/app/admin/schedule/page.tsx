@@ -12,6 +12,7 @@ import {
   updateClassScheduleDirect,
   deleteClassScheduleDirect,
 } from '@/actions/scheduleRequests';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -51,7 +52,6 @@ export default function AdminSchedulePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const [checkingConflict, setCheckingConflict] = useState(false);
 
@@ -117,25 +117,28 @@ export default function AdminSchedulePage() {
   };
 
   const handleSave = async () => {
-    if (!form.sectionSubjectId) return message.error('Selecciona una clase');
-    setSaving(true);
+    if (!form.sectionSubjectId) {
+      message.error('Selecciona una clase');
+      throw new Error('Selecciona una clase');
+    }
+    let res;
     try {
-      const res = editingId
+      res = editingId
         ? await updateClassScheduleDirect(editingId, form.dayOfWeek, form.startTime, form.endTime, form.room.trim() || null)
         : await createClassScheduleDirect(form.sectionSubjectId, form.dayOfWeek, form.startTime, form.endTime, form.room.trim() || null);
-
-      if (!res.success) {
-        message.error(res.error || 'Error al guardar');
-      } else {
-        message.success(editingId ? 'Horario actualizado' : 'Horario creado');
-        setModalOpen(false);
-        loadData();
-      }
     } catch (e: any) {
       message.error(e.message || 'Error al guardar');
-    } finally {
-      setSaving(false);
+      throw e;
     }
+
+    if (!res.success) {
+      message.error(res.error || 'Error al guardar');
+      throw new Error(res.error || 'Error al guardar');
+    }
+
+    message.success(editingId ? 'Horario actualizado' : 'Horario creado');
+    setTimeout(() => setModalOpen(false), 900);
+    loadData();
   };
 
   const handleDelete = async () => {
@@ -173,14 +176,14 @@ export default function AdminSchedulePage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Horarios</h1>
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">{schedules.length} clases</span>
+          <span className="px-3 py-1 bg-brand-secondary text-gray-800 rounded-full text-sm font-bold">{schedules.length} clases</span>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-lg">
+          <button onClick={openCreateModal} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-xl hover:bg-brand-primary transition-colors shadow-lg">
             <span className="material-symbols-outlined text-lg">add</span>
             Nuevo Horario
           </button>
-          <a href="/admin/schedule-requests" className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
+          <a href="/admin/schedule-requests" className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors shadow-lg">
             <span className="material-symbols-outlined text-lg">swap_horiz</span>
             Solicitudes de Horario
           </a>
@@ -189,9 +192,9 @@ export default function AdminSchedulePage() {
 
       {/* Day filter */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto">
-        <button onClick={() => setSelectedDay(null)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${selectedDay === null ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Todos</button>
+        <button onClick={() => setSelectedDay(null)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${selectedDay === null ? 'bg-brand-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>Todos</button>
         {[1,2,3,4,5].map(d => (
-          <button key={d} onClick={() => setSelectedDay(selectedDay === d ? null : d)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${selectedDay === d ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>{DAYS_SHORT[d]}</button>
+          <button key={d} onClick={() => setSelectedDay(selectedDay === d ? null : d)} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap ${selectedDay === d ? 'bg-brand-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>{DAYS_SHORT[d]}</button>
         ))}
       </div>
 
@@ -225,8 +228,8 @@ export default function AdminSchedulePage() {
                       <div className="font-semibold text-gray-900">{s.subjectName}</div>
                       <div className="text-sm text-gray-500">{s.sectionName} • {s.teacherName}</div>
                     </div>
-                    {s.room && <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">{s.room}</span>}
-                    <button onClick={() => openEditModal(s)} className="text-gray-400 hover:text-indigo-600 transition-colors" title="Editar">
+                    {s.room && <span className="px-3 py-1 bg-brand-bg text-brand-accent text-xs font-medium rounded-lg">{s.room}</span>}
+                    <button onClick={() => openEditModal(s)} className="text-gray-400 hover:text-brand-primary transition-colors" title="Editar">
                       <span className="material-symbols-outlined text-xl">edit</span>
                     </button>
                     <button onClick={() => setDeleteTarget(s)} className="text-gray-400 hover:text-red-600 transition-colors" title="Eliminar">
@@ -257,7 +260,7 @@ export default function AdminSchedulePage() {
                   <select
                     value={form.sectionSubjectId}
                     onChange={(e) => updateForm({ sectionSubjectId: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   >
                     <option value="">-- Seleccionar --</option>
                     {classesWithTeacher.map((c) => (
@@ -277,7 +280,7 @@ export default function AdminSchedulePage() {
                   <select
                     value={form.dayOfWeek}
                     onChange={(e) => updateForm({ dayOfWeek: Number(e.target.value) })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   >
                     {[1, 2, 3, 4, 5, 6].map((d) => (
                       <option key={d} value={d}>{DAYS[d]}</option>
@@ -290,7 +293,7 @@ export default function AdminSchedulePage() {
                     type="time"
                     value={form.startTime}
                     onChange={(e) => updateForm({ startTime: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
                 <div>
@@ -299,7 +302,7 @@ export default function AdminSchedulePage() {
                     type="time"
                     value={form.endTime}
                     onChange={(e) => updateForm({ endTime: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   />
                 </div>
               </div>
@@ -309,7 +312,7 @@ export default function AdminSchedulePage() {
                   type="text"
                   value={form.room}
                   onChange={(e) => updateForm({ room: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 />
               </div>
               {checkingConflict && <p className="text-xs text-gray-400">Verificando disponibilidad…</p>}
@@ -321,13 +324,13 @@ export default function AdminSchedulePage() {
               <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
-              <button
+              <SaveButton
+                type="primary"
+                disabled={!!conflictError || (!editingId && !form.sectionSubjectId)}
                 onClick={handleSave}
-                disabled={saving || !!conflictError || (!editingId && !form.sectionSubjectId)}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {saving ? 'Guardando...' : 'Guardar'}
-              </button>
+                Guardar
+              </SaveButton>
             </div>
           </div>
         </div>

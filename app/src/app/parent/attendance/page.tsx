@@ -69,7 +69,7 @@ export default function ParentAttendancePage() {
               setSelectedChildId(e.target.value);
               loadAttendance(e.target.value);
             }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             {children.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -92,10 +92,10 @@ export default function ParentAttendancePage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { label: 'Asistencia', value: attendancePct !== null ? `${attendancePct}%` : '—', icon: 'how_to_reg', color: 'bg-green-50 text-green-600' },
-              { label: 'Presentes', value: totalStats.present.toString(), icon: 'check_circle', color: 'bg-blue-50 text-blue-600' },
-              { label: 'Faltas', value: totalStats.absent.toString(), icon: 'cancel', color: 'bg-red-50 text-red-600' },
-              { label: 'Retardos', value: totalStats.late.toString(), icon: 'schedule', color: 'bg-amber-50 text-amber-600' },
+              { label: 'Asistencia', value: attendancePct !== null ? `${attendancePct}%` : '—', icon: 'how_to_reg', color: 'bg-success/15 text-success' },
+              { label: 'Presentes', value: totalStats.present.toString(), icon: 'check_circle', color: 'bg-info/15 text-info' },
+              { label: 'Faltas', value: totalStats.absent.toString(), icon: 'cancel', color: 'bg-danger/15 text-danger' },
+              { label: 'Retardos', value: totalStats.late.toString(), icon: 'schedule', color: 'bg-warning/15 text-warning' },
             ].map((kpi) => (
               <div key={kpi.label} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl ${kpi.color}`}><span className="material-symbols-outlined text-xl">{kpi.icon}</span></div>
@@ -119,9 +119,9 @@ export default function ParentAttendancePage() {
                   <tr className="border-b border-gray-100 bg-gray-50/50">
                     <th className="text-left py-3 px-5 text-gray-500 font-medium">Mes</th>
                     <th className="text-center py-3 px-5 text-gray-500 font-medium">Total</th>
-                    <th className="text-center py-3 px-5 text-green-600 font-medium">Presente</th>
-                    <th className="text-center py-3 px-5 text-red-600 font-medium">Falta</th>
-                    <th className="text-center py-3 px-5 text-amber-600 font-medium">Retardo</th>
+                    <th className="text-center py-3 px-5 text-success font-medium">Presente</th>
+                    <th className="text-center py-3 px-5 text-danger font-medium">Falta</th>
+                    <th className="text-center py-3 px-5 text-warning font-medium">Retardo</th>
                     <th className="text-center py-3 px-5 text-gray-500 font-medium">%</th>
                   </tr>
                 </thead>
@@ -132,9 +132,9 @@ export default function ParentAttendancePage() {
                       <tr key={m.month} className="border-b border-gray-50 last:border-0">
                         <td className="py-3 px-5 font-medium text-gray-900 capitalize">{m.month}</td>
                         <td className="py-3 px-5 text-center text-gray-600">{m.total}</td>
-                        <td className="py-3 px-5 text-center text-green-700 font-semibold">{m.present}</td>
-                        <td className="py-3 px-5 text-center text-red-600">{m.absent}</td>
-                        <td className="py-3 px-5 text-center text-amber-600">{m.late}</td>
+                        <td className="py-3 px-5 text-center text-success font-semibold">{m.present}</td>
+                        <td className="py-3 px-5 text-center text-danger">{m.absent}</td>
+                        <td className="py-3 px-5 text-center text-warning">{m.late}</td>
                         <td className="py-3 px-5 text-center font-bold text-gray-900">{pct}%</td>
                       </tr>
                     );

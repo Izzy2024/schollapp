@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  getReportDashboardKPIs, 
-  getEnrollmentStatsBySection, 
+import {
+  getReportDashboardKPIs,
+  getEnrollmentStatsBySection,
   getRecentAttendanceStats,
-  exportActiveStudentsCsv 
+  exportActiveStudentsCsv
 } from '@/actions/reports';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
@@ -74,11 +74,11 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Reportes y Estadísticas</h1>
           <p className="text-sm text-gray-500">Métricas globales de la escuela</p>
         </div>
-        
+
         <button
           onClick={handleExportCsv}
           disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors shadow-sm disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-secondary text-brand-primary text-sm font-bold rounded-xl hover:bg-brand-secondary transition-colors shadow-sm disabled:opacity-50"
         >
           {exporting ? (
             <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
@@ -103,18 +103,18 @@ export default function ReportsPage() {
                 <p className="text-sm font-medium text-gray-500 mb-1">Alumnos Activos</p>
                 <p className="text-3xl font-bold text-gray-900">{kpis?.activeStudents}</p>
               </div>
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">people</span>
+<div className="w-12 h-12 bg-brand-primary/15 text-brand-primary rounded-xl flex items-center justify-center">
+                 <span className="material-symbols-outlined text-2xl">people</span>
               </div>
             </div>
-            
+
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">Grupos Activos (Ciclo Actual)</p>
                 <p className="text-3xl font-bold text-gray-900">{kpis?.activeSections}</p>
               </div>
-              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-2xl">class</span>
+<div className="w-12 h-12 bg-brand-accent/15 text-brand-accent rounded-xl flex items-center justify-center">
+                 <span className="material-symbols-outlined text-2xl">class</span>
               </div>
             </div>
 
@@ -138,7 +138,7 @@ export default function ReportsPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col h-full">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-indigo-500">bar_chart</span>
+                  <span className="material-symbols-outlined text-gray-8000">bar_chart</span>
                   Matrícula por Grupo
                 </h3>
               </div>
@@ -153,7 +153,7 @@ export default function ReportsPage() {
                         <span className="text-gray-500 text-xs">{s.enrolled} / {s.capacity}</span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden flex">
-                        <div 
+                        <div
                           className={`h-2.5 rounded-full transition-all ${s.occupancyPct >= 100 ? 'bg-red-500' : s.occupancyPct >= 80 ? 'bg-amber-400' : 'bg-green-500'}`}
                           style={{ width: `${Math.min(100, s.occupancyPct)}%` }}
                         />
@@ -191,7 +191,7 @@ export default function ReportsPage() {
                           <td className="py-3 px-2 text-center text-gray-500">{a.totalRecords}</td>
                           <td className="py-3 px-2 text-right">
                             <span className={`inline-block px-2 py-0.5 rounded-lg font-bold text-xs ${
-                              (a.attendancePct || 0) < 80 ? 'bg-red-100 text-red-700' : 
+                              (a.attendancePct || 0) < 80 ? 'bg-red-100 text-red-700' :
                               (a.attendancePct || 0) < 90 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                             }`}>
                               {a.attendancePct}%

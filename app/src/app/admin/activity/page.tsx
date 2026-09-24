@@ -52,7 +52,7 @@ export default function ActivityLogPage() {
   const getTimeAgo = (dateStr: string) => {
     const date = new Date(dateStr);
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    
+
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + ' años';
     interval = seconds / 2592000;
@@ -79,15 +79,15 @@ export default function ActivityLogPage() {
           <h1 className="text-2xl font-bold text-gray-900">Bitácora Global</h1>
           <p className="text-sm text-gray-500">Registro histórico de acciones críticas dentro de la escuela</p>
         </div>
-        
+
         <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
           {FILTERS.map(f => (
             <button
               key={f.id}
               onClick={() => setActiveFilter(f.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                activeFilter === f.id 
-                  ? 'bg-white text-indigo-700 shadow-sm' 
+                activeFilter === f.id
+                  ? 'bg-white text-brand-primary shadow-sm'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -102,11 +102,11 @@ export default function ActivityLogPage() {
         {/* Header Stats */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center text-sm">
           <span className="text-gray-500">
-            Mostrando <b>{data?.activities.length || 0}</b> eventos 
+            Mostrando <b>{data?.activities.length || 0}</b> eventos
             {activeFilter !== 'all' && <span> de tipo <b>{FILTERS.find((f) => f.id === activeFilter)?.label ?? activeFilter}</b></span>}
           </span>
           {loading && page === 1 && (
-            <span className="text-indigo-600 flex items-center gap-2">
+            <span className="text-brand-primary flex items-center gap-2">
               <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
               Cargando...
             </span>
@@ -168,10 +168,10 @@ export default function ActivityLogPage() {
 
           {data && data.pagination.page < data.pagination.totalPages && (
             <div className="mt-8 text-center border-t border-gray-100 pt-6">
-              <button 
+              <button
                 onClick={handleLoadMore}
                 disabled={loading}
-                className="px-6 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 hover:text-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+                className="px-6 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 hover:text-brand-primary transition-colors shadow-sm disabled:opacity-50"
               >
                 {loading ? 'Cargando más...' : 'Cargar historial anterior'}
               </button>

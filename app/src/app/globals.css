@@ -1,17 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f0f2f5;
-  --foreground: #111827;
-  --sidebar-bg: #F0F0F0;
+  --background: #F6F3EC;
+  --foreground: #221F1A;
+  --sidebar-bg: #F6F3EC;
   --surface: #FFFFFF;
-  --border: #E5E7EB;
-  --text-muted: #6B7280;
+  --border: #E8E1D4;
+  --text-muted: #756F63;
+  --brand-primary: #4B6B4E;
+  --brand-secondary: #C9D6C4;
+  --brand-bg: #F6F3EC;
+  --brand-accent: #C2673F;
+  --success: #16A34A;
+  --warning: #B45309;
+  --danger: #B91C1C;
+  --info: #2563EB;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-accent: var(--brand-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
   --font-sans: 'Inter', var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -145,4 +161,127 @@ body {
   background: #f3f4f6;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
+}
+
+/* Login success overlay */
+@keyframes login-success-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.login-success-overlay {
+  animation: login-success-overlay-in 0.25s ease-out both;
+}
+
+@keyframes login-success-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  50% { transform: scale(1.12); opacity: 1; }
+  70% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+.login-success-pop {
+  animation: login-success-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+@keyframes login-success-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45), 0 12px 32px -6px rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0), 0 12px 40px -4px rgba(16, 185, 129, 0.65); }
+}
+.login-success-glow {
+  animation: login-success-glow 1.6s ease-in-out 0.6s infinite;
+}
+
+@keyframes login-success-check {
+  from { stroke-dashoffset: 28; }
+  to { stroke-dashoffset: 0; }
+}
+.login-success-check {
+  stroke-dasharray: 28;
+  stroke-dashoffset: 28;
+  animation: login-success-check 0.4s ease-out 0.3s both;
+}
+
+@keyframes login-success-ring {
+  0% { transform: scale(1); opacity: 0.45; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.login-success-ring {
+  border: 2px solid #10b981;
+  animation: login-success-ring 0.7s ease-out 0.15s both;
+}
+
+@keyframes login-success-text-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.login-success-text {
+  animation: login-success-text-in 0.35s ease-out 0.4s both;
+}
+
+@keyframes login-success-sub-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.login-success-sub {
+  animation: login-success-sub-in 0.3s ease-out 0.55s both;
+}
+
+/* Transitions.dev — Success check (used by src/components/SaveButton.tsx) */
+:root {
+  --check-opacity-dur: 500ms;
+  --check-rotate-dur: 500ms;
+  --check-rotate-from: 80deg;
+  --check-bob-dur: 500ms;
+  --check-y-amount: 40px;
+  --check-blur-dur: 500ms;
+  --check-blur-from: 10px;
+  --check-path-dur: 500ms;
+  --check-path-delay: 80ms;
+  --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-rotate: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
+  --check-ease-path: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.t-success-check {
+  display: inline-block;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+.t-success-check svg { display: block; overflow: visible; }
+.t-success-check svg path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+}
+
+.t-success-check[data-state="in"] {
+  animation:
+    t-check-fade   var(--check-opacity-dur) var(--check-ease-opacity) forwards,
+    t-check-rotate var(--check-rotate-dur)  var(--check-ease-rotate)  forwards,
+    t-check-blur   var(--check-blur-dur)    var(--check-ease-out)     forwards,
+    t-check-bob    var(--check-bob-dur)     var(--check-ease-bob)     forwards;
+}
+.t-success-check[data-state="in"] svg path {
+  animation: t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay, 0ms) forwards;
+}
+
+@keyframes t-check-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes t-check-rotate {
+  from { transform: rotate(var(--check-rotate-from)); }
+  to   { transform: rotate(0deg); }
+}
+@keyframes t-check-blur {
+  from { filter: blur(var(--check-blur-from)); }
+  to   { filter: blur(0); }
+}
+@keyframes t-check-bob {
+  from { translate: 0 var(--check-y-amount); }
+  to   { translate: 0 0; }
+}
+@keyframes t-check-draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .t-success-check { animation: none !important; opacity: 1; }
+  .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }
 }

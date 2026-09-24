@@ -60,7 +60,7 @@ export default function DirectorStaffPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         {[
-          { label: 'Total Docentes', value: totalTeachers.toString(), icon: 'groups', color: 'bg-blue-50 text-blue-600' },
+          { label: 'Total Docentes', value: totalTeachers.toString(), icon: 'groups', color: 'bg-brand-bg text-brand-accent' },
           { label: 'Con Asignaciones', value: withClasses.toString(), icon: 'assignment_ind', color: 'bg-green-50 text-green-600' },
           { label: 'Promedio Clases', value: avgClasses, icon: 'calculate', color: 'bg-violet-50 text-violet-600' },
         ].map(kpi => (
@@ -116,7 +116,7 @@ export default function DirectorStaffPage() {
                 <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                   <td className="py-3 px-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm font-bold">
+                      <div className="w-9 h-9 rounded-full bg-brand-secondary text-brand-primary flex items-center justify-center text-sm font-bold">
                         {s.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                       <div>

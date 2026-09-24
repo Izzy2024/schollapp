@@ -8,6 +8,7 @@ import { getSectionsForTenant } from '@/actions/adminClasses';
 import { createInvitation } from '@/actions/invitations';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 // Match the updated admin menu groups
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -83,11 +84,11 @@ export default function StudentsPage() {
     setLoading(true);
     try {
       const res = await getStudents(
-        'school-demo', 
-        currentSearch, 
-        filterGrade || undefined, 
-        filterSection || undefined, 
-        currentPage, 
+        'school-demo',
+        currentSearch,
+        filterGrade || undefined,
+        filterSection || undefined,
+        currentPage,
         pageSize
       );
       setStudents(res.students);
@@ -122,8 +123,7 @@ export default function StudentsPage() {
     loadData(newPage, search);
   };
 
-  const handleSaveStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveStudent = async () => {
     if (!formData.firstName || !formData.lastName) {
       message.error('Nombre y Apellido son requeridos');
       return;
@@ -134,18 +134,22 @@ export default function StudentsPage() {
         ...formData,
         dob: dbDate
       }, 'school-demo');
-      
+
       if (res.error) {
         message.error(res.error);
+        throw new Error(res.error);
       } else {
         message.success('Estudiante registrado con éxito');
-        setModalOpen(false);
-        setFormData({ firstName: '', lastName: '', studentCode: '', dob: '', email: '', phone: '' });
         if (res.credentials) setNewCredentials(res.credentials);
         loadData(1, search);
+        setTimeout(() => {
+          setModalOpen(false);
+          setFormData({ firstName: '', lastName: '', studentCode: '', dob: '', email: '', phone: '' });
+        }, 900);
       }
     } catch (error: any) {
       message.error(error.message || 'Error al guardar estudiante');
+      throw error;
     }
   };
 
@@ -174,8 +178,7 @@ export default function StudentsPage() {
     }
   };
 
-  const handleUpdateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateStudent = async () => {
     if (!editingStudent) return;
     if (!editForm.firstName || !editForm.lastName) {
       message.error('Nombre y Apellido son requeridos');
@@ -194,14 +197,18 @@ export default function StudentsPage() {
 
       if ('error' in res) {
         message.error(res.error);
+        throw new Error(res.error);
       } else {
         message.success('Estudiante actualizado con éxito');
-        setEditModalOpen(false);
-        setEditingStudent(null);
         loadData(page, search);
+        setTimeout(() => {
+          setEditModalOpen(false);
+          setEditingStudent(null);
+        }, 900);
       }
     } catch (error: any) {
       message.error(error.message || 'Error al actualizar estudiante');
+      throw error;
     }
   };
 
@@ -221,13 +228,13 @@ export default function StudentsPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Estudiantes</h1>
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+          <span className="px-3 py-1 bg-brand-secondary text-gray-800 rounded-full text-sm font-bold">
             {total} Total
           </span>
         </div>
-        <button 
+        <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-colors shadow-lg"
         >
           <span className="material-symbols-outlined text-lg">add</span>
           Nuevo Alumno
@@ -237,16 +244,16 @@ export default function StudentsPage() {
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[200px] relative">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Buscar por nombre o matrícula..."
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        
-        <select 
+
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 w-40"
           value={filterGrade}
           onChange={e => setFilterGrade(e.target.value)}
@@ -256,8 +263,8 @@ export default function StudentsPage() {
             <option key={g.id} value={g.id}>{g.name}</option>
           ))}
         </select>
-        
-        <select 
+
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 w-44"
           value={filterSection}
           onChange={e => setFilterSection(e.target.value)}
@@ -268,7 +275,7 @@ export default function StudentsPage() {
           ))}
         </select>
 
-        <select 
+        <select
           className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 w-36"
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
@@ -330,13 +337,13 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => router.push(`/admin/students/${s.id}`)} className="text-gray-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Ver Expediente">
+                        <button onClick={() => router.push(`/admin/students/${s.id}`)} className="text-gray-400 hover:text-brand-accent p-2 rounded-lg hover:bg-brand-bg transition-colors" title="Ver Expediente">
                           <span className="material-symbols-outlined text-xl">visibility</span>
                         </button>
                         <button onClick={() => openEditModal(s)} className="text-gray-400 hover:text-gray-900 p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Editar">
                           <span className="material-symbols-outlined text-xl">edit</span>
                         </button>
-                        <button onClick={() => handleCreateInvitation(s.id)} className="text-gray-400 hover:text-indigo-600 p-2 rounded-lg hover:bg-indigo-50 transition-colors" title="Generar código de invitación">
+                        <button onClick={() => handleCreateInvitation(s.id)} className="text-gray-400 hover:text-brand-primary p-2 rounded-lg hover:bg-brand-secondary transition-colors" title="Generar código de invitación">
                           <span className="material-symbols-outlined text-xl">key</span>
                         </button>
                       </div>
@@ -355,7 +362,7 @@ export default function StudentsPage() {
             Mostrando <span className="font-medium text-gray-900">{(page - 1) * pageSize + 1}</span> a <span className="font-medium text-gray-900">{Math.min(page * pageSize, total)}</span> de <span className="font-medium text-gray-900">{total}</span> estudiantes
           </p>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
               className="px-4 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -365,7 +372,7 @@ export default function StudentsPage() {
             <span className="text-sm font-medium text-gray-600 min-w-[5rem] text-center">
               Pág {page} de {totalPages}
             </span>
-            <button 
+            <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPages}
               className="px-4 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -381,7 +388,7 @@ export default function StudentsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900">Nuevo Alumno</h3>
-              <button 
+              <button
                 onClick={() => setModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -389,14 +396,14 @@ export default function StudentsPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-6 flex-1">
-              <form id="student-form" onSubmit={handleSaveStudent}>
+              <form id="student-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nombre(s) <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.firstName}
                       onChange={e => setFormData({...formData, firstName: e.target.value})}
                       required
@@ -407,8 +414,8 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Apellidos <span className="text-red-500">*</span>
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.lastName}
                       onChange={e => setFormData({...formData, lastName: e.target.value})}
                       required
@@ -419,8 +426,8 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Matrícula <span className="text-gray-400 font-normal">(Auto-generada)</span>
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.studentCode}
                       onChange={e => setFormData({...formData, studentCode: e.target.value})}
                       placeholder="Dejar vacío para generar"
@@ -431,8 +438,8 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Nacimiento
                     </label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       value={formData.dob}
                       onChange={e => setFormData({...formData, dob: e.target.value})}
                       className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -442,8 +449,8 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Correo Electrónico
                     </label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       value={formData.email}
                       onChange={e => setFormData({...formData, email: e.target.value})}
                       className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -453,8 +460,8 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Teléfono
                     </label>
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       value={formData.phone}
                       onChange={e => setFormData({...formData, phone: e.target.value})}
                       className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -471,13 +478,12 @@ export default function StudentsPage() {
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                form="student-form"
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors shadow-lg shadow-gray-900/20"
+              <SaveButton
+                onClick={handleSaveStudent}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors shadow-lg shadow-gray-900/20"
               >
                 Guardar Alumno
-              </button>
+              </SaveButton>
             </div>
           </div>
         </div>
@@ -497,7 +503,7 @@ export default function StudentsPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-6 flex-1">
-              <form id="edit-student-form" onSubmit={handleUpdateStudent}>
+              <form id="edit-student-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -591,13 +597,12 @@ export default function StudentsPage() {
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                form="edit-student-form"
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+              <SaveButton
+                onClick={handleUpdateStudent}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-accent rounded-lg hover:bg-brand-accent transition-colors shadow-lg"
               >
                 Guardar Cambios
-              </button>
+              </SaveButton>
             </div>
           </div>
         </div>
@@ -622,7 +627,7 @@ export default function StudentsPage() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
               <button
                 onClick={() => setNewCredentials(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors"
               >
                 Entendido
               </button>
@@ -652,7 +657,7 @@ export default function StudentsPage() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
               <button
                 onClick={() => setInviteInfo(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors"
               >
                 Entendido
               </button>

@@ -87,7 +87,7 @@ export default function DirectorDashboard() {
         <button
           onClick={handleExportCsv}
           disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-lg disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-colors shadow-lg disabled:opacity-50"
         >
           <span className="material-symbols-outlined text-lg">{exporting ? 'progress_activity' : 'download'}</span>
           {exporting ? 'Generando...' : 'Exportar Alumnos (CSV)'}
@@ -104,7 +104,7 @@ export default function DirectorDashboard() {
           {/* KPI Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="stat-card">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg w-fit mb-4">
+              <div className="p-2 bg-brand-primary/15 text-brand-primary rounded-lg w-fit mb-4">
                 <span className="material-symbols-outlined">school</span>
               </div>
               <h3 className="text-sm font-medium text-gray-500">Alumnos Activos</h3>
@@ -112,7 +112,7 @@ export default function DirectorDashboard() {
               <p className="text-xs text-gray-400 mt-2">{overview?.studentsWithoutEnrollment ?? 0} sin matrícula activa</p>
             </div>
             <div className="stat-card">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg w-fit mb-4">
+              <div className="p-2 bg-brand-accent/15 text-brand-accent rounded-lg w-fit mb-4">
                 <span className="material-symbols-outlined">check_circle</span>
               </div>
               <h3 className="text-sm font-medium text-gray-500">Asistencia Hoy</h3>
@@ -122,7 +122,7 @@ export default function DirectorDashboard() {
               <p className="text-xs text-gray-400 mt-2">Promedio mensual: {kpis?.monthlyAttendancePct !== null ? `${kpis?.monthlyAttendancePct}%` : 'S/D'}</p>
             </div>
             <div className="stat-card">
-              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg w-fit mb-4">
+              <div className="p-2 bg-brand-secondary text-gray-700 rounded-lg w-fit mb-4">
                 <span className="material-symbols-outlined">class</span>
               </div>
               <h3 className="text-sm font-medium text-gray-500">Grupos Activos</h3>
@@ -146,7 +146,7 @@ export default function DirectorDashboard() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">Matrícula por Grupo</h3>
-                <Link href="/director/enrollment" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver detalle</Link>
+                <Link href="/director/enrollment" className="text-xs font-medium text-brand-primary hover:text-brand-primary">Ver detalle</Link>
               </div>
               {enrollment.length === 0 ? (
                 <p className="text-sm text-gray-400 py-8 text-center">No hay grupos configurados.</p>
@@ -173,7 +173,7 @@ export default function DirectorDashboard() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900">Asistencia por Grupo (Últ. 7 días)</h3>
-                <Link href="/director/academic" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver detalle</Link>
+                <Link href="/director/academic" className="text-xs font-medium text-brand-primary hover:text-brand-primary">Ver detalle</Link>
               </div>
               {attendance.length === 0 ? (
                 <p className="text-sm text-gray-400 py-8 text-center">Sin registros de asistencia recientes.</p>

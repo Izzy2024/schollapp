@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
   present:  { label: 'Presente',  short: 'P', color: 'bg-green-100 text-green-700' },
   absent:   { label: 'Falta',     short: 'F', color: 'bg-red-100   text-red-600'   },
   late:     { label: 'Retardo',   short: 'R', color: 'bg-yellow-100 text-yellow-700' },
-  excused:  { label: 'Justific.', short: 'J', color: 'bg-blue-100   text-blue-600'  },
+  excused:  { label: 'Justific.', short: 'J', color: 'bg-brand-secondary   text-brand-accent'  },
 } as const;
 
 type StatusKey = keyof typeof STATUS_CONFIG;
@@ -123,7 +123,7 @@ export default function DirectorAttendancePage() {
                       key={s.id}
                       onClick={() => setSelectedSectionId(s.id)}
                       className={`w-full flex items-center justify-between px-4 py-3 text-left text-sm transition-colors border-b border-gray-50 last:border-0 ${
-                        selectedSectionId === s.id ? 'bg-gray-900 text-white' : 'hover:bg-gray-50 text-gray-700'
+                        selectedSectionId === s.id ? 'bg-brand-primary text-white' : 'hover:bg-gray-50 text-gray-700'
                       }`}
                     >
                       <span className="font-medium">Sección &quot;{s.name}&quot;</span>
@@ -165,7 +165,7 @@ export default function DirectorAttendancePage() {
                   <>
                     <div className="h-full bg-green-500" style={{ width: `${(summary.present / records.length) * 100}%` }} />
                     <div className="h-full bg-yellow-400" style={{ width: `${(summary.late    / records.length) * 100}%` }} />
-                    <div className="h-full bg-blue-400"  style={{ width: `${(summary.excused  / records.length) * 100}%` }} />
+                    <div className="h-full bg-brand-accent"  style={{ width: `${(summary.excused  / records.length) * 100}%` }} />
                     <div className="h-full bg-red-400"   style={{ width: `${(summary.absent   / records.length) * 100}%` }} />
                   </>
                 )}
@@ -173,7 +173,7 @@ export default function DirectorAttendancePage() {
               <div className="flex justify-between mt-3 text-xs text-gray-500 font-medium">
                 <span className="text-green-600">P: {summary.present}</span>
                 <span className="text-yellow-600">R: {summary.late}</span>
-                <span className="text-blue-600">J: {summary.excused}</span>
+                <span className="text-brand-accent">J: {summary.excused}</span>
                 <span className="text-red-600">F: {summary.absent}</span>
                 <span className="text-gray-400">Total: {records.length}</span>
               </div>

@@ -23,7 +23,7 @@ export default function UnderConstructionPage(props: {
             <div className="mt-6 flex gap-3">
               <Link
                 href={props.backHref}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-primary text-white text-sm font-semibold hover:opacity-90 transition-colors"
               >
                 <span className="material-symbols-outlined text-base">arrow_back</span>
                 {props.backLabel ?? 'Volver'}

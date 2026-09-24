@@ -227,7 +227,7 @@ export default function ClassDetailsTabs({
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in-up">
 
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-secondary rounded-full blur-3xl -mr-20 -mt-20 opacity-60"></div>
 
           <div className="relative">
             <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{detail.subjectName}</h1>
@@ -255,9 +255,9 @@ export default function ClassDetailsTabs({
               <div className="text-xs text-slate-500 font-medium mb-1">Alumnos</div>
               <div className="text-2xl font-bold text-slate-800">{detail.stats?.studentCount}</div>
             </div>
-            <div className="bg-indigo-50 px-5 py-3 rounded-2xl border border-indigo-100 min-w-[120px]">
-              <div className="text-xs text-indigo-600 font-medium mb-1">Asistencia Mensual</div>
-              <div className="text-2xl font-bold text-indigo-700">{detail.stats?.monthlyAttendancePct}%</div>
+            <div className="bg-brand-secondary px-5 py-3 rounded-2xl border border-brand-secondary min-w-[120px]">
+              <div className="text-xs text-brand-primary font-medium mb-1">Asistencia Mensual</div>
+              <div className="text-2xl font-bold text-brand-primary">{detail.stats?.monthlyAttendancePct}%</div>
             </div>
             <div className="bg-emerald-50 px-5 py-3 rounded-2xl border border-emerald-100 min-w-[120px]">
               <div className="text-xs text-emerald-600 font-medium mb-1">Promedio Grupal</div>
@@ -268,16 +268,16 @@ export default function ClassDetailsTabs({
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div className="flex border-b border-slate-100 px-2 overflow-x-auto hide-scrollbar">
-            <button onClick={() => setActiveTab('alumnos')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'alumnos' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <button onClick={() => setActiveTab('alumnos')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'alumnos' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               Lista de Alumnos
             </button>
-            <button onClick={() => setActiveTab('asistencia')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'asistencia' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <button onClick={() => setActiveTab('asistencia')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'asistencia' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               Historial de Asistencia
             </button>
-            <button onClick={() => setActiveTab('horario')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'horario' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <button onClick={() => setActiveTab('horario')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'horario' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               Horario
             </button>
-            <button onClick={() => setActiveTab('calificaciones')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'calificaciones' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <button onClick={() => setActiveTab('calificaciones')} className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === 'calificaciones' ? 'border-brand-primary text-brand-primary' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               Calificaciones
             </button>
           </div>
@@ -287,7 +287,7 @@ export default function ClassDetailsTabs({
               <div className="space-y-4 animate-fade-in-up">
                 <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <span className="text-sm font-medium text-slate-700">Gestionar asistencia de la sesión de hoy</span>
-                  <button onClick={openDrawerForToday} className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200">
+                  <button onClick={openDrawerForToday} className="px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary transition-colors shadow-sm shadow-brand-primary">
                     Tomar Asistencia Hoy
                   </button>
                 </div>
@@ -308,7 +308,7 @@ export default function ClassDetailsTabs({
                         <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                              <div className="w-8 h-8 rounded-full bg-brand-secondary text-brand-primary flex items-center justify-center font-bold text-xs">
                                 {st.name.charAt(0)}
                               </div>
                               <span className="font-medium text-slate-800">{st.name}</span>
@@ -349,7 +349,7 @@ export default function ClassDetailsTabs({
                         <th className="py-3 px-4 text-xs font-semibold text-green-600 uppercase tracking-wider text-center">Presentes</th>
                         <th className="py-3 px-4 text-xs font-semibold text-red-600 uppercase tracking-wider text-center">Faltas</th>
                         <th className="py-3 px-4 text-xs font-semibold text-yellow-600 uppercase tracking-wider text-center">Retardos</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-blue-600 uppercase tracking-wider text-center">Justificados</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-brand-accent uppercase tracking-wider text-center">Justificados</th>
                         <th className="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
                       </tr>
                     </thead>
@@ -362,7 +362,7 @@ export default function ClassDetailsTabs({
                           <td className="py-3 px-4 text-center font-semibold text-slate-700">{sess.lateCount}</td>
                           <td className="py-3 px-4 text-center font-semibold text-slate-700">{sess.excusedCount}</td>
                           <td className="py-3 px-4 text-right">
-                            <button onClick={() => openDrawerForDate(sess.date)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium px-3 py-1 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+                            <button onClick={() => openDrawerForDate(sess.date)} className="text-brand-primary hover:text-brand-primary text-sm font-medium px-3 py-1 bg-brand-secondary rounded-lg hover:bg-brand-secondary transition-colors">
                               Ver / Editar
                             </button>
                           </td>
@@ -384,7 +384,7 @@ export default function ClassDetailsTabs({
                   </div>
                   <button
                     onClick={openScheduleRequestModal}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                    className="px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary transition-colors shadow-sm shadow-brand-primary"
                   >
                     {hasSchedule ? 'Solicitar Cambio de Horario' : 'Solicitar Horario'}
                   </button>
@@ -460,7 +460,7 @@ export default function ClassDetailsTabs({
                   scheduleValidation.state === 'ok'
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                     : scheduleValidation.state === 'checking'
-                      ? 'bg-blue-50 border-blue-200 text-blue-700'
+                      ? 'bg-brand-bg border-brand-secondary text-brand-accent'
                       : scheduleValidation.state === 'conflict'
                         ? 'bg-rose-50 border-rose-200 text-rose-700'
                         : 'bg-slate-50 border-slate-200 text-slate-600'
@@ -546,7 +546,7 @@ export default function ClassDetailsTabs({
                 <button
                   type="submit"
                   disabled={submittingSchedule || scheduleValidation.state === 'conflict' || scheduleValidation.state === 'checking'}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium disabled:opacity-60"
+                  className="px-4 py-2 rounded-lg bg-brand-primary text-white font-medium disabled:opacity-60"
                 >
                   {submittingSchedule ? 'Enviando...' : 'Enviar Solicitud'}
                 </button>

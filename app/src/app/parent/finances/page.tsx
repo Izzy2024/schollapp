@@ -66,12 +66,12 @@ export default async function ParentFinancesPage() {
           ))}
         </div>
       ) : errorCode ? (
-        <div className="stat-card p-6 border border-red-200 bg-red-50">
+        <div className="stat-card p-6 border border-danger/30 bg-danger/10">
           <div className="flex items-start gap-3">
-            <span className="material-symbols-outlined text-red-600">error</span>
+            <span className="material-symbols-outlined text-danger">error</span>
             <div>
-              <h2 className="font-semibold text-red-900">No se pudo cargar el estado de cuenta</h2>
-              <p className="text-sm text-red-800 mt-1">
+              <h2 className="font-semibold text-danger">No se pudo cargar el estado de cuenta</h2>
+              <p className="text-sm text-danger mt-1">
                 Código: <span className="font-mono">{errorCode}</span>
               </p>
             </div>
@@ -85,7 +85,7 @@ export default async function ParentFinancesPage() {
       ) : (
         <div className="space-y-6">
           {/* Totals */}
-          <div className="stat-card p-6 bg-gradient-to-b from-white to-blue-50/30">
+          <div className="stat-card p-6 bg-gradient-to-b from-white to-brand-secondary/20">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Resumen</h2>
             </div>
@@ -100,7 +100,7 @@ export default async function ParentFinancesPage() {
               </div>
               <div className="p-4 rounded-xl bg-white border border-gray-100">
                 <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saldo</div>
-                <div className="text-lg font-bold text-blue-700 mt-1">{formatMoneyFromCents(data?.totals.balanceDueCents ?? 0, 'MXN')}</div>
+                <div className="text-lg font-bold text-brand-primary mt-1">{formatMoneyFromCents(data?.totals.balanceDueCents ?? 0, 'MXN')}</div>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default async function ParentFinancesPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saldo</div>
-                  <div className="text-lg font-bold text-blue-700">{formatMoneyFromCents(s.totals.balanceDueCents ?? 0, 'MXN')}</div>
+                  <div className="text-lg font-bold text-brand-primary">{formatMoneyFromCents(s.totals.balanceDueCents ?? 0, 'MXN')}</div>
                 </div>
               </div>
 
@@ -132,7 +132,7 @@ export default async function ParentFinancesPage() {
                   ) : (
                     <div className="space-y-2">
                       {s.payments.map((p) => (
-                        <div key={p.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-emerald-50">
+                        <div key={p.id} className="flex items-start justify-between gap-4 p-3 rounded-xl bg-success/10">
                           <div>
                             <div className="text-sm font-medium text-gray-900">{formatDate(p.paidAt)}</div>
                             <div className="text-xs text-gray-600 mt-0.5">Método: {p.method}</div>

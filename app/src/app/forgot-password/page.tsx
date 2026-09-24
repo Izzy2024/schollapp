@@ -17,53 +17,61 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="sm:mx-auto sm:w-full sm:max-w-md">
+    <div>
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
-          <span className="material-symbols-outlined text-3xl text-blue-600">lock_reset</span>
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-200">
+          <span className="material-symbols-outlined text-2xl text-white">lock_reset</span>
         </div>
-        <h2 className="mt-2 text-3xl font-extrabold text-gray-900">Recuperar contraseña</h2>
+        <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Recuperar contraseña
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+        </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {submitted ? (
-            <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-md px-3 py-2 text-center">
+      <div className="mt-8 rounded-2xl border border-slate-100 bg-white px-5 py-8 shadow-xl shadow-slate-200/60 sm:px-8">
+        {submitted ? (
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+            <span className="material-symbols-outlined mt-0.5 text-xl text-emerald-600">check_circle</span>
+            <p className="text-sm leading-relaxed text-emerald-800">
               Si el correo existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.
-            </div>
-          ) : (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Correo Electrónico
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {isPending ? 'Enviando...' : 'Enviar enlace de recuperación'}
-              </button>
-            </form>
-          )}
-
-          <div className="mt-6 text-center">
-            <a href="/login" className="text-sm text-blue-600 hover:underline">
-              Volver a iniciar sesión
-            </a>
+            </p>
           </div>
+        ) : (
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                Correo Electrónico
+              </label>
+              <div className="mt-1.5">
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="usuario@correo.com"
+                  className="block h-11 w-full rounded-lg border border-slate-300 bg-white px-3.5 text-sm text-slate-900 shadow-sm placeholder:font-normal placeholder:text-slate-400 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex h-11 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isPending ? 'Enviando...' : 'Enviar enlace de recuperación'}
+            </button>
+          </form>
+        )}
+
+        <div className="mt-6 pt-5 text-center">
+          <a href="/login" className="text-sm font-medium text-blue-600 transition hover:text-blue-700 hover:underline">
+            Volver a iniciar sesión
+          </a>
         </div>
       </div>
     </div>

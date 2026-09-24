@@ -57,7 +57,7 @@ export default function DirectorResourcesPage() {
     <DashboardLayout roleTitle="Director" userName="Director" userRole="Director" menuGroups={menuGroups} breadcrumbs={['Director', 'Gestión de Recursos']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Gestión de Recursos</h1>
-        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">{resources.length} espacios</span>
+        <span className="px-3 py-1 bg-brand-secondary text-gray-800 rounded-full text-sm font-bold">{resources.length} espacios</span>
       </div>
 
       {loading ? (
@@ -73,7 +73,7 @@ export default function DirectorResourcesPage() {
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
-              { label: 'Espacios', value: resources.length.toString(), icon: 'meeting_room', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Espacios', value: resources.length.toString(), icon: 'meeting_room', color: 'bg-brand-bg text-brand-accent' },
               { label: 'Disponibles', value: resources.filter(r => r.status === 'Disponible').length.toString(), icon: 'check_circle', color: 'bg-green-50 text-green-600' },
               { label: 'Tipos', value: new Set(resources.map(r => r.type)).size.toString(), icon: 'category', color: 'bg-violet-50 text-violet-600' },
             ].map(kpi => (
@@ -103,7 +103,7 @@ export default function DirectorResourcesPage() {
                 {resources.map(r => (
                   <tr key={r.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
                     <td className="py-3 px-5 font-medium text-gray-900">{r.name}</td>
-                    <td className="py-3 px-5"><span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">{r.type}</span></td>
+                    <td className="py-3 px-5"><span className="px-2.5 py-1 bg-brand-bg text-brand-accent text-xs font-medium rounded-lg">{r.type}</span></td>
                     <td className="py-3 px-5 text-gray-600">{r.capacity}</td>
                     <td className="py-3 px-5"><span className="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg">{r.status}</span></td>
                     <td className="py-3 px-5 text-gray-500 text-xs max-w-xs truncate">{r.description}</td>

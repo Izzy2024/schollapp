@@ -18,6 +18,7 @@ import {
 import { getStaffList } from '@/actions/staff';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -52,21 +53,27 @@ export default function HrPage() {
     getStaffList().then((res) => setStaffOptions(res.staff.map((s: any) => ({ id: s.id, fullName: s.fullName }))));
   }, []);
 
-  const handleCreateContract = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await createContract({
-      staffId: contractForm.staffId,
-      position: contractForm.position,
-      salaryCents: Math.round(Number(contractForm.salaryCents) * 100),
-      contractType: contractForm.contractType,
-      startDateIso: new Date(contractForm.startDateIso).toISOString(),
-    });
-    if ('error' in res) message.error(res.error);
-    else {
+  const handleCreateContract = async () => {
+    try {
+      const res = await createContract({
+        staffId: contractForm.staffId,
+        position: contractForm.position,
+        salaryCents: Math.round(Number(contractForm.salaryCents) * 100),
+        contractType: contractForm.contractType,
+        startDateIso: new Date(contractForm.startDateIso).toISOString(),
+      });
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Contrato creado');
-      setContractFormOpen(false);
-      setContractForm({ staffId: '', position: '', salaryCents: '', contractType: 'full_time', startDateIso: '' });
       loadContracts();
+      setTimeout(() => {
+        setContractFormOpen(false);
+        setContractForm({ staffId: '', position: '', salaryCents: '', contractType: 'full_time', startDateIso: '' });
+      }, 900);
+    } catch (error: any) {
+      message.error(error.message || 'Error al crear contrato');
+      throw error;
     }
   };
 
@@ -76,19 +83,25 @@ export default function HrPage() {
     loadContracts();
   };
 
-  const handleCreatePeriod = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await createPayrollPeriod({
-      name: periodForm.name,
-      startDateIso: new Date(periodForm.startDateIso).toISOString(),
-      endDateIso: new Date(periodForm.endDateIso).toISOString(),
-    });
-    if ('error' in res) message.error(res.error);
-    else {
+  const handleCreatePeriod = async () => {
+    try {
+      const res = await createPayrollPeriod({
+        name: periodForm.name,
+        startDateIso: new Date(periodForm.startDateIso).toISOString(),
+        endDateIso: new Date(periodForm.endDateIso).toISOString(),
+      });
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Período creado');
-      setPeriodFormOpen(false);
-      setPeriodForm({ name: '', startDateIso: '', endDateIso: '' });
       loadPeriods();
+      setTimeout(() => {
+        setPeriodFormOpen(false);
+        setPeriodForm({ name: '', startDateIso: '', endDateIso: '' });
+      }, 900);
+    } catch (error: any) {
+      message.error(error.message || 'Error al crear período');
+      throw error;
     }
   };
 
@@ -110,22 +123,26 @@ export default function HrPage() {
     loadPeriods();
   };
 
-  const handleAddEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddEntry = async () => {
     if (!expandedPeriodId || !entryForm.staffId) {
       message.error('Selecciona un empleado');
       return;
     }
-    const res = await addPayrollEntry(expandedPeriodId, {
-      staffId: entryForm.staffId,
-      grossCents: Math.round(Number(entryForm.grossCents) * 100),
-      deductionsCents: Math.round(Number(entryForm.deductionsCents || '0') * 100),
-    });
-    if ('error' in res) message.error(res.error);
-    else {
+    try {
+      const res = await addPayrollEntry(expandedPeriodId, {
+        staffId: entryForm.staffId,
+        grossCents: Math.round(Number(entryForm.grossCents) * 100),
+        deductionsCents: Math.round(Number(entryForm.deductionsCents || '0') * 100),
+      });
+      if ('error' in res) {
+        throw new Error(res.error);
+      }
       message.success('Recibo agregado');
       setEntryForm({ staffId: '', grossCents: '', deductionsCents: '' });
       refreshEntries();
+    } catch (error: any) {
+      message.error(error.message || 'Error al agregar recibo');
+      throw error;
     }
   };
 
@@ -139,10 +156,10 @@ export default function HrPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Recursos Humanos</h1>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 flex">
-        <button onClick={() => setTab('contracts')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'contracts' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500'}`}>
+        <button onClick={() => setTab('contracts')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'contracts' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500'}`}>
           Contratos
         </button>
-        <button onClick={() => setTab('payroll')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'payroll' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500'}`}>
+        <button onClick={() => setTab('payroll')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'payroll' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500'}`}>
           Nómina
         </button>
       </div>
@@ -150,7 +167,7 @@ export default function HrPage() {
       {tab === 'contracts' ? (
         <>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setContractFormOpen(true)} className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">
+            <button onClick={() => setContractFormOpen(true)} className="px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90">
               + Nuevo contrato
             </button>
           </div>
@@ -196,7 +213,7 @@ export default function HrPage() {
       ) : (
         <>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setPeriodFormOpen(true)} className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">
+            <button onClick={() => setPeriodFormOpen(true)} className="px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90">
               + Nuevo período
             </button>
           </div>
@@ -215,7 +232,7 @@ export default function HrPage() {
 
                 {expandedPeriodId === p.id && (
                   <div className="border-t border-gray-100 p-5 space-y-4">
-                    <form onSubmit={handleAddEntry} className="flex gap-2 flex-wrap items-end">
+                    <form onSubmit={(e) => e.preventDefault()} className="flex gap-2 flex-wrap items-end">
                       <select value={entryForm.staffId} onChange={(e) => setEntryForm({ ...entryForm, staffId: e.target.value })} className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm">
                         <option value="">Empleado...</option>
                         {staffOptions.map((s) => (
@@ -224,7 +241,7 @@ export default function HrPage() {
                       </select>
                       <input type="number" step="0.01" placeholder="Salario bruto" value={entryForm.grossCents} onChange={(e) => setEntryForm({ ...entryForm, grossCents: e.target.value })} className="w-32 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
                       <input type="number" step="0.01" placeholder="Deducciones" value={entryForm.deductionsCents} onChange={(e) => setEntryForm({ ...entryForm, deductionsCents: e.target.value })} className="w-32 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                      <button type="submit" className="px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm">Agregar recibo</button>
+                      <SaveButton onClick={handleAddEntry} className="px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm">Agregar recibo</SaveButton>
                     </form>
 
                     <div className="space-y-2">
@@ -236,7 +253,7 @@ export default function HrPage() {
                           {e.paidAt ? (
                             <span className="text-xs text-green-600 font-semibold">Pagado</span>
                           ) : (
-                            <button onClick={() => handleMarkPaid(e.id)} className="text-xs text-blue-600 hover:underline">Marcar pagado</button>
+                            <button onClick={() => handleMarkPaid(e.id)} className="text-xs text-brand-accent hover:underline">Marcar pagado</button>
                           )}
                         </div>
                       ))}
@@ -264,7 +281,7 @@ export default function HrPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreateContract} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <select required value={contractForm.staffId} onChange={(e) => setContractForm({ ...contractForm, staffId: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg">
                 <option value="">Selecciona empleado...</option>
                 {staffOptions.map((s) => (
@@ -285,9 +302,9 @@ export default function HrPage() {
                 <button type="button" onClick={() => setContractFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton onClick={handleCreateContract} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -303,7 +320,7 @@ export default function HrPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreatePeriod} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <input required placeholder="Nombre (ej. Enero 2026)" value={periodForm.name} onChange={(e) => setPeriodForm({ ...periodForm, name: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
               <div className="grid grid-cols-2 gap-3">
                 <input required type="date" value={periodForm.startDateIso} onChange={(e) => setPeriodForm({ ...periodForm, startDateIso: e.target.value })} className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg" />
@@ -313,9 +330,9 @@ export default function HrPage() {
                 <button type="button" onClick={() => setPeriodFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton onClick={handleCreatePeriod} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>

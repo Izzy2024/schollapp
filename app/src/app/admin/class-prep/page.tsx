@@ -58,7 +58,7 @@ export default function AdminClassPrepPage() {
           <h1 className="text-2xl font-bold text-gray-900">Preparación de Clase</h1>
           <span className="px-3 py-1 bg-violet-100 text-violet-800 rounded-full text-sm font-bold">{classes.length} clases</span>
         </div>
-        <a href="/admin/classes" className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg">
+        <a href="/admin/classes" className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors shadow-lg">
           <span className="material-symbols-outlined text-lg">edit</span>
           Gestionar Clases
         </a>
@@ -68,7 +68,7 @@ export default function AdminClassPrepPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
         {[
           { label: 'Con Contenido', value: withContent.toString(), icon: 'topic', color: 'bg-green-50 text-green-600', sub: `de ${classes.length} clases` },
-          { label: 'Unidades Totales', value: totalUnits.toString(), icon: 'library_books', color: 'bg-blue-50 text-blue-600' },
+          { label: 'Unidades Totales', value: totalUnits.toString(), icon: 'library_books', color: 'bg-brand-bg text-brand-accent' },
           { label: 'Temas Totales', value: totalTopics.toString(), icon: 'menu_book', color: 'bg-violet-50 text-violet-600' },
         ].map(kpi => (
           <div key={kpi.label} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">

@@ -62,7 +62,7 @@ export default function StudentReportCardPage() {
                 setSelectedTermId(e.target.value);
                 loadReportCard(e.target.value);
               }}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
             >
               {terms.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -125,7 +125,7 @@ export default function StudentReportCardPage() {
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
               <span className="text-base font-bold text-gray-900">Promedio general</span>
-              <span className="text-xl font-bold text-indigo-700">
+              <span className="text-xl font-bold text-brand-primary">
                 {reportCard.overallAveragePercent === null ? '—' : `${reportCard.overallAveragePercent.toFixed(1)}%`}
               </span>
             </div>

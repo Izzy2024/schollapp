@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  getAcademicYears, 
-  createAcademicYear, 
+import {
+  getAcademicYears,
+  createAcademicYear,
   setAcademicYearActive,
   getGradeLevels,
   createGradeLevel,
@@ -15,6 +15,7 @@ import {
 } from '@/actions/academic';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -24,7 +25,7 @@ export default function AcademicSetupPage() {
   const [grades, setGrades] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [yearModalOpen, setYearModalOpen] = useState(false);
   const [gradeModalOpen, setGradeModalOpen] = useState(false);
   const [sectionModalOpen, setSectionModalOpen] = useState(false);
@@ -56,38 +57,42 @@ export default function AcademicSetupPage() {
     loadData();
   }, []);
 
-  const handleSaveYear = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveYear = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    let res;
     try {
-      const res = await createAcademicYear(yearForm.name, yearForm.start, yearForm.end);
-      if (res.error) {
-        message.error(res.error);
-      } else {
-        message.success('Ciclo creado exitosamente');
-        setYearModalOpen(false);
-        setYearForm({ name: '', start: '', end: '' });
-        loadData();
-      }
+      res = await createAcademicYear(yearForm.name, yearForm.start, yearForm.end);
     } catch (error: any) {
       message.error(error.message || 'Error al crear ciclo');
+      throw error;
     }
+    if (res.error) {
+      message.error(res.error);
+      throw new Error(res.error);
+    }
+    message.success('Ciclo creado exitosamente');
+    setYearForm({ name: '', start: '', end: '' });
+    loadData();
+    setTimeout(() => setYearModalOpen(false), 900);
   };
 
-  const handleSaveGrade = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveGrade = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    let res;
     try {
-      const res = await createGradeLevel(gradeForm.name, gradeForm.code, Number(gradeForm.sortOrder));
-      if (res.error) {
-        message.error(res.error);
-      } else {
-        message.success('Grado creado exitosamente');
-        setGradeModalOpen(false);
-        setGradeForm({ name: '', code: '', sortOrder: 0 });
-        loadData();
-      }
+      res = await createGradeLevel(gradeForm.name, gradeForm.code, Number(gradeForm.sortOrder));
     } catch (error: any) {
       message.error(error.message || 'Error al crear grado');
+      throw error;
     }
+    if (res.error) {
+      message.error(res.error);
+      throw new Error(res.error);
+    }
+    message.success('Grado creado exitosamente');
+    setGradeForm({ name: '', code: '', sortOrder: 0 });
+    loadData();
+    setTimeout(() => setGradeModalOpen(false), 900);
   };
 
   const handleSetActiveYear = async (id: string) => {
@@ -117,21 +122,23 @@ export default function AcademicSetupPage() {
     }
   };
 
-  const handleSaveSection = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveSection = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    let res;
     try {
-      const res = await createSection(sectionForm.academicYearId, sectionForm.gradeLevelId, sectionForm.name, Number(sectionForm.capacity));
-      if ('error' in res) {
-        message.error((res as any).error);
-      } else {
-        message.success('Sección creada exitosamente');
-        setSectionModalOpen(false);
-        setSectionForm({ academicYearId: '', gradeLevelId: '', name: '', capacity: 20 });
-        loadData();
-      }
+      res = await createSection(sectionForm.academicYearId, sectionForm.gradeLevelId, sectionForm.name, Number(sectionForm.capacity));
     } catch (error: any) {
       message.error(error.message || 'Error al crear sección');
+      throw error;
     }
+    if ('error' in res) {
+      message.error((res as any).error);
+      throw new Error((res as any).error);
+    }
+    message.success('Sección creada exitosamente');
+    setSectionForm({ academicYearId: '', gradeLevelId: '', name: '', capacity: 20 });
+    loadData();
+    setTimeout(() => setSectionModalOpen(false), 900);
   };
 
   const handleDeleteSection = async (id: string) => {
@@ -165,15 +172,15 @@ export default function AcademicSetupPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-gray-900">Ciclos Escolares</h3>
-            <button 
+            <button
               onClick={() => setYearModalOpen(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-brand-bg text-brand-accent rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors"
             >
               <span className="material-symbols-outlined text-sm">add</span>
               Nuevo Ciclo
             </button>
           </div>
-          
+
           {loading ? (
             <p className="text-gray-500 text-sm">Cargando...</p>
           ) : years.length === 0 ? (
@@ -192,9 +199,9 @@ export default function AcademicSetupPage() {
                     </p>
                   </div>
                   {!y.isActive && (
-                    <button 
+                    <button
                       onClick={() => handleSetActiveYear(y.id)}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                      className="text-xs font-medium text-brand-accent hover:text-gray-800"
                     >
                       Hacer Activo
                     </button>
@@ -209,15 +216,15 @@ export default function AcademicSetupPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-bold text-gray-900">Grados</h3>
-            <button 
+            <button
               onClick={() => setGradeModalOpen(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-brand-bg text-brand-accent rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors"
             >
               <span className="material-symbols-outlined text-sm">add</span>
               Nuevo Grado
             </button>
           </div>
-          
+
           {loading ? (
             <p className="text-gray-500 text-sm">Cargando...</p>
           ) : grades.length === 0 ? (
@@ -232,7 +239,7 @@ export default function AcademicSetupPage() {
                     </span>
                     <h4 className="font-medium text-gray-900">{g.name}</h4>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleDeleteGrade(g.id)}
                     className="text-gray-400 hover:text-red-600 transition-colors p-1"
                   >
@@ -249,15 +256,15 @@ export default function AcademicSetupPage() {
       <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-bold text-gray-900">Secciones (Grupos)</h3>
-          <button 
+          <button
             onClick={() => setSectionModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-brand-bg text-brand-accent rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors"
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Nueva Sección
           </button>
         </div>
-        
+
         {loading ? (
           <p className="text-gray-500 text-sm">Cargando...</p>
         ) : sections.length === 0 ? (
@@ -283,12 +290,12 @@ export default function AcademicSetupPage() {
                     <td className="px-6 py-4 font-semibold text-gray-900">{s.name}</td>
                     <td className="px-6 py-4">{s.capacity || '—'}</td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-mono text-xs">
+                      <span className="px-2 py-1 bg-brand-bg text-brand-accent rounded-md font-mono text-xs">
                         {s._count.enrollments}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => handleDeleteSection(s.id)}
                         className="text-gray-400 hover:text-red-600 transition-colors p-1"
                         title={s._count.enrollments > 0 ? 'No se puede eliminar (tiene inscripciones)' : 'Eliminar'}
@@ -332,7 +339,7 @@ export default function AcademicSetupPage() {
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setYearModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg">Guardar</button>
+                <SaveButton type="primary" onClick={handleSaveYear}>Guardar</SaveButton>
               </div>
             </form>
           </div>
@@ -366,7 +373,7 @@ export default function AcademicSetupPage() {
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setGradeModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg">Guardar</button>
+                <SaveButton type="primary" onClick={handleSaveGrade}>Guardar</SaveButton>
               </div>
             </form>
           </div>
@@ -414,7 +421,7 @@ export default function AcademicSetupPage() {
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setSectionModalOpen(false)} className="px-4 py-2 border rounded-lg">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-gray-900 text-white rounded-lg">Guardar</button>
+                <SaveButton type="primary" onClick={handleSaveSection}>Guardar</SaveButton>
               </div>
             </form>
           </div>

@@ -37,7 +37,7 @@ export default function TeacherSettingsPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Perfil</h2>
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl font-bold">
+              <div className="w-16 h-16 rounded-full bg-brand-secondary text-brand-primary flex items-center justify-center text-xl font-bold">
                 {name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DC'}
               </div>
               <div>

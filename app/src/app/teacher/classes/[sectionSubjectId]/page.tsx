@@ -29,7 +29,7 @@ export default async function ClassDetailsPage({
   if (secondTry) {
     const [detail, students, attendanceHistory] = secondTry;
     return (
-      <ClassDetailsTabs 
+      <ClassDetailsTabs
         detail={detail}
         students={students}
         attendanceHistory={attendanceHistory}
@@ -44,7 +44,7 @@ export default async function ClassDetailsPage({
         <h1 className="text-lg font-semibold text-slate-800">No se pudo cargar la clase</h1>
         <p className="text-sm text-slate-500">Hubo un problema temporal cargando esta clase. Intenta de nuevo.</p>
         <div className="pt-2">
-          <Link href="/teacher" className="inline-flex px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+          <Link href="/teacher" className="inline-flex px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary">
             Volver a Mis Clases
           </Link>
         </div>

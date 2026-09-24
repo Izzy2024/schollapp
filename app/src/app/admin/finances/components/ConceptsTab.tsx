@@ -203,7 +203,7 @@ export default function ConceptsTab() {
           </div>
 
           {/* Auto-generate options */}
-          <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-100">
+          <div className="mt-4 p-4 rounded-lg bg-brand-bg border border-brand-secondary">
             <Form.Item name="autoGenerateOnEnrollment" label={null} valuePropName="checked">
               <Switch checkedChildren="Auto-generar" unCheckedChildren="Manual" />
             </Form.Item>
@@ -243,7 +243,7 @@ export default function ConceptsTab() {
                 </Form.Item>
               </div>
             )}
-            
+
             {autoGenerate && (
               <div className="mt-4">
                 <Form.Item name="gradeLevelId" label="Aplica a un grado específico (opcional)">

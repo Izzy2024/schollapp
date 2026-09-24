@@ -40,13 +40,13 @@ export default function AdminNewsPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Noticias</h1>
-          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+          <span className="px-3 py-1 bg-brand-secondary text-gray-800 rounded-full text-sm font-bold">
             {published.length} publicadas
           </span>
         </div>
         <a
           href="/admin/announcements"
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors shadow-lg"
         >
           <span className="material-symbols-outlined text-lg">edit</span>
           Gestionar Comunicados
@@ -64,7 +64,7 @@ export default function AdminNewsPage() {
           <p className="text-gray-500 mb-6">No hay noticias publicadas todavía.</p>
           <a
             href="/admin/announcements"
-            className="px-5 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors"
+            className="px-5 py-2.5 bg-brand-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-colors"
           >
             Crear primer comunicado
           </a>
@@ -78,11 +78,11 @@ export default function AdminNewsPage() {
               className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 cursor-pointer hover:border-gray-300 hover:shadow-md transition-all group"
             >
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-brand-bg text-brand-accent flex items-center justify-center flex-shrink-0">
                   <span className="material-symbols-outlined text-lg">article</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-indigo-700 transition-colors">{row.title}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1 group-hover:text-brand-primary transition-colors">{row.title}</h3>
                   <p className="text-sm text-gray-500 line-clamp-2 mb-2">{row.body}</p>
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>
@@ -113,7 +113,7 @@ export default function AdminNewsPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg">Noticia</span>
+                <span className="px-2.5 py-1 bg-brand-secondary text-gray-800 text-xs font-bold rounded-lg">Noticia</span>
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>

@@ -54,7 +54,7 @@ export default function ParentHealthPage() {
               setSelectedChildId(e.target.value);
               loadHealth(e.target.value);
             }}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
           >
             {children.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>

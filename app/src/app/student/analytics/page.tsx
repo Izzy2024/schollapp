@@ -55,8 +55,8 @@ export default function StudentAnalyticsPage() {
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
-              { label: 'Promedio General', value: avgScore !== null ? `${avgScore}` : '—', icon: 'grade', color: avgScore !== null && avgScore >= 7 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600', sub: 'de 10' },
-              { label: 'Evaluaciones', value: grades.length.toString(), icon: 'quiz', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Promedio General', value: avgScore !== null ? `${avgScore}` : '—', icon: 'grade', color: avgScore !== null && avgScore >= 7 ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning', sub: 'de 10' },
+              { label: 'Evaluaciones', value: grades.length.toString(), icon: 'quiz', color: 'bg-info/15 text-info' },
               { label: 'Materias', value: Object.keys(bySubject).length.toString(), icon: 'school', color: 'bg-violet-50 text-violet-600' },
             ].map(kpi => (
               <div key={kpi.label} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
@@ -79,7 +79,7 @@ export default function StudentAnalyticsPage() {
                   <div key={s.name} className="flex items-center gap-4">
                     <div className="w-36 text-sm font-medium text-gray-700 truncate">{s.name}</div>
                     <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${s.avg >= 8 ? 'bg-green-500' : s.avg >= 6 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${s.avg * 10}%` }} />
+                      <div className={`h-full rounded-full transition-all ${s.avg >= 8 ? 'bg-success' : s.avg >= 6 ? 'bg-warning' : 'bg-danger'}`} style={{ width: `${s.avg * 10}%` }} />
                     </div>
                     <span className="text-sm font-bold text-gray-900 w-10 text-right">{s.avg}</span>
                   </div>
@@ -101,7 +101,7 @@ export default function StudentAnalyticsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-900">{g.score}/{g.maxScore}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${(g.score / g.maxScore) >= 0.7 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${(g.score / g.maxScore) >= 0.7 ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>
                         {Math.round(g.score / g.maxScore * 10 * 10) / 10}
                       </span>
                     </div>

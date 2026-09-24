@@ -76,7 +76,7 @@ export default function PromotionPage() {
         <select
           value={targetYearId}
           onChange={(e) => setTargetYearId(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
         >
           <option value="">Selecciona...</option>
           {targetOptions.map((y) => (
@@ -117,7 +117,7 @@ export default function PromotionPage() {
                       {p.targetGradeLevelName ? (
                         <span className="text-gray-700">{p.targetGradeLevelName}</span>
                       ) : (
-                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs font-semibold">Egresa</span>
+                        <span className="px-2 py-0.5 bg-brand-secondary text-brand-primary rounded text-xs font-semibold">Egresa</span>
                       )}
                     </td>
                   </tr>
@@ -131,7 +131,7 @@ export default function PromotionPage() {
       <button
         onClick={handleRun}
         disabled={running || preview.length === 0}
-        className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+        className="px-5 py-2.5 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50"
       >
         {running ? 'Ejecutando...' : 'Ejecutar promoción'}
       </button>

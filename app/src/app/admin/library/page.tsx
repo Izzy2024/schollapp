@@ -6,6 +6,7 @@ import { getBooks, createBook, deleteBook, checkoutBook, returnBook, getActiveLo
 import { getStudents } from '@/actions/students';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 const menuGroups = getMenuGroupsForRoles(['admin']);
 
@@ -72,27 +73,29 @@ export default function LibraryPage() {
     return () => clearTimeout(t);
   }, [studentSearch]);
 
-  const handleAddBook = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddBook = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    let res;
     try {
-      const res = await createBook({
+      res = await createBook({
         title: addForm.title,
         author: addForm.author || undefined,
         isbn: addForm.isbn || undefined,
         category: addForm.category || undefined,
         totalCopies: Number(addForm.totalCopies) || 1,
       });
-      if ('error' in res) {
-        message.error(res.error);
-      } else {
-        message.success('Libro agregado');
-        setAddFormOpen(false);
-        setAddForm({ title: '', author: '', isbn: '', category: '', totalCopies: '1' });
-        loadBooks();
-      }
-    } catch (e: any) {
-      message.error(e.message || 'Error al agregar libro');
+    } catch (err: any) {
+      message.error(err.message || 'Error al agregar libro');
+      throw err;
     }
+    if ('error' in res) {
+      message.error(res.error);
+      throw new Error(res.error || 'Error al agregar libro');
+    }
+    message.success('Libro agregado');
+    setAddForm({ title: '', author: '', isbn: '', category: '', totalCopies: '1' });
+    loadBooks();
+    setTimeout(() => setAddFormOpen(false), 900);
   };
 
   const handleDeleteBook = async (id: string) => {
@@ -150,7 +153,7 @@ export default function LibraryPage() {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Biblioteca</h1>
         {tab === 'catalog' && (
-          <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800">
+          <button onClick={() => setAddFormOpen(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90">
             <span className="material-symbols-outlined text-lg">add</span>
             Agregar libro
           </button>
@@ -158,10 +161,10 @@ export default function LibraryPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 flex">
-        <button onClick={() => setTab('catalog')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'catalog' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500'}`}>
+        <button onClick={() => setTab('catalog')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'catalog' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500'}`}>
           Catálogo
         </button>
-        <button onClick={() => setTab('loans')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'loans' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500'}`}>
+        <button onClick={() => setTab('loans')} className={`flex-1 py-3 text-sm font-medium border-b-2 ${tab === 'loans' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500'}`}>
           Préstamos activos
         </button>
       </div>
@@ -202,7 +205,7 @@ export default function LibraryPage() {
                         <button
                           onClick={() => setCheckoutBookId(b.id)}
                           disabled={b.availableCopies < 1}
-                          className="text-xs text-blue-600 hover:underline mr-3 disabled:text-gray-300"
+                          className="text-xs text-brand-accent hover:underline mr-3 disabled:text-gray-300"
                         >
                           Prestar
                         </button>
@@ -245,7 +248,7 @@ export default function LibraryPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button onClick={() => handleReturn(l.id)} className="text-xs text-blue-600 hover:underline">
+                      <button onClick={() => handleReturn(l.id)} className="text-xs text-brand-accent hover:underline">
                         Registrar devolución
                       </button>
                     </td>
@@ -278,9 +281,9 @@ export default function LibraryPage() {
                 <button type="button" onClick={() => setAddFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton type="primary" onClick={handleAddBook}>
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -335,7 +338,7 @@ export default function LibraryPage() {
                 <button type="button" onClick={() => setCheckoutBookId(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Confirmar préstamo
                 </button>
               </div>

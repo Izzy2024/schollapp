@@ -9,7 +9,7 @@ import { App } from 'antd';
 
 type StudentBase = { id: string; enrollmentId: string | null; firstName: string; lastName: string; curp: string; email: string | null };
 
-export default function TeacherStudentsClient({ options, initialClassId, tenantSlug }: { 
+export default function TeacherStudentsClient({ options, initialClassId, tenantSlug }: {
   options: { classes: { id: string; name: string }[] };
   initialClassId: string;
   tenantSlug: string;
@@ -64,16 +64,16 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
       breadcrumbs={['Docentes', 'Mis Estudiantes']}
     >
       <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full min-h-[600px] mt-[2px]">
-        
+
         <div className="p-6 border-b border-gray-100 flex items-center gap-4 flex-wrap bg-gray-50/30">
           <h1 className="text-xl font-bold text-gray-900 mr-auto">Estudiantes por Grupo</h1>
-          
+
           <div className="w-full md:w-auto flex items-center gap-2">
             <span className="text-sm font-medium text-gray-500">Materia:</span>
-            <select 
-              value={classId} 
+            <select
+              value={classId}
               onChange={e => setClassId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm min-w-[250px]"
+              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm min-w-[250px]"
             >
               {options.classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -106,11 +106,11 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {students.map((st, index) => (
-                  <tr key={st.id} className="hover:bg-indigo-50/30 transition-colors">
+                  <tr key={st.id} className="hover:bg-brand-secondary/30 transition-colors">
                     <td className="px-6 py-4 text-[13px] font-semibold text-gray-400">{index + 1}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-100 to-indigo-50 flex items-center justify-center text-indigo-700 font-bold text-xs uppercase shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-secondary to-brand-secondary flex items-center justify-center text-brand-primary font-bold text-xs uppercase shadow-sm">
                           {st.firstName.charAt(0)}{st.lastName.charAt(0)}
                         </div>
                         <div>
@@ -128,7 +128,7 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
                     </td>
                     <td className="px-6 py-4 text-[13px]">
                       {st.email ? (
-                         <div className="flex items-center gap-1.5 text-indigo-600 font-medium">
+                         <div className="flex items-center gap-1.5 text-brand-primary font-medium">
                            <span className="material-symbols-outlined text-[16px]">mail</span>
                            <a href={`mailto:${st.email}`} className="hover:underline">{st.email}</a>
                          </div>
@@ -142,10 +142,10 @@ export default function TeacherStudentsClient({ options, initialClassId, tenantS
             </table>
           )}
         </div>
-        
+
         <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <span className="text-sm text-gray-500 font-medium">Total de Estudiantes: <b className="text-gray-900">{students.length}</b></span>
-            <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-1 rounded-md">Modo Lectura</span>
+            <span className="text-xs text-brand-primary font-semibold bg-brand-secondary px-2 py-1 rounded-md">Modo Lectura</span>
         </div>
       </div>
     </DashboardLayout>

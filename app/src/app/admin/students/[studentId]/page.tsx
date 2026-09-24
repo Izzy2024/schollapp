@@ -12,6 +12,7 @@ import { getStudentConductRecords, createConductRecord, deleteConductRecord, typ
 import { getHealthRecord, upsertHealthRecord, getHealthIncidents, createHealthIncident, type HealthRecordData, type HealthIncidentRow } from '@/actions/health';
 import { App } from 'antd';
 import { getMenuGroupsForRoles } from '@/lib/nav/menu';
+import SaveButton from '@/components/SaveButton';
 
 // Match the updated admin menu groups
 const menuGroups = getMenuGroupsForRoles(['admin']);
@@ -82,8 +83,7 @@ export default function StudentRecordPage() {
     loadConduct();
   };
 
-  const handleCreateConductRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateConductRecord = async () => {
     if (!conductForm.description.trim()) {
       message.error('La descripción es requerida');
       return;
@@ -97,14 +97,18 @@ export default function StudentRecordPage() {
       });
       if ('error' in res) {
         message.error(res.error);
+        throw new Error(res.error);
       } else {
         message.success('Registro guardado');
-        setConductFormOpen(false);
-        setConductForm({ type: 'demerit', category: '', description: '', points: '-1' });
         loadConduct();
+        setTimeout(() => {
+          setConductFormOpen(false);
+          setConductForm({ type: 'demerit', category: '', description: '', points: '-1' });
+        }, 900);
       }
     } catch (error: any) {
       message.error(error.message || 'Error al guardar');
+      throw error;
     }
   };
 
@@ -148,19 +152,18 @@ export default function StudentRecordPage() {
     loadHealth();
   };
 
-  const handleSaveHealthRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveHealthRecord = async () => {
     try {
       await upsertHealthRecord(studentId as string, healthForm);
       message.success('Expediente médico guardado');
       loadHealth();
     } catch (error: any) {
       message.error(error.message || 'Error al guardar');
+      throw error;
     }
   };
 
-  const handleCreateIncident = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateIncident = async () => {
     if (!incidentForm.description.trim()) {
       message.error('La descripción es requerida');
       return;
@@ -169,14 +172,18 @@ export default function StudentRecordPage() {
       const res = await createHealthIncident(studentId as string, incidentForm);
       if ('error' in res) {
         message.error(res.error);
+        throw new Error(res.error);
       } else {
         message.success('Incidente registrado');
-        setIncidentFormOpen(false);
-        setIncidentForm({ type: 'illness', description: '', treatmentGiven: '', sentHome: false });
         loadHealth();
+        setTimeout(() => {
+          setIncidentFormOpen(false);
+          setIncidentForm({ type: 'illness', description: '', treatmentGiven: '', sentHome: false });
+        }, 900);
       }
     } catch (error: any) {
       message.error(error.message || 'Error al guardar');
+      throw error;
     }
   };
 
@@ -221,23 +228,26 @@ export default function StudentRecordPage() {
     }
   }, [studentId]);
 
-  const handleSaveGuardian = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveGuardian = async () => {
     if (!guardianForm.fullName) return message.error('El nombre es requerido');
 
     try {
       const res = await createGuardianAndLink(studentId as string, guardianForm);
       if ('error' in res) {
         message.error((res as any).error);
+        throw new Error((res as any).error);
       } else {
         message.success('Tutor vinculado exitosamente');
-        setModalOpen(false);
-        setGuardianForm({ fullName: '', relationship: '', email: '', phone: '', isPrimary: false });
         if (res.credentials) setNewCredentials(res.credentials);
         loadStudent();
+        setTimeout(() => {
+          setModalOpen(false);
+          setGuardianForm({ fullName: '', relationship: '', email: '', phone: '', isPrimary: false });
+        }, 900);
       }
     } catch (error: any) {
       message.error(error.message || 'Error al vincular tutor');
+      throw error;
     }
   };
 
@@ -283,7 +293,7 @@ export default function StudentRecordPage() {
           <p className="text-sm text-gray-500 font-mono mt-1">Matrícula: {student.studentCode || 'No asignada'}</p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => router.push('/admin/students')}
             className="px-4 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
@@ -293,25 +303,25 @@ export default function StudentRecordPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 flex">
-        <button 
+        <button
           onClick={() => setActiveTab('overview')}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'overview' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'overview' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Información General
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('guardians')}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'guardians' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'guardians' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Tutores / Familia
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('enrollments')}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'enrollments' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'enrollments' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Inscripciones
         </button>
-        <button 
+        <button
           onClick={() => {
             setActiveTab('attendance');
             if (!attSummary && student) {
@@ -322,25 +332,25 @@ export default function StudentRecordPage() {
                 .finally(() => setAttLoading(false));
             }
           }}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'attendance' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'attendance' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Asistencia
         </button>
         <button
           onClick={openReportCardTab}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reportCard' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'reportCard' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Boleta
         </button>
         <button
           onClick={openConductTab}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'conduct' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'conduct' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Conducta
         </button>
         <button
           onClick={openHealthTab}
-          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'health' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+          className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'health' ? 'border-brand-accent text-brand-accent bg-brand-bg/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
         >
           Salud
         </button>
@@ -384,9 +394,9 @@ export default function StudentRecordPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-gray-900">Familiares y Tutores</h3>
-            <button 
+            <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-brand-bg text-brand-accent rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors"
             >
               <span className="material-symbols-outlined text-sm">person_add</span>
               Añadir Tutor
@@ -402,11 +412,11 @@ export default function StudentRecordPage() {
               {student.guardians.map((g: any) => (
                 <div key={g.guardian.id} className="p-4 border border-gray-200 rounded-xl flex flex-col relative">
                   {g.isPrimary && (
-                    <span className="absolute top-4 right-4 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase rounded">Principal</span>
+                    <span className="absolute top-4 right-4 px-2 py-0.5 bg-brand-secondary text-brand-primary text-[10px] font-bold uppercase rounded">Principal</span>
                   )}
                   <h4 className="font-semibold text-gray-900 mb-1 pr-16">{g.guardian.fullName}</h4>
                   <p className="text-sm text-gray-500 mb-3">{g.guardian.relationship || 'Familiar/Tutor'}</p>
-                  
+
                   <div className="space-y-1 mb-4 flex-1">
                     {g.guardian.phone && (
                       <p className="text-sm text-gray-700 flex items-center gap-2">
@@ -419,11 +429,11 @@ export default function StudentRecordPage() {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="pt-3 border-t border-gray-100 flex justify-end gap-3">
                     <button
                       onClick={() => handleCreateGuardianInvitation(g.guardian.id)}
-                      className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1"
+                      className="text-xs font-medium text-brand-primary hover:text-brand-primary transition-colors flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-[14px]">key</span>
                       Código de invitación
@@ -450,7 +460,7 @@ export default function StudentRecordPage() {
             {student.enrollments.filter((e: any) => e.status === 'enrolled').length === 0 && (
               <a
                 href="/admin/enrollment"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-secondary text-brand-primary rounded-lg text-sm font-medium hover:bg-brand-secondary transition-colors"
               >
                 <span className="material-symbols-outlined text-sm">how_to_reg</span>
                 Inscribir Alumno
@@ -464,7 +474,7 @@ export default function StudentRecordPage() {
               <p className="text-gray-500 mb-4">Este alumno no tiene inscripciones registradas.</p>
               <a
                 href="/admin/enrollment"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-colors"
               >
                 <span className="material-symbols-outlined text-sm">person_add</span>
                 Ir a Inscribir
@@ -483,7 +493,7 @@ export default function StudentRecordPage() {
                   e.status === 'enrolled' ? 'bg-green-100 text-green-800' :
                   e.status === 'withdrawn' ? 'bg-red-100 text-red-700' :
                   e.status === 'pre_enrolled' ? 'bg-yellow-100 text-yellow-800' :
-                  e.status === 'graduated' ? 'bg-blue-100 text-blue-800' :
+                  e.status === 'graduated' ? 'bg-brand-secondary text-gray-800' :
                   'bg-gray-100 text-gray-600';
 
                 return (
@@ -491,13 +501,13 @@ export default function StudentRecordPage() {
                     key={e.id}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                       isActive
-                        ? 'border-indigo-200 bg-indigo-50/40 shadow-sm'
+                        ? 'border-brand-primary bg-brand-secondary/40 shadow-sm'
                         : 'border-gray-100 bg-gray-50/30'
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm ${
-                        isActive ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                        isActive ? 'bg-brand-secondary text-brand-primary' : 'bg-gray-100 text-gray-500'
                       }`}>
                         {e.academicYear.name.split('-')[0].slice(-2)}/
                         {e.academicYear.name.split('-')[1]?.slice(-2) || ''}
@@ -508,7 +518,7 @@ export default function StudentRecordPage() {
                             {e.section.gradeLevel.name} — Sección &quot;{e.section.name}&quot;
                           </h4>
                           {isActive && idx === 0 && (
-                            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase rounded tracking-wide">
+                            <span className="px-1.5 py-0.5 bg-brand-secondary text-brand-primary text-[10px] font-bold uppercase rounded tracking-wide">
                               Activo
                             </span>
                           )}
@@ -527,7 +537,7 @@ export default function StudentRecordPage() {
                       </span>
                       <a
                         href={`/api/certificates/enrollment/${studentId}/${e.academicYearId}/pdf`}
-                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-xs text-brand-accent hover:underline flex items-center gap-1"
                         title="Descargar constancia de estudios"
                       >
                         <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
@@ -629,7 +639,7 @@ export default function StudentRecordPage() {
                           r.status === 'present' ? 'bg-green-100 text-green-700' :
                           r.status === 'absent'  ? 'bg-red-100   text-red-600'   :
                           r.status === 'late'    ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-blue-100 text-blue-600'
+                          'bg-brand-secondary text-brand-accent'
                         }`}
                       >
                         {r.status === 'present' ? 'P' : r.status === 'absent' ? 'F' : r.status === 'late' ? 'R' : 'J'}
@@ -655,7 +665,7 @@ export default function StudentRecordPage() {
                   setSelectedTermId(e.target.value);
                   loadReportCard(e.target.value);
                 }}
-                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
               >
                 {terms.map((t) => (
                   <option key={t.id} value={t.id}>{t.name}</option>
@@ -664,7 +674,7 @@ export default function StudentRecordPage() {
               {selectedTermId && (
                 <a
                   href={`/api/report-cards/${studentId}/${selectedTermId}/pdf`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
                 >
                   <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
                   Descargar PDF
@@ -721,7 +731,7 @@ export default function StudentRecordPage() {
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <span className="text-base font-bold text-gray-900">Promedio general</span>
-                <span className="text-xl font-bold text-indigo-700">
+                <span className="text-xl font-bold text-brand-primary">
                   {reportCard.overallAveragePercent === null ? '—' : `${reportCard.overallAveragePercent.toFixed(1)}%`}
                 </span>
               </div>
@@ -741,7 +751,7 @@ export default function StudentRecordPage() {
             </div>
             <button
               onClick={() => setConductFormOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">add</span>
               Registrar
@@ -799,13 +809,13 @@ export default function StudentRecordPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreateConductRecord} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
                   value={conductForm.type}
                   onChange={(e) => setConductForm({ ...conductForm, type: e.target.value as typeof conductForm.type })}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="demerit">Demérito</option>
                   <option value="merit">Mérito</option>
@@ -819,7 +829,7 @@ export default function StudentRecordPage() {
                   value={conductForm.category}
                   onChange={(e) => setConductForm({ ...conductForm, category: e.target.value })}
                   placeholder="Ej. Falta leve, Reconocimiento académico"
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 />
               </div>
               <div>
@@ -829,7 +839,7 @@ export default function StudentRecordPage() {
                   value={conductForm.description}
                   onChange={(e) => setConductForm({ ...conductForm, description: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 />
               </div>
               <div>
@@ -838,16 +848,16 @@ export default function StudentRecordPage() {
                   type="number"
                   value={conductForm.points}
                   onChange={(e) => setConductForm({ ...conductForm, points: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 />
               </div>
               <div className="pt-2 flex justify-end gap-3">
                 <button type="button" onClick={() => setConductFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton onClick={handleCreateConductRecord} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -861,7 +871,7 @@ export default function StudentRecordPage() {
             {healthLoading ? (
               <div className="py-8 text-center text-gray-400">Cargando...</div>
             ) : (
-              <form onSubmit={handleSaveHealthRecord} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de sangre</label>
                   <input
@@ -920,9 +930,9 @@ export default function StudentRecordPage() {
                   />
                 </div>
                 <div className="md:col-span-2 flex justify-end">
-                  <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                  <SaveButton onClick={handleSaveHealthRecord} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                     Guardar expediente
-                  </button>
+                  </SaveButton>
                 </div>
               </form>
             )}
@@ -931,7 +941,7 @@ export default function StudentRecordPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Incidentes de Salud</h3>
-              <button onClick={() => setIncidentFormOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800">
+              <button onClick={() => setIncidentFormOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white rounded-lg text-sm font-medium hover:opacity-90">
                 <span className="material-symbols-outlined text-sm">add</span>
                 Registrar incidente
               </button>
@@ -972,13 +982,13 @@ export default function StudentRecordPage() {
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreateIncident} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
                   value={incidentForm.type}
                   onChange={(e) => setIncidentForm({ ...incidentForm, type: e.target.value as typeof incidentForm.type })}
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
                 >
                   <option value="illness">Enfermedad</option>
                   <option value="injury">Lesión</option>
@@ -1015,9 +1025,9 @@ export default function StudentRecordPage() {
                 <button type="button" onClick={() => setIncidentFormOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+                <SaveButton onClick={handleCreateIncident} className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90">
                   Guardar
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -1030,20 +1040,20 @@ export default function StudentRecordPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900">Añadir Tutor</h3>
-              <button 
+              <button
                 onClick={() => setModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleSaveGuardian} className="p-6 space-y-4">
+            <form onSubmit={(e) => e.preventDefault()} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre Completo <span className="text-red-500">*</span>
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={guardianForm.fullName}
                   onChange={e => setGuardianForm({...guardianForm, fullName: e.target.value})}
                   required
@@ -1054,8 +1064,8 @@ export default function StudentRecordPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Parentesco (Ej. Madre, Padre, Tío)
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={guardianForm.relationship}
                   onChange={e => setGuardianForm({...guardianForm, relationship: e.target.value})}
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -1066,8 +1076,8 @@ export default function StudentRecordPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Teléfono
                   </label>
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     value={guardianForm.phone}
                     onChange={e => setGuardianForm({...guardianForm, phone: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -1077,8 +1087,8 @@ export default function StudentRecordPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Correo
                   </label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={guardianForm.email}
                     onChange={e => setGuardianForm({...guardianForm, email: e.target.value})}
                     className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
@@ -1087,11 +1097,11 @@ export default function StudentRecordPage() {
               </div>
               <div className="pt-2">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={guardianForm.isPrimary}
                     onChange={e => setGuardianForm({...guardianForm, isPrimary: e.target.checked})}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-gray-300 text-brand-accent focus:ring-brand-bg0"
                   />
                   <span className="text-sm font-medium text-gray-700">Marcar como Contacto Principal</span>
                 </label>
@@ -1105,12 +1115,12 @@ export default function StudentRecordPage() {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                <SaveButton
+                  onClick={handleSaveGuardian}
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors"
                 >
                   Vincular Tutor
-                </button>
+                </SaveButton>
               </div>
             </form>
           </div>
@@ -1136,7 +1146,7 @@ export default function StudentRecordPage() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
               <button
                 onClick={() => setNewCredentials(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors"
               >
                 Entendido
               </button>
@@ -1166,7 +1176,7 @@ export default function StudentRecordPage() {
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end bg-gray-50/50">
               <button
                 onClick={() => setInviteInfo(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand-primary rounded-lg hover:opacity-90 transition-colors"
               >
                 Entendido
               </button>

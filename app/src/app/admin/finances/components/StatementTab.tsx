@@ -120,7 +120,7 @@ export default function StatementTab() {
                               setRecordChargeId(c.id);
                               setRecordOpen(true);
                             }}
-                            className="px-3 py-1.5 text-xs font-semibold bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                            className="px-3 py-1.5 text-xs font-semibold bg-brand-primary text-white rounded-lg hover:opacity-90"
                           >
                             Registrar pago
                           </button>

@@ -166,7 +166,7 @@ export default function EnrollmentClient() {
           <p className="text-sm text-gray-500 mt-1">Crear y consultar inscripciones del ciclo activo.</p>
           <button
             onClick={() => router.push('/admin/students')}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-brand-accent hover:text-gray-800 font-medium"
           >
             + Crear nuevo alumno →
           </button>
@@ -235,7 +235,7 @@ export default function EnrollmentClient() {
                     <button
                       onClick={onEnroll}
                       disabled={!canSubmit}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 text-sm font-semibold"
+                      className="w-full px-4 py-2 bg-brand-accent text-white rounded-xl hover:bg-brand-accent disabled:opacity-50 text-sm font-semibold"
                     >
                       {submitting ? 'Inscribiendo…' : 'Inscribir'}
                     </button>
@@ -244,8 +244,8 @@ export default function EnrollmentClient() {
 
                 {/* Payment Options */}
                 {paymentOptions.length > 0 && (
-                  <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
-                    <label className="block text-xs font-semibold text-blue-800 mb-2">Opción de pago</label>
+                  <div className="mt-4 p-4 rounded-xl bg-brand-bg border border-brand-secondary">
+                    <label className="block text-xs font-semibold text-gray-800 mb-2">Opción de pago</label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {paymentOptions.map((opt) => (
                         <div
@@ -253,13 +253,13 @@ export default function EnrollmentClient() {
                           onClick={() => setSelectedPaymentOption(opt.type)}
                           className={`p-3 rounded-xl border cursor-pointer transition-all ${
                             selectedPaymentOption === opt.type
-                              ? 'border-blue-500 bg-blue-100 shadow-sm'
-                              : 'border-gray-200 bg-white hover:border-blue-300'
+                              ? 'border-brand-bg0 bg-brand-secondary shadow-sm'
+                              : 'border-gray-200 bg-white hover:border-brand-accent'
                           }`}
                         >
                           <div className="font-semibold text-sm text-gray-900">{opt.label}</div>
                           <div className="text-xs text-gray-500 mt-0.5">{opt.description}</div>
-                          <div className="text-sm font-bold text-blue-600 mt-1">
+                          <div className="text-sm font-bold text-brand-accent mt-1">
                             ${(opt.totalCents / 100).toFixed(2)}
                             {opt.discount > 0 && (
                               <span className="text-xs text-green-600 ml-1">( ahorras ${(opt.discount / 100).toFixed(2)} )</span>
@@ -315,7 +315,7 @@ export default function EnrollmentClient() {
                         <td className="py-3 pr-4">
                           <span className={`px-2 py-1 rounded-md text-xs font-semibold ${
                             e.status === 'enrolled' ? 'bg-green-100 text-green-800 border border-green-200' :
-                            e.status === 'reenrolled' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            e.status === 'reenrolled' ? 'bg-brand-secondary text-gray-800 border border-brand-secondary' :
                             e.status === 'unenrolled' ? 'bg-red-100 text-red-800 border border-red-200' :
                             'bg-gray-100 text-gray-700 border border-gray-200'
                           }`}>
@@ -327,7 +327,7 @@ export default function EnrollmentClient() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => router.push(`/admin/students/${e.studentId}`)}
-                              className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors"
+                              className="text-gray-400 hover:text-brand-accent p-1 rounded hover:bg-brand-bg transition-colors"
                               title="Ver expediente"
                             >
                               <span className="material-symbols-outlined text-lg">visibility</span>

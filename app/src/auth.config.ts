@@ -64,6 +64,7 @@ export const authConfig = {
         nextUrl.pathname.startsWith('/forgot-password') ||
         nextUrl.pathname.startsWith('/reset-password') ||
         nextUrl.pathname.startsWith('/apply') ||
+        nextUrl.pathname.startsWith('/activar') ||
         nextUrl.pathname === '/';
       const isApiRoute = nextUrl.pathname.startsWith('/api');
       const isServerAction = isServerActionRequest(request);

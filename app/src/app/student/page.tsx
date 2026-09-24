@@ -12,12 +12,12 @@ const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Se
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function EventCard({ title, time, color }: any) {
   const colorMap: Record<string, { bg: string; text: string; icon: string }> = {
-    blue: { bg: 'bg-blue-50', text: 'text-blue-800', icon: 'check_circle' },
-    orange: { bg: 'bg-orange-50', text: 'text-orange-800', icon: 'assignment_late' },
-    red: { bg: 'bg-red-50', text: 'text-red-800', icon: 'edit' },
+    blue: { bg: 'bg-info/15', text: 'text-info', icon: 'check_circle' },
+    orange: { bg: 'bg-warning/15', text: 'text-warning', icon: 'assignment_late' },
+    red: { bg: 'bg-danger/15', text: 'text-danger', icon: 'edit' },
     cyan: { bg: 'bg-cyan-50', text: 'text-cyan-800', icon: 'visibility' },
     purple: { bg: 'bg-purple-50', text: 'text-purple-800', icon: 'grading' },
-    green: { bg: 'bg-green-50', text: 'text-green-800', icon: 'check_circle_outline' },
+    green: { bg: 'bg-success/15', text: 'text-success', icon: 'check_circle_outline' },
   };
   const c = colorMap[color] || colorMap.blue;
   return (

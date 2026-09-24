@@ -10,7 +10,7 @@ import { TEACHER_MENU_GROUPS } from '@/lib/teacherMenu';
 type Evaluation = { id: string; name: string; type: string; date: string; };
 type StudentGrade = { id: string; name: string; grades: { evaluationId: string; score: number | null }[] };
 
-export default function GradebookClient({ options, initialClassId, initialTermId, tenantSlug }: { 
+export default function GradebookClient({ options, initialClassId, initialTermId, tenantSlug }: {
   options: { classes: { id: string; name: string }[]; terms: { id: string; name: string }[] };
   initialClassId: string;
   initialTermId: string;
@@ -21,7 +21,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
 
   const [classId, setClassId] = useState(initialClassId);
   const [termId, setTermId] = useState(initialTermId);
-  
+
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [students, setStudents] = useState<StudentGrade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
       .then(res => {
         setEvaluations(res.evaluations);
         setStudents(res.students);
-        
+
         // build local grades map
         const map: Record<string, number | null> = {};
         res.students.forEach(st => {
@@ -59,7 +59,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-      
+
       // Update URL silently
       router.replace(`/teacher/gradebook?class=${classId}&term=${termId}`, { scroll: false });
   }, [classId, termId, tenantSlug, router]);
@@ -73,7 +73,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
   const handleGradeBlur = async (studentId: string, evaluationId: string) => {
     const key = `${studentId}-${evaluationId}`;
     const score = localGrades[key];
-    
+
     // Check if changed compared to prop
     const student = students.find(s => s.id === studentId);
     const original = student?.grades.find(g => g.evaluationId === evaluationId)?.score;
@@ -135,39 +135,39 @@ export default function GradebookClient({ options, initialClassId, initialTermId
         breadcrumbs={['Docentes', 'Libro de Calificaciones']}
       >
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex flex-col h-full min-h-[600px] mt-[2px] relative">
-          
+
           {toastMessage && (
-            <div className="absolute top-6 right-8 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-md shadow-lg z-10 animate-in fade-in slide-in-from-top-2">
+            <div className="absolute top-6 right-8 px-3 py-1.5 bg-brand-primary text-white text-xs font-semibold rounded-md shadow-lg z-10 animate-in fade-in slide-in-from-top-2">
               {toastMessage}
             </div>
           )}
 
           <div className="p-6 border-b border-gray-100 flex items-center gap-4 flex-wrap bg-gray-50/30">
             <h1 className="text-xl font-bold text-gray-900 mr-auto">Libro de Calificaciones</h1>
-            
-            <select 
-              value={classId} 
+
+            <select
+              value={classId}
               onChange={e => setClassId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm"
             >
               {options.classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
 
-            <select 
-              value={termId} 
+            <select
+              value={termId}
               onChange={e => setTermId(e.target.value)}
-              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+              className="px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary shadow-sm"
             >
               {options.terms.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
 
-            <button 
+            <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-xl hover:opacity-90 transition-colors shadow-sm"
             >
               <span className="material-symbols-outlined text-lg">add</span>
               Nueva Evaluación
@@ -184,7 +184,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
                 </div>
                 <h3 className="text-gray-900 font-bold mb-1">Sin evaluaciones</h3>
                 <p className="text-sm text-gray-500 max-w-sm mb-6">No hay evaluaciones creadas en este periodo. Comienza agregando una nueva.</p>
-                <button onClick={() => setModalOpen(true)} className="px-5 py-2 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors">
+                <button onClick={() => setModalOpen(true)} className="px-5 py-2 bg-brand-secondary text-brand-primary text-sm font-bold rounded-xl hover:bg-brand-secondary transition-colors">
                   Crear Evaluación
                 </button>
               </div>
@@ -201,7 +201,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
                         </div>
                       </th>
                     ))}
-                    <th className="px-6 py-4 text-center text-[12px] font-bold text-indigo-700 bg-indigo-50/50 border-b border-gray-200 uppercase tracking-wider">Promedio</th>
+                    <th className="px-6 py-4 text-center text-[12px] font-bold text-brand-primary bg-brand-secondary/50 border-b border-gray-200 uppercase tracking-wider">Promedio</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,19 +215,19 @@ export default function GradebookClient({ options, initialClassId, initialTermId
                         </td>
                         {evaluations.map(ev => (
                           <td key={ev.id} className="px-3 py-2 text-center border-b border-gray-50">
-                            <input 
+                            <input
                               type="number"
                               value={localGrades[`${st.id}-${ev.id}`] === null ? '' : localGrades[`${st.id}-${ev.id}`]!}
                               onChange={(e) => handleGradeChange(st.id, ev.id, e.target.value)}
                               onBlur={() => handleGradeBlur(st.id, ev.id)}
                               placeholder="—"
-                              className="w-14 text-center border border-transparent rounded-lg py-1.5 text-[14px] font-medium text-gray-900 bg-transparent hover:border-gray-200 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-300"
+                              className="w-14 text-center border border-transparent rounded-lg py-1.5 text-[14px] font-medium text-gray-900 bg-transparent hover:border-gray-200 focus:outline-none focus:bg-white focus:border-brand-primary focus:ring-2 focus:ring-brand-secondary transition-all placeholder:text-gray-300"
                               min="0"
                               max="100"
                             />
                           </td>
                         ))}
-                        <td className={`px-6 py-3 text-center font-bold text-[14px] border-b border-gray-50 ${isLow ? 'text-red-600 bg-red-50/50' : 'text-indigo-700 bg-indigo-50/30'}`}>
+                        <td className={`px-6 py-3 text-center font-bold text-[14px] border-b border-gray-50 ${isLow ? 'text-red-600 bg-red-50/50' : 'text-brand-primary bg-brand-secondary/30'}`}>
                           {avg !== null ? avg : '—'}
                           {isLow && <span className="ml-1.5 text-red-500 text-[11px] font-black">⚠</span>}
                         </td>
@@ -246,7 +246,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
                         </td>
                       );
                     })}
-                    <td className="px-6 py-4 text-center font-bold text-indigo-800 text-[15px] bg-indigo-50/80 border-t-2 border-indigo-100">
+                    <td className="px-6 py-4 text-center font-bold text-brand-primary text-[15px] bg-brand-secondary/80 border-t-2 border-brand-secondary">
                       {Math.round(evaluations.reduce((sum, ev) => sum + (getEvaluationAverage(ev.id) || 0), 0) / (evaluations.length || 1)) || '—'}
                     </td>
                   </tr>
@@ -254,7 +254,7 @@ export default function GradebookClient({ options, initialClassId, initialTermId
               </table>
             )}
           </div>
-          
+
           <div className="px-6 py-3 bg-white border-t border-gray-100 flex items-center justify-between text-[11px] font-medium text-gray-400 uppercase tracking-wider">
             <span>💾 Autoguardado al cambiar de celda</span>
             <span>Unidades: 0–100</span>
@@ -262,8 +262,8 @@ export default function GradebookClient({ options, initialClassId, initialTermId
         </div>
       </DashboardLayout>
 
-      <NewEvaluationModal 
-        isOpen={modalOpen} 
+      <NewEvaluationModal
+        isOpen={modalOpen}
         onClose={async () => {
           setModalOpen(false);
           // Optional: re-fetch local data here if next router.replace isn't triggering full refresh immediately

@@ -20,6 +20,7 @@ model Tenant {
   slug      String   @unique
   timezone  String   @default("America/Mexico_City")
   logoUrl   String?
+  admissionPassPercent Float @default(70)
 
   // Panama fiscal fields
   panamaRUC       String? // RUC de la escuela
@@ -75,9 +76,12 @@ model Tenant {
   schoolCalendarEvents SchoolCalendarEvent[]
 
   invitations Invitation[]
+  activationKey TenantActivationKey?
   gradeWeightConfigs GradeWeightConfig[]
   submissions Submission[]
   applicants Applicant[]
+  admissionExams AdmissionExam[]
+  applicantExamResults ApplicantExamResult[]
   conductRecords ConductRecord[]
   books Book[]
   bookLoans BookLoan[]
@@ -190,6 +194,22 @@ model Invitation {
 
   @@index([tenantId, usedAt])
   @@index([tenantId, targetType, targetId])
+}
+
+// Platform-level key handed out (outside the app, by the platform owner) to a
+// new school/company so it can self-provision its own Tenant + first Admin.
+model TenantActivationKey {
+  id             String    @id @default(uuid())
+  key            String    @unique
+  note           String? // optional platform-owner note, e.g. intended school name
+  expiresAt      DateTime
+  usedAt         DateTime?
+  usedByTenantId String?   @unique
+  createdAt      DateTime  @default(now())
+
+  usedByTenant Tenant? @relation(fields: [usedByTenantId], references: [id], onDelete: SetNull)
+
+  @@index([usedAt])
 }
 
 model UserMembership {
@@ -320,8 +340,41 @@ model Applicant {
 
   tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+  examResults ApplicantExamResult[]
 
   @@index([tenantId, status])
+}
+
+model AdmissionExam {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  weight    Int
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  results ApplicantExamResult[]
+
+  @@index([tenantId, active])
+}
+
+model ApplicantExamResult {
+  id          String   @id @default(uuid())
+  tenantId    String
+  applicantId String
+  examId      String
+  score       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  applicant Applicant     @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  exam      AdmissionExam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([applicantId, examId])
 }
 
 model Section {

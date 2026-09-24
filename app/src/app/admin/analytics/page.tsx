@@ -60,7 +60,7 @@ export default function AdminAnalyticsPage() {
     <DashboardLayout roleTitle="Admin" userName="Administrador" userRole="Administrador" menuGroups={menuGroups} breadcrumbs={['Admin', 'Analítica']}>
       <div className="flex items-center gap-4 mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Analítica</h1>
-        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-bold">Panel de métricas</span>
+        <span className="px-3 py-1 bg-brand-secondary text-brand-primary rounded-full text-sm font-bold">Panel de métricas</span>
       </div>
 
       {loading ? (
@@ -73,7 +73,7 @@ export default function AdminAnalyticsPage() {
           {/* KPIs */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             {[
-              { label: 'Alumnos Activos', value: kpis?.activeStudents ?? 0, icon: 'school', color: 'bg-blue-50 text-blue-600' },
+              { label: 'Alumnos Activos', value: kpis?.activeStudents ?? 0, icon: 'school', color: 'bg-brand-bg text-brand-accent' },
               { label: 'Grupos Activos', value: kpis?.activeSections ?? 0, icon: 'groups', color: 'bg-green-50 text-green-600' },
               { label: 'Asistencia del Mes', value: kpis?.monthlyAttendancePct !== null ? `${kpis?.monthlyAttendancePct}%` : '—', icon: 'how_to_reg', color: kpis?.monthlyAttendancePct && kpis.monthlyAttendancePct >= 90 ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600' },
             ].map(kpi => (
@@ -101,7 +101,7 @@ export default function AdminAnalyticsPage() {
                     <div key={s.id} className="flex items-center gap-3">
                       <div className="w-28 text-sm font-medium text-gray-700 truncate">{s.gradeName} {s.sectionName}</div>
                       <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${s.occupancyPct >= 90 ? 'bg-red-400' : s.occupancyPct >= 70 ? 'bg-amber-400' : 'bg-blue-400'}`} style={{ width: `${s.occupancyPct}%` }} />
+                        <div className={`h-full rounded-full ${s.occupancyPct >= 90 ? 'bg-red-400' : s.occupancyPct >= 70 ? 'bg-amber-400' : 'bg-brand-accent'}`} style={{ width: `${s.occupancyPct}%` }} />
                       </div>
                       <span className="text-sm font-bold text-gray-900 w-14 text-right">{s.enrolled}/{s.capacity}</span>
                     </div>

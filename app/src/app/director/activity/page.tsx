@@ -33,7 +33,7 @@ export default async function DirectorActivityPage({ searchParams }: DirectorAct
                 href={option.id === 'all' ? '/director/activity' : `/director/activity?type=${option.id}`}
                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
                   isActive
-                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    ? 'border-brand-accent bg-brand-bg text-brand-accent'
                     : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
