@@ -14,7 +14,8 @@ describe('overview KPIs integration contract (S05/R005/R004/R001)', () => {
   });
 
   before(async () => {
-    (globalThis as any).__TEST_SESSION__ = { user: { id: 'admin-a', role: 'ADMIN', tenantSlug: 'school-a' } };
+    // roles is the real session shape (src/auth.ts); role names are lowercase in the DB seed.
+    (globalThis as any).__TEST_SESSION__ = { user: { id: 'admin-a', roles: ['admin'], tenantSlug: 'school-a' } };
     prismaMock = {
       tenant: { findUnique: async () => ({ id: 'tenant-a', slug: 'school-a' }) },
       student: { count: async () => 123 },
@@ -71,7 +72,7 @@ describe('overview KPIs integration contract (S05/R005/R004/R001)', () => {
         classRequests: 9,
         scheduleRequests: 0,
         announcementsToPublish: 0,
-        role: 'ADMIN',
+        role: 'admin',
         scopeTenantId: 'tenant-a',
       });
     } finally {

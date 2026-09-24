@@ -46,13 +46,18 @@ async function seedFinanceWriteAccess(tenantId: string, userId: string) {
       isActive: true,
     },
   });
-  const permission = await prisma.permission.upsert({
-    where: { code: 'finance:write' },
-    update: {},
-    create: { code: 'finance:write', description: 'test seed: finance write access' },
-  });
+  // Sprint 1 (AUDITORIA-2026-09, tarea 1.5): generateEnrollmentCharges now also
+  // requires students:manage. A real admin has both (rbac-defaults.ts), so this
+  // fixture mirrors that instead of narrowing to a single permission.
   const role = await prisma.role.create({ data: { tenantId, name: `finance-writer-${userId}` } });
-  await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  for (const code of ['finance:write', 'students:manage']) {
+    const permission = await prisma.permission.upsert({
+      where: { code },
+      update: {},
+      create: { code, description: `test seed: ${code}` },
+    });
+    await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: permission.id } });
+  }
   await prisma.userRole.create({ data: { tenantId, userId, roleId: role.id } });
 }
 
@@ -105,6 +110,13 @@ describe('M010 finance contracts (sibling discounts + payment plans) — NO mock
     await db.studentGuardian.create({ data: { tenantId: tenant.id, guardianId: guardian.id, studentId: student1.id, isPrimary: true } });
     await db.studentGuardian.create({ data: { tenantId: tenant.id, guardianId: guardian.id, studentId: student2.id, isPrimary: true } });
 
+    // Sprint 1 (tarea 1.5): generateEnrollmentCharges now cross-checks enrollmentId
+    // against a real Enrollment row (tenant/student/year match), like the real
+    // enrollStudent() call site does — so this fixture needs one too.
+    const gradeLevel = await db.gradeLevel.create({ data: { tenantId: tenant.id, code: '1', name: 'Primero' } });
+    const section = await db.section.create({ data: { tenantId: tenant.id, academicYearId: year.id, gradeLevelId: gradeLevel.id, name: 'A' } });
+    const enrollment = await db.enrollment.create({ data: { tenantId: tenant.id, studentId: student1.id, academicYearId: year.id, sectionId: section.id } });
+
     const concept = await db.financeConcept.create({
       data: {
         tenantId: tenant.id,
@@ -129,7 +141,7 @@ describe('M010 finance contracts (sibling discounts + payment plans) — NO mock
       siblingMinCount: 1, // requires at least 1 OTHER sibling (i.e. a 2+ children family)
     });
 
-    const result = await enrollmentCharges.generateEnrollmentCharges(student1.id, 'enrollment-1', 'enrollment_only', year.id);
+    const result = await enrollmentCharges.generateEnrollmentCharges(student1.id, enrollment.id, 'enrollment_only', year.id);
 
     assert.equal(result.charges.length, 1);
     assert.equal(result.charges[0].amountCents, 180_00, 'sibling discount contract broken: expected 200 - 10% = 180');

@@ -76,7 +76,7 @@ describe('activity feed contract (S05/R006/R001)', () => {
     };
 
     (globalThis as any).__TEST_SESSION__ = {
-      user: { id: 'dir-a', role: 'DIRECTOR', tenantSlug: 'school-a' },
+      user: { id: 'dir-a', roles: ['director'], tenantSlug: 'school-a' },
     };
 
     const mod = await import('@/actions/activity');

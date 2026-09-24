@@ -188,8 +188,9 @@ describe('enrollment actions contract (S02) — NO mock.module, Postgres real', 
   });
 
   it(
-    'revelaría SEG-H4 si corriera: enrollStudent no verifica rol (cualquier sesión inscribe)',
-    { skip: 'AUDIT SEG-H4: enrollStudent/unenrollStudent/reenrollStudent no verifican rol' },
+    // AUDIT SEG-H4 (resuelto en Sprint 1, tarea 1.5): un padre sin students:manage
+    // ya no puede inscribir a un alumno.
+    'enrollStudent rechaza a un padre sin permiso de gestión de alumnos',
     async () => {
       const school = await setupSchool('t-enr-segh4');
       const student = await makeStudent(school.tenant.id, 'SegH4');
@@ -202,10 +203,7 @@ describe('enrollment actions contract (S02) — NO mock.module, Postgres real', 
 
       setTestSession({ id: parent.id, tenantSlug: school.tenant.slug, roles: ['parent'] });
       try {
-        // Comportamiento esperado (seguro): un padre sin permiso no puede
-        // matricular. Hoy la action no verifica rol e inscribe con éxito,
-        // así que este caso FALLA y documenta el bug sin tocar producción.
-        await assert.rejects(() => enrollStudent(student.id, school.section.id), /UNAUTHORIZED|FORBIDDEN|ROLE/);
+        await expectDomainError(enrollStudent(student.id, school.section.id), 'UNAUTHORIZED_ROLE');
       } finally {
         clearTestSession();
       }

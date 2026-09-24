@@ -122,6 +122,18 @@ import './test/actions/messages-send-in-conversation.contract.test';
 // Central authz guard (requireTenant / requirePermission) suite
 import './lib/__tests__/authz.test';
 
+// Sprint 1 (AUDITORIA-2026-09): closes the authorization gaps from Sprint 0's audit
+import './actions/__tests__/settings.contract.test';
+import './actions/finance/__tests__/finance-reads-authz.contract.test';
+import './actions/__tests__/reports-admin-activity-authz.contract.test';
+import './actions/__tests__/academic-scheduling-authz.contract.test';
+import './actions/finance/__tests__/online-payments-webhook.contract.test';
+import './actions/finance/__tests__/finance-reads-b-authz.contract.test';
+import './actions/__tests__/attendance-classes-gradebook-idor.contract.test';
+import './actions/__tests__/login-authz.contract.test';
+import './actions/__tests__/attachments-authz.contract.test';
+import './actions/__tests__/comms-authz.contract.test';
+
 // Tests are NOT auto-discovered, so a forgotten import means a suite silently never runs.
 // Fail the whole run if any *.test.* file under src/ is missing from this runner.
 import { readdirSync, readFileSync } from 'node:fs';
