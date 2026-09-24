@@ -2,6 +2,7 @@ import { before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
+import { seedPermission } from '@/test/factories/rbac';
 
 // Contract tests for Slice S02.
 // Expected to be RED until T02 implements schema + actions for payments + statement.
@@ -22,6 +23,37 @@ function clearTestSession() {
 
 function getDb(): DB {
   return prisma as any;
+}
+
+function uniqueSuffix() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function createFinanceAdmin(db: any, tenantId: string, suffix: string) {
+  const admin = await db.user.create({
+    data: {
+      email: `admin-${suffix}@test.local`,
+      passwordHash: 'test',
+      fullName: 'Admin Finance',
+      isActive: true,
+    },
+  });
+  await seedPermission(tenantId, admin.id, 'finance:write');
+  return admin;
+}
+
+async function createParent(db: any, tenantId: string, suffix: string) {
+  const email = `parent-${suffix}@test.local`;
+  const parentUser = await db.user.create({
+    data: {
+      email,
+      passwordHash: 'test',
+      fullName: 'Parent Finance',
+      isActive: true,
+    },
+  });
+  const guardian = await db.guardian.create({ data: { tenantId, fullName: 'Parent Finance', email } });
+  return { parentUser, guardian };
 }
 
 async function resetDb(db: any) {
@@ -68,13 +100,11 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
   it('Admin can record manual payment in same-tenant charge; statement balance updates deterministically (charges - payments)', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
 
-    // Users are optional for session seam, but keep IDs stable.
-    const adminUserId = 'user-admin-a';
-
-    // Guardian/Parent + relationship
-    const guardianA = await db.guardian.create({ data: { tenantId: tenantA.id, fullName: 'Parent A' } });
+    const suffix = uniqueSuffix();
+    const admin = await createFinanceAdmin(db, tenantA.id, suffix);
+    const { parentUser, guardian: guardianA } = await createParent(db, tenantA.id, suffix);
 
     const studentOwned = await db.student.create({
       data: { tenantId: tenantA.id, firstName: 'Owned', lastName: 'Student' },
@@ -107,7 +137,7 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
 
     setTestSession({
       user: {
-        id: adminUserId,
+        id: admin.id,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'admin',
@@ -128,7 +158,8 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
     // balanceDueCents = sum(charges.amountCents) - sum(payments.amountCents)
     setTestSession({
       user: {
-        id: 'user-parent-a',
+        id: parentUser.id,
+        email: parentUser.email,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'parent',
@@ -151,8 +182,8 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
   it('tenant-scope: Admin cannot record payment against charge in other tenant (stable error; no data leakage)', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
-    const tenantB = await db.tenant.create({ data: { name: 'Tenant B', slug: 'tenant-b' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
+    const tenantB = await db.tenant.create({ data: { name: 'Tenant B', slug: `tenant-b-${uniqueSuffix()}` } });
 
     // Charge in tenant B
     const studentB = await db.student.create({ data: { tenantId: tenantB.id, firstName: 'B', lastName: 'Student' } });
@@ -170,9 +201,11 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
       },
     });
 
+    const admin = await createFinanceAdmin(db, tenantA.id, uniqueSuffix());
+
     setTestSession({
       user: {
-        id: 'user-admin-a',
+        id: admin.id,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'admin',
@@ -197,9 +230,11 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
   it('parent-scope: getForParent returns only students associated to this parent; excludes other students charges/payments', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
 
-    const guardianA = await db.guardian.create({ data: { tenantId: tenantA.id, fullName: 'Parent A' } });
+    const suffix = uniqueSuffix();
+    const admin = await createFinanceAdmin(db, tenantA.id, suffix);
+    const { parentUser, guardian: guardianA } = await createParent(db, tenantA.id, suffix);
 
     const studentOwned = await db.student.create({ data: { tenantId: tenantA.id, firstName: 'Owned', lastName: 'Student' } });
     const studentOther = await db.student.create({ data: { tenantId: tenantA.id, firstName: 'Other', lastName: 'Student' } });
@@ -223,7 +258,7 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
 
     // Payment applied to other student charge (should not appear)
     setTestSession({
-      user: { id: 'user-admin-a', tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
+      user: { id: admin.id, tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
     });
 
     await financePayments.recordManual({ chargeId: otherCharge.id, amountCents: 50_00, paidAt: new Date('2026-03-06T12:00:00.000Z') });
@@ -231,7 +266,8 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
     // Parent reads
     setTestSession({
       user: {
-        id: 'user-parent-a',
+        id: parentUser.id,
+        email: parentUser.email,
         tenantId: tenantA.id,
         tenantSlug: tenantA.slug,
         role: 'parent',
@@ -257,8 +293,9 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
   it('validation: invalid amount (<= 0) throws stable error FINANCE_PAYMENT_INVALID_AMOUNT', async () => {
     const db = getDb() as any;
 
-    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a' } });
+    const tenantA = await db.tenant.create({ data: { name: 'Tenant A', slug: `tenant-a-${uniqueSuffix()}` } });
 
+    const admin = await createFinanceAdmin(db, tenantA.id, uniqueSuffix());
     const guardianA = await db.guardian.create({ data: { tenantId: tenantA.id, fullName: 'Parent A' } });
     const studentOwned = await db.student.create({ data: { tenantId: tenantA.id, firstName: 'Owned', lastName: 'Student' } });
     await db.studentGuardian.create({
@@ -274,7 +311,7 @@ describe('finance.s02 payments + statement contract (S02)', { skip: false }, () 
     });
 
     setTestSession({
-      user: { id: 'user-admin-a', tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
+      user: { id: admin.id, tenantId: tenantA.id, tenantSlug: tenantA.slug, role: 'admin', roles: ['admin'] },
     });
 
     await assert.rejects(

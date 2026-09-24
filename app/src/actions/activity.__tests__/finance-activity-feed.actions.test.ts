@@ -2,6 +2,7 @@ import { before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import prisma from '@/lib/prisma';
+import { seedPermission } from '@/test/factories/rbac';
 
 // Contract tests for Slice S03 (financial observability):
 // - Finance mutations must emit ActivityEvent rows (entityType: 'finance')
@@ -30,6 +31,10 @@ function clearTestPrisma() {
 
 function getDb(): DB {
   return prisma as any;
+}
+
+function uniqueSuffix() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 async function resetDb(db: any) {
@@ -81,17 +86,18 @@ describe('finance activity events + feed filter contract (S03)', () => {
     const db = getDb() as any;
 
     // Seed minimal tenant + actors + student + finance concept
-    const tenant = await db.tenant.create({ data: { name: 'Tenant Finance', slug: 'tenant-fin' } });
+    const suffix = uniqueSuffix();
+    const tenant = await db.tenant.create({ data: { name: 'Tenant Finance', slug: `tenant-fin-${suffix}` } });
 
     const adminUser = await db.user.create({
       data: {
-        id: 'user-admin-fin',
-        email: 'admin-fin@test.local',
+        email: `admin-fin-${suffix}@test.local`,
         passwordHash: 'test',
         fullName: 'Admin Finance',
         isActive: true,
       },
     });
+    await seedPermission(tenant.id, adminUser.id, 'finance:write');
 
     // Some repos require memberships/roles; keep best-effort and non-fatal
     try {
@@ -106,8 +112,7 @@ describe('finance activity events + feed filter contract (S03)', () => {
 
     await db.user.create({
       data: {
-        id: 'user-parent-fin',
-        email: 'parent-fin@test.local',
+        email: `parent-fin-${suffix}@test.local`,
         passwordHash: 'test',
         fullName: 'Parent Finance',
         isActive: true,
@@ -206,16 +211,17 @@ describe('finance activity events + feed filter contract (S03)', () => {
   it('idempotency: re-running charge generation does NOT create duplicate finance.charge.created events for the same charge', async () => {
     const db = getDb() as any;
 
-    const tenant = await db.tenant.create({ data: { name: 'Tenant Finance 2', slug: 'tenant-fin-2' } });
+    const suffix = uniqueSuffix();
+    const tenant = await db.tenant.create({ data: { name: 'Tenant Finance 2', slug: `tenant-fin-2-${suffix}` } });
     const adminUser = await db.user.create({
       data: {
-        id: 'user-admin-fin-2',
-        email: 'admin-fin-2@test.local',
+        email: `admin-fin-2-${suffix}@test.local`,
         passwordHash: 'test',
         fullName: 'Admin Finance 2',
         isActive: true,
       },
     });
+    await seedPermission(tenant.id, adminUser.id, 'finance:write');
     const student = await db.student.create({
       data: {
         tenantId: tenant.id,
