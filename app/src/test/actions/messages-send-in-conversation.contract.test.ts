@@ -7,6 +7,12 @@ let sendMessageInConversation: typeof import('@/actions/messages').sendMessageIn
 describe('messages contract: sendMessageInConversation (write path)', () => {
   before(async () => {
     prismaMock = {
+      // requireSession() resuelve el tenant con prisma.tenant.findFirst
+      // (slug o id de la sesión). Sin este modelo el mock falla con
+      // "Cannot read properties of undefined (reading 'findFirst')".
+      tenant: {
+        findFirst: async () => ({ id: 'tenant-1' }),
+      },
       messageParticipant: {
         findFirst: async () => ({ id: 'mp-1' }),
       },
@@ -23,6 +29,11 @@ describe('messages contract: sendMessageInConversation (write path)', () => {
           prismaMock.messageConversation.updateCalls.push(args);
           return { id: args.where.id };
         },
+      },
+      // La emisión de actividad (best-effort, dentro de try/catch en la action)
+      // también pasa por prisma; se mockea para no tocar la DB real.
+      activityEvent: {
+        create: async () => ({ id: 'ev-1' }),
       },
       $transaction: async (fn: any) => fn(prismaMock),
     };

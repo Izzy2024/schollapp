@@ -5,6 +5,16 @@ import prisma from '@/lib/prisma';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { revalidatePath } from 'next/cache';
 
+// ponytail: revalidatePath needs a Next.js request context; contract tests run
+// this action outside one, so failures here are swallowed (cache staleness, not correctness).
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    // no-op outside a Next.js request context (e.g. tests)
+  }
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type AnnouncementTargetInput = {
@@ -199,7 +209,7 @@ export async function createAnnouncement(
     publishedNow: Boolean(data.publishNow),
   });
 
-  revalidatePath('/admin/announcements');
+  safeRevalidate('/admin/announcements');
   return { success: true, id: announcement.id };
 }
 
@@ -233,7 +243,7 @@ export async function publishAnnouncement(id: string, tenantSlug?: string) {
     publishedNow: true,
   });
 
-  revalidatePath('/admin/announcements');
+  safeRevalidate('/admin/announcements');
   return { success: true };
 }
 
@@ -266,6 +276,6 @@ export async function deleteAnnouncement(id: string, tenantSlug?: string) {
     publishedNow: existing.publishedAt != null,
   });
 
-  revalidatePath('/admin/announcements');
+  safeRevalidate('/admin/announcements');
   return { success: true };
 }

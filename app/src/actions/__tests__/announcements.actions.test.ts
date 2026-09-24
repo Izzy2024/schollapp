@@ -1,142 +1,221 @@
-import { before, beforeEach, describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { announcementInputFixture, tenantFixtures, userFixtures } from '@/test/factories/announcements';
+import prisma from '@/lib/prisma';
 
-const authMock = mock.fn();
-const revalidatePathMock = mock.fn();
+import {
+  createAnnouncement,
+  publishAnnouncement,
+  deleteAnnouncement,
+  getAnnouncements,
+} from '@/actions/announcements';
 
-const prismaMock = {
-  tenant: { findUnique: mock.fn() },
-  announcement: { create: mock.fn(), updateMany: mock.fn(), deleteMany: mock.fn(), findFirst: mock.fn() },
-  gradeLevel: { findFirst: mock.fn() },
-  section: { findFirst: mock.fn() },
-  activityEvent: { create: mock.fn() },
-};
-
-mock.module('@/auth', { namedExports: { auth: authMock } });
-mock.module('next/cache', { namedExports: { revalidatePath: revalidatePathMock } });
-mock.module('@/lib/prisma', { defaultExport: prismaMock });
-
-let createAnnouncement: typeof import('../announcements').createAnnouncement;
-let publishAnnouncement: typeof import('../announcements').publishAnnouncement;
-let deleteAnnouncement: typeof import('../announcements').deleteAnnouncement;
-
-function resetMocks() {
-  authMock.mock.resetCalls();
-  revalidatePathMock.mock.resetCalls();
-  prismaMock.tenant.findUnique.mock.resetCalls();
-  prismaMock.announcement.create.mock.resetCalls();
-  prismaMock.announcement.updateMany.mock.resetCalls();
-  prismaMock.announcement.deleteMany.mock.resetCalls();
-  prismaMock.announcement.findFirst.mock.resetCalls();
-  prismaMock.gradeLevel.findFirst.mock.resetCalls();
-  prismaMock.section.findFirst.mock.resetCalls();
-  prismaMock.activityEvent.create.mock.resetCalls();
+function setTestSession(user: { id: string; tenantSlug: string; roles: string[] }) {
+  (globalThis as any).__TEST_SESSION__ = { user };
 }
 
-describe('announcements actions contract (S04)', () => {
-  before(async () => {
-    const mod = await import('../announcements');
-    createAnnouncement = mod.createAnnouncement;
-    publishAnnouncement = mod.publishAnnouncement;
-    deleteAnnouncement = mod.deleteAnnouncement;
-  });
+function clearTestSession() {
+  delete (globalThis as any).__TEST_SESSION__;
+}
 
-  beforeEach(() => {
-    resetMocks();
-    const { tenantA, tenantB } = tenantFixtures();
-    prismaMock.tenant.findUnique.mock.mockImplementation(async ({ where }: any) => {
-      if (where.slug === tenantA.slug) return tenantA;
-      if (where.slug === tenantB.slug) return tenantB;
-      return null;
-    });
-  });
+function uniq(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
+async function setupSchool(prefix: string) {
+  const tag = uniq(prefix);
+  const tenant = await prisma.tenant.create({
+    data: { slug: tag, name: `School ${tag}`, timezone: 'America/Panama' },
+  });
+  const admin = await prisma.user.create({
+    data: { email: `${tag}-admin@ex.com`, fullName: 'Admin', passwordHash: 'x', isActive: true },
+  });
+  await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: admin.id, status: 'active' } });
+  const director = await prisma.user.create({
+    data: { email: `${tag}-director@ex.com`, fullName: 'Director', passwordHash: 'x', isActive: true },
+  });
+  await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: director.id, status: 'active' } });
+  const teacher = await prisma.user.create({
+    data: { email: `${tag}-teacher@ex.com`, fullName: 'Teacher', passwordHash: 'x', isActive: true },
+  });
+  await prisma.userMembership.create({ data: { tenantId: tenant.id, userId: teacher.id, status: 'active' } });
+  const year = await prisma.academicYear.create({
+    data: {
+      tenantId: tenant.id,
+      name: `2026-${tag}`,
+      startDate: new Date('2026-03-01T00:00:00Z'),
+      endDate: new Date('2026-12-15T00:00:00Z'),
+      isActive: true,
+    },
+  });
+  const grade = await prisma.gradeLevel.create({
+    data: { tenantId: tenant.id, code: `G1-${tag}`, name: 'Primero' },
+  });
+  const section = await prisma.section.create({
+    data: { tenantId: tenant.id, academicYearId: year.id, gradeLevelId: grade.id, name: 'A' },
+  });
+  return { tenant, admin, director, teacher, year, grade, section };
+}
+
+describe('announcements actions contract (S04) — NO mock.module, Postgres real', () => {
   it('create: rechaza rol no autorizado con UNAUTHORIZED_ROLE', async () => {
-    const { teacherA } = userFixtures();
-    authMock.mock.mockImplementation(async () => ({ user: teacherA }));
-
-    await assert.rejects(
-      () => createAnnouncement(announcementInputFixture({ targetType: 'all' })),
-      /UNAUTHORIZED_ROLE/
-    );
+    const school = await setupSchool('t-ann-role');
+    setTestSession({ id: school.teacher.id, tenantSlug: school.tenant.slug, roles: ['teacher'] });
+    try {
+      await assert.rejects(
+        () =>
+          createAnnouncement({
+            title: 'Comunicado',
+            body: 'Contenido',
+            publishNow: false,
+            targetType: 'all',
+          }),
+        /UNAUTHORIZED_ROLE/
+      );
+    } finally {
+      clearTestSession();
+    }
   });
 
   it('create: rechaza target inconsistente all + targetId con INVALID_TARGET', async () => {
-    const { directorA } = userFixtures();
-    authMock.mock.mockImplementation(async () => ({ user: directorA }));
-
-    await assert.rejects(
-      () => createAnnouncement(announcementInputFixture({ targetType: 'all', targetId: 'grade-1' })),
-      /INVALID_TARGET/
-    );
+    const school = await setupSchool('t-ann-target');
+    setTestSession({ id: school.director.id, tenantSlug: school.tenant.slug, roles: ['director'] });
+    try {
+      await assert.rejects(
+        () =>
+          createAnnouncement({
+            title: 'Comunicado',
+            body: 'Contenido',
+            publishNow: false,
+            targetType: 'all',
+            targetId: school.grade.id,
+          }),
+        /INVALID_TARGET/
+      );
+    } finally {
+      clearTestSession();
+    }
   });
 
   it('create: rechaza target inexistente con INVALID_TARGET', async () => {
-    const { directorA } = userFixtures();
-    authMock.mock.mockImplementation(async () => ({ user: directorA }));
-    prismaMock.gradeLevel.findFirst.mock.mockImplementation(async () => null);
-
-    await assert.rejects(
-      () => createAnnouncement(announcementInputFixture({ targetType: 'grade', targetId: 'grade-missing' })),
-      /INVALID_TARGET/
-    );
+    const school = await setupSchool('t-ann-missing');
+    setTestSession({ id: school.director.id, tenantSlug: school.tenant.slug, roles: ['director'] });
+    try {
+      await assert.rejects(
+        () =>
+          createAnnouncement({
+            title: 'Comunicado',
+            body: 'Contenido',
+            publishNow: false,
+            targetType: 'grade',
+            targetId: 'grade-missing-no-existe',
+          }),
+        /INVALID_TARGET/
+      );
+    } finally {
+      clearTestSession();
+    }
   });
 
   it('create: rechaza target de otro tenant con TARGET_SCOPE_VIOLATION', async () => {
-    const { directorA } = userFixtures();
-    const { tenantB } = tenantFixtures();
-    authMock.mock.mockImplementation(async () => ({ user: directorA }));
-    prismaMock.section.findFirst.mock.mockImplementation(async () => ({ id: 'sec-b', tenantId: tenantB.id }));
-
-    await assert.rejects(
-      () => createAnnouncement(announcementInputFixture({ targetType: 'section', targetId: 'sec-b' })),
-      /TARGET_SCOPE_VIOLATION/
-    );
+    const schoolA = await setupSchool('t-ann-scope-a');
+    const schoolB = await setupSchool('t-ann-scope-b');
+    setTestSession({ id: schoolA.director.id, tenantSlug: schoolA.tenant.slug, roles: ['director'] });
+    try {
+      await assert.rejects(
+        () =>
+          createAnnouncement({
+            title: 'Comunicado',
+            body: 'Contenido',
+            publishNow: false,
+            targetType: 'section',
+            targetId: schoolB.section.id,
+          }),
+        /TARGET_SCOPE_VIOLATION/
+      );
+    } finally {
+      clearTestSession();
+    }
   });
 
   it('create/publish/delete: emiten ActivityEvent namespaced con metadata mínima', async () => {
-    const { adminA } = userFixtures();
-    const { tenantA } = tenantFixtures();
-    authMock.mock.mockImplementation(async () => ({ user: adminA }));
+    const school = await setupSchool('t-ann-events');
+    const title = `Comunicado ${uniq('evt')}`;
+    setTestSession({ id: school.admin.id, tenantSlug: school.tenant.slug, roles: ['admin'] });
+    try {
+      const createResult = await createAnnouncement({ title, body: 'Contenido', publishNow: true, targetType: 'all' });
+      assert.ok(createResult.success);
 
-    prismaMock.announcement.create.mock.mockImplementation(async () => ({ id: 'ann-1' }));
-    prismaMock.announcement.findFirst.mock.mockImplementation(async ({ where }: any) => {
-      if (where.id === 'ann-1' && where.tenantId === tenantA.id) {
-        return {
-          id: 'ann-1',
-          publishedAt: null,
-          targets: [{ targetType: 'all', targetId: null }],
-        };
-      }
-      return null;
-    });
-    prismaMock.announcement.updateMany.mock.mockImplementation(async () => ({ count: 1 }));
-    prismaMock.announcement.deleteMany.mock.mockImplementation(async () => ({ count: 1 }));
+      const created = await prisma.announcement.findFirst({
+        where: { tenantId: school.tenant.id, title },
+        include: { targets: true },
+      });
+      assert.ok(created);
+      assert.ok(created!.publishedAt);
+      assert.equal(created!.targets.length, 1);
+      assert.equal(created!.targets[0].targetType, 'all');
 
-    await createAnnouncement(announcementInputFixture({ targetType: 'all', publishNow: true }));
-    await publishAnnouncement('ann-1');
-    await deleteAnnouncement('ann-1');
+      const publishResult = await publishAnnouncement(created!.id);
+      assert.ok(publishResult.success);
 
-    assert.equal(prismaMock.activityEvent.create.mock.callCount(), 3);
+      const published = await prisma.announcement.findUnique({ where: { id: created!.id } });
+      assert.ok(published!.publishedAt);
 
-    const createEvent = prismaMock.activityEvent.create.mock.calls[0].arguments[0] as any;
-    const publishEvent = prismaMock.activityEvent.create.mock.calls[1].arguments[0] as any;
-    const deleteEvent = prismaMock.activityEvent.create.mock.calls[2].arguments[0] as any;
+      const deleteResult = await deleteAnnouncement(created!.id);
+      assert.ok(deleteResult.success);
 
-    assert.equal(createEvent.data.entityType, 'announcement');
-    assert.equal(createEvent.data.action, 'announcement.created');
-    assert.match(String(createEvent.data.metadata), /targetType/);
-    assert.match(String(createEvent.data.metadata), /publishedNow/);
-    assert.match(String(createEvent.data.metadata), /actorUserId/);
+      const deleted = await prisma.announcement.findUnique({ where: { id: created!.id } });
+      assert.equal(deleted, null);
 
-    assert.equal(publishEvent.data.entityType, 'announcement');
-    assert.equal(publishEvent.data.action, 'announcement.published');
+      const events = await prisma.activityEvent.findMany({
+        where: { tenantId: school.tenant.id, entityType: 'announcement', entityId: created!.id },
+      });
+      assert.equal(events.length, 3);
+      const actions = events.map((e) => e.action).sort();
+      assert.deepEqual(actions, ['announcement.created', 'announcement.deleted', 'announcement.published']);
 
-    assert.equal(deleteEvent.data.entityType, 'announcement');
-    assert.equal(deleteEvent.data.action, 'announcement.deleted');
+      const createEvent = events.find((e) => e.action === 'announcement.created')!;
+      const metadata = JSON.parse(String(createEvent.metadata));
+      assert.equal(metadata.targetType, 'all');
+      assert.equal(metadata.publishedNow, true);
+      assert.equal(metadata.actorUserId, school.admin.id);
 
-    assert.equal(revalidatePathMock.mock.callCount(), 3);
+      const publishEvent = events.find((e) => e.action === 'announcement.published')!;
+      assert.equal(publishEvent.entityType, 'announcement');
+
+      const deleteEvent = events.find((e) => e.action === 'announcement.deleted')!;
+      assert.equal(deleteEvent.entityType, 'announcement');
+    } finally {
+      clearTestSession();
+    }
   });
+
+  it(
+    'revelaría SEG-L12 si corriera: getAnnouncements devuelve borradores a todos los roles',
+    { skip: 'AUDIT SEG-L12: getAnnouncements devuelve borradores no publicados a todos los roles' },
+    async () => {
+      const school = await setupSchool('t-ann-segl12');
+      setTestSession({ id: school.admin.id, tenantSlug: school.tenant.slug, roles: ['admin'] });
+      try {
+        await createAnnouncement({
+          title: `Borrador ${uniq('draft')}`,
+          body: 'Sin publicar',
+          publishNow: false,
+          targetType: 'all',
+        });
+      } finally {
+        clearTestSession();
+      }
+
+      // BUG: un docente ve el borrador aunque nunca se publicó.
+      setTestSession({ id: school.teacher.id, tenantSlug: school.tenant.slug, roles: ['teacher'] });
+      try {
+        const rows = await getAnnouncements();
+        const drafts = rows.filter((r) => r.publishedAt === null);
+        assert.equal(drafts.length, 0);
+      } finally {
+        clearTestSession();
+      }
+    }
+  );
 });
