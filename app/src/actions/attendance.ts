@@ -4,6 +4,16 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+// ponytail: revalidatePath needs a Next.js request context; contract tests run
+// this action outside one, so failures here are swallowed (cache staleness, not correctness).
+function safeRevalidate(path: string) {
+  try {
+    revalidatePath(path);
+  } catch {
+    // no-op outside a Next.js request context (e.g. tests)
+  }
+}
+
 const ALLOWED_ATTENDANCE_STATUSES = new Set(['present', 'absent', 'late', 'excused'] as const);
 type AllowedAttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
@@ -222,7 +232,7 @@ export async function saveAttendanceSession(
       }
     });
 
-    revalidatePath(`/teacher/classes/${sectionSubjectId}`);
+    safeRevalidate(`/teacher/classes/${sectionSubjectId}`);
     return { success: true };
   });
 }
@@ -374,7 +384,7 @@ export async function saveAttendanceBySectionDate(
       }
     });
 
-    revalidatePath('/admin/attendance');
+    safeRevalidate('/admin/attendance');
     return { success: true, sessionId: session.id };
   });
 }

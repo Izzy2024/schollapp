@@ -1,35 +1,8 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { workAsyncStorage } from 'next/dist/server/app-render/work-async-storage.external';
-
 import prisma from '@/lib/prisma';
 import { saveAttendanceSession } from '@/actions/attendance';
-
-// attendance.ts calls next/cache revalidatePath() directly. Outside a Next.js
-// request there is no static-generation store, so revalidatePath throws and the
-// surrounding $transaction rolls back. We give it a throwaway store by swapping
-// the work AsyncLocalStorage the Next runtime would normally provide.
-const realAsyncLocalStorage = new AsyncLocalStorage();
-(workAsyncStorage as any).run = realAsyncLocalStorage.run.bind(realAsyncLocalStorage);
-(workAsyncStorage as any).getStore = realAsyncLocalStorage.getStore.bind(realAsyncLocalStorage);
-
-function runAction<T>(fn: () => Promise<T>): Promise<T> {
-  const store = {
-    incrementalCache: {},
-    route: '/test',
-    page: '/test/page',
-    previouslyRevalidatedTags: [],
-    refreshTagsByCacheKind: new Map(),
-    shouldTrackFetchMetrics: false,
-    buildId: 'test',
-    cacheComponentsEnabled: false,
-    dev: true,
-    reactServerErrorsByDigest: new Map(),
-  };
-  return workAsyncStorage.run(store as any, fn) as Promise<T>;
-}
 
 function setTestSession(user: { id: string; tenantSlug: string; roles: string[] }) {
   (globalThis as any).__TEST_SESSION__ = { user };
@@ -105,12 +78,12 @@ describe('attendance persistence contract (real Postgres) — NO mock.module', (
 
     setTestSession({ id: admin.id, tenantSlug: tenant.slug, roles: ['admin'] });
 
-    const first = await runAction(() =>
-      saveAttendanceSession(sectionSubject.id, '2026-03-01', [{ studentId: student.id, status: 'present' }])
-    );
-    const second = await runAction(() =>
-      saveAttendanceSession(sectionSubject.id, '2026-03-01', [{ studentId: student.id, status: 'late' }])
-    );
+    const first = await saveAttendanceSession(sectionSubject.id, '2026-03-01', [
+      { studentId: student.id, status: 'present' },
+    ]);
+    const second = await saveAttendanceSession(sectionSubject.id, '2026-03-01', [
+      { studentId: student.id, status: 'late' },
+    ]);
 
     assert.deepEqual(first, { success: true });
     assert.deepEqual(second, { success: true });
@@ -133,11 +106,9 @@ describe('attendance persistence contract (real Postgres) — NO mock.module', (
 
     setTestSession({ id: admin.id, tenantSlug: tenant.slug, roles: ['admin'] });
 
-    await runAction(() =>
-      saveAttendanceSession(sectionSubject.id, '2026-03-01', [
-        { studentId: student.id, status: 'present', note: 'a tiempo' },
-      ])
-    );
+    await saveAttendanceSession(sectionSubject.id, '2026-03-01', [
+      { studentId: student.id, status: 'present', note: 'a tiempo' },
+    ]);
 
     const session = await prisma.attendanceSession.findFirst({ where: { tenantId: tenant.id, sectionId: section.id } });
     assert.ok(session);
@@ -168,12 +139,12 @@ describe('attendance persistence contract (real Postgres) — NO mock.module', (
 
       setTestSession({ id: admin.id, tenantSlug: tenant.slug, roles: ['admin'] });
 
-      await runAction(() =>
-        saveAttendanceSession(sectionSubject.id, '2026-03-01', [{ studentId: student.id, status: 'present' }])
-      );
-      await runAction(() =>
-        saveAttendanceSession(otherSectionSubject.id, '2026-03-01', [{ studentId: student.id, status: 'absent' }])
-      );
+      await saveAttendanceSession(sectionSubject.id, '2026-03-01', [
+        { studentId: student.id, status: 'present' },
+      ]);
+      await saveAttendanceSession(otherSectionSubject.id, '2026-03-01', [
+        { studentId: student.id, status: 'absent' },
+      ]);
 
       const sessions = await prisma.attendanceSession.findMany({
         where: { tenantId: tenant.id, sectionId: section.id, date: new Date('2026-03-01') },
