@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { permissionCodes, roleDefs } from '../src/lib/rbac-defaults';
+import { PERMISSION_CODES, roleDefs } from '../src/lib/rbac-defaults';
 
 const prisma = new PrismaClient();
 
@@ -54,7 +54,7 @@ async function main() {
   // Step 8.1.1 — RBAC: Permissions + Roles + UserRoles
   // Keep these minimal and stable; UI (menus) and guards can rely on them.
   const permissions: Record<string, any> = {};
-  for (const code of permissionCodes) {
+  for (const code of PERMISSION_CODES) {
     permissions[code] = await prisma.permission.upsert({
       where: { code },
       update: {},

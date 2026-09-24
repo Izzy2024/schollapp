@@ -23,30 +23,12 @@ export const PERMISSION_CODES = [
   'settings:manage',
 ] as const;
 
-export const permissionCodes = PERMISSION_CODES;
-
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
 
 export type RoleName = 'admin' | 'director' | 'teacher' | 'parent' | 'student';
 
-export const MANAGE_PERMISSIONS: string[] = [
-  'finance:write',
-  'students:manage',
-  'staff:manage',
-  'invitations:manage',
-  'grades:write',
-  'attendance:write',
-  'health:manage',
-  'cafeteria:manage',
-  'inventory:manage',
-  'library:manage',
-  'transport:manage',
-  'conduct:manage',
-  'integrations:manage',
-  'schedule:manage',
-  'academic:manage',
-  'settings:manage',
-];
+// Every granular code (everything except the app:* role markers) is a management permission.
+export const MANAGE_PERMISSIONS: string[] = PERMISSION_CODES.filter((code) => !code.startsWith('app:'));
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, string[]> = {
   admin: ['app:admin', ...MANAGE_PERMISSIONS],
@@ -63,5 +45,3 @@ export const roleDefs = [
   { name: 'parent', permissions: DEFAULT_ROLE_PERMISSIONS.parent },
   { name: 'student', permissions: DEFAULT_ROLE_PERMISSIONS.student },
 ] as const;
-
-export const ROLE_DEFS = roleDefs;

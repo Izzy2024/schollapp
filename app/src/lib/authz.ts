@@ -11,13 +11,7 @@ export type AuthzContext = {
 };
 
 export async function requireTenant(): Promise<AuthzContext> {
-  let session;
-  try {
-    session = await auth();
-  } catch {
-    throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
-  }
-
+  const session = await auth();
   if (!session?.user?.id) {
     throw stableError(STABLE_ERROR.UNAUTHORIZED_ROLE);
   }
@@ -34,17 +28,11 @@ export async function requireTenant(): Promise<AuthzContext> {
     throw stableError(STABLE_ERROR.TENANT_NOT_FOUND);
   }
 
-  const roles: string[] = Array.isArray(session.user.roles)
-    ? session.user.roles
-    : (session.user as any).role
-      ? [(session.user as any).role]
-      : [];
-
   return {
     tenantId: tenant.id,
     tenantSlug: tenant.slug,
     userId: session.user.id,
-    roles,
+    roles: session.user.roles ?? [],
   };
 }
 

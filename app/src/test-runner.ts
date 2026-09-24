@@ -105,3 +105,35 @@ import './actions/__tests__/staffStudentsGuardians.authz.test';
 
 // Tenant self-activation (key -> tenant + admin with default RBAC) contract suite
 import './actions/__tests__/tenantActivation.contract.test';
+
+// Sprint 0 (AUDITORIA-2026-09, tarea 0.1): suites that existed but were never wired in
+import './actions/__tests__/attendance.authorization.test';
+import './actions/__tests__/attendance.persistence.test';
+import './actions/__tests__/attendance.reporting.test';
+import './actions/__tests__/enrollment.actions.test';
+import './actions/__tests__/announcements.actions.test';
+import './actions/__tests__/calendar.contract.test';
+import './actions/__tests__/finance.actions.test';
+import './actions/activity.__tests__/finance-activity-feed.actions.test';
+import './actions/finance/__tests__/payments-and-statement.actions.test';
+import './test/actions/communication-activity.contract.test';
+import './test/actions/messages-send-in-conversation.contract.test';
+
+// Central authz guard (requireTenant / requirePermission) suite
+import './lib/__tests__/authz.test';
+
+// Tests are NOT auto-discovered, so a forgotten import means a suite silently never runs.
+// Fail the whole run if any *.test.* file under src/ is missing from this runner.
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const srcDir = path.join(process.cwd(), 'src');
+const runnerSource = readFileSync(path.join(srcDir, 'test-runner.ts'), 'utf8');
+const imported = new Set([...runnerSource.matchAll(/^import '\.\/(.+)';$/gm)].map((m) => m[1]));
+const notImported = readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
+  .filter((file) => /\.test\.(ts|tsx|mjs)$/.test(file))
+  .map((file) => file.split(path.sep).join('/').replace(/\.tsx?$/, ''))
+  .filter((file) => !imported.has(file));
+if (notImported.length > 0) {
+  throw new Error(`Test files not imported in src/test-runner.ts (they would never run):\n${notImported.join('\n')}`);
+}
