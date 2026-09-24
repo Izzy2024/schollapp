@@ -1,4 +1,4 @@
-import { before, beforeEach, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 let authMock: any;
@@ -7,6 +7,12 @@ let prismaMock: any;
 let getAdminDashboardStats: typeof import('@/actions/admin').getAdminDashboardStats;
 
 describe('overview KPIs integration contract (S05/R005/R004/R001)', () => {
+  // Test seams are process-global in the shared runner: reset them so later suites use the real DB.
+  after(() => {
+    delete (globalThis as any).__TEST_PRISMA__;
+    delete (globalThis as any).__TEST_SESSION__;
+  });
+
   before(async () => {
     (globalThis as any).__TEST_SESSION__ = { user: { id: 'admin-a', role: 'ADMIN', tenantSlug: 'school-a' } };
     prismaMock = {

@@ -1,4 +1,4 @@
-import { before, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 let getDirectorRecentActivities: typeof import('@/actions/directorActivity').getDirectorRecentActivities;
@@ -20,6 +20,12 @@ function setAuthSession(session: any) {
 }
 
 describe('director overview/activity RBAC contract (S05/R001)', () => {
+  // Test seams are process-global in the shared runner: reset them so later suites use the real DB.
+  after(() => {
+    delete (globalThis as any).__TEST_PRISMA__;
+    delete (globalThis as any).__TEST_SESSION__;
+  });
+
   before(async () => {
     getDirectorRecentActivities = (await import('@/actions/directorActivity')).getDirectorRecentActivities;
     getDirectorOverviewStats = (await import('@/actions/directorOverview')).getDirectorOverviewStats;

@@ -1,10 +1,16 @@
-import { before, beforeEach, describe, it } from 'node:test';
+import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 let prismaMock: any;
 let sendMessageInConversation: typeof import('@/actions/messages').sendMessageInConversation;
 
 describe('messages contract: sendMessageInConversation (write path)', () => {
+  // Test seams are process-global in the shared runner: reset them so later suites use the real DB.
+  after(() => {
+    delete (globalThis as any).__TEST_PRISMA__;
+    delete (globalThis as any).__TEST_SESSION__;
+  });
+
   before(async () => {
     prismaMock = {
       // requireSession() resuelve el tenant con prisma.tenant.findFirst

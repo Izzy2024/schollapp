@@ -25,7 +25,9 @@ describe('Authz central guards (requireTenant, requirePermission)', () => {
   });
 
   it('sin sesión → requireTenant rechaza con UNAUTHORIZED_ROLE', async () => {
-    clearTestSession();
+    // A session object with no user is what auth() yields for an anonymous request; clearing the
+    // seam entirely would fall through to real NextAuth, which needs a Next.js request scope.
+    (globalThis as any).__TEST_SESSION__ = {};
     await assert.rejects(
       async () => requireTenant(),
       (err: any) => err.message === STABLE_ERROR.UNAUTHORIZED_ROLE

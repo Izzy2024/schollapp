@@ -127,13 +127,20 @@ import './lib/__tests__/authz.test';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+// Known exceptions: UI render tests that still use mock.module (they throw on import here).
+// Tracked in docs/AUDITORIA-2026-09.md (Sprint 5, tareas 5.3/5.5). Do not add entries without a backlog ID.
+const KNOWN_UNWIRED = new Set([
+  'app/admin/enrollment/__tests__/enrollment-page.test',
+  'app/director/announcements/__tests__/page.integration.test',
+]);
+
 const srcDir = path.join(process.cwd(), 'src');
 const runnerSource = readFileSync(path.join(srcDir, 'test-runner.ts'), 'utf8');
 const imported = new Set([...runnerSource.matchAll(/^import '\.\/(.+)';$/gm)].map((m) => m[1]));
 const notImported = readdirSync(srcDir, { recursive: true, encoding: 'utf8' })
   .filter((file) => /\.test\.(ts|tsx|mjs)$/.test(file))
   .map((file) => file.split(path.sep).join('/').replace(/\.tsx?$/, ''))
-  .filter((file) => !imported.has(file));
+  .filter((file) => !imported.has(file) && !KNOWN_UNWIRED.has(file));
 if (notImported.length > 0) {
   throw new Error(`Test files not imported in src/test-runner.ts (they would never run):\n${notImported.join('\n')}`);
 }
