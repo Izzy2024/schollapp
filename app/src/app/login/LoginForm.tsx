@@ -25,6 +25,11 @@ const DEMO_USERS = [
 
 export type LoginBranding = { name: string; logoUrl: string | null } | null;
 
+// Demo panel + prefilled credentials exist only outside production.
+// process.env.NODE_ENV is inlined by Next.js at build time, so the demo
+// block is compiled out of production bundles entirely.
+const showDemoPanel = process.env.NODE_ENV !== 'production';
+
 export default function LoginForm({ branding = null }: { branding?: LoginBranding }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,8 +86,8 @@ export default function LoginForm({ branding = null }: { branding?: LoginBrandin
     }
   }, [errorMessage, router]);
 
-  const [email, setEmail] = useState('admin@demo.com');
-  const [password, setPassword] = useState('demo-hash-123');
+  const [email, setEmail] = useState(showDemoPanel ? 'admin@demo.com' : '');
+  const [password, setPassword] = useState(showDemoPanel ? 'demo-hash-123' : '');
 
   const setDemoUser = (demoEmail: string) => {
     setEmail(demoEmail);
@@ -216,7 +221,8 @@ export default function LoginForm({ branding = null }: { branding?: LoginBrandin
           </form>
         </div>
 
-        {/* Demo users */}
+        {/* Demo users (dev only — compiled out in production) */}
+        {showDemoPanel && (
         <div className="border-t border-gray-100 bg-gray-50/70 p-5 sm:p-6">
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
             Acceso rápido · Usuarios Demo
@@ -247,6 +253,7 @@ export default function LoginForm({ branding = null }: { branding?: LoginBrandin
               : 'Selecciona un usuario para rellenar el formulario'}
           </p>
         </div>
+        )}
       </div>
 
       <p className="mt-6 text-center text-xs leading-relaxed text-gray-400">

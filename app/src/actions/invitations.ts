@@ -7,6 +7,16 @@ import crypto from 'crypto';
 import { revalidatePath } from 'next/cache';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { hasPermission } from '@/lib/rbac';
+import { escapeHtml } from '@/lib/html-escape';
+import {
+  UNKNOWN_IP,
+  INVITE_IP_LIMIT,
+  INVITE_IP_WINDOW_MS,
+  getClientIp,
+  inviteIpKey,
+  isRateLimited,
+  registerAttempt,
+} from '@/lib/rate-limit';
 import { ensureMembershipAndRole, type ProvisionRole } from '@/lib/accountProvisioning';
 import { sendEmail } from '@/lib/email';
 
@@ -19,6 +29,18 @@ const TARGET_ROLE: Record<InvitationTargetType, ProvisionRole> = {
 };
 
 const INVITE_TTL_DAYS = 7;
+
+// Invitation codes are short (48-bit) and brute-forceable: cap lookups per
+// IP before any DB access. Every call counts (valid or not) so the limit
+// itself can't be used to probe code validity.
+async function checkInviteIpRateLimit(): Promise<boolean> {
+  const clientIp = await getClientIp();
+  if (clientIp === UNKNOWN_IP) return false;
+  const key = inviteIpKey(clientIp);
+  if (await isRateLimited(key, INVITE_IP_LIMIT, INVITE_IP_WINDOW_MS)) return true;
+  await registerAttempt(key, INVITE_IP_WINDOW_MS);
+  return false;
+}
 
 // ponytail: revalidatePath needs a Next.js request context; contract tests run
 // this action outside one, so failures here are swallowed (cache staleness, not correctness).
@@ -52,7 +74,7 @@ async function sendInvitationEmail(tenantId: string, email: string, invitedName:
   await sendEmail({
     to: email,
     subject: `Invitación para crear tu cuenta en ${tenant?.name ?? 'la escuela'}`,
-    html: `<p>Hola ${invitedName},</p><p>Crea tu cuenta en ${tenant?.name ?? 'la escuela'} con el siguiente enlace:</p><p><a href="${registerUrl}">${registerUrl}</a></p><p>Este enlace expira en 7 días.</p>`,
+    html: `<p>Hola ${escapeHtml(invitedName)},</p><p>Crea tu cuenta en ${escapeHtml(tenant?.name ?? 'la escuela')} con el siguiente enlace:</p><p><a href="${registerUrl}">${registerUrl}</a></p><p>Este enlace expira en 7 días.</p>`,
   });
 }
 
@@ -154,6 +176,7 @@ export async function getInvitationInfo(code: string): Promise<
   | { invitedName: string; tenantName: string; role: InvitationTargetType; suggestedEmail: string | null }
   | { error: string }
 > {
+  if (await checkInviteIpRateLimit()) return { error: STABLE_ERROR.TOO_MANY_ATTEMPTS };
   const invitation = await prisma.invitation.findUnique({ where: { code }, include: { tenant: true } });
   if (!invitation) return { error: STABLE_ERROR.INVITE_NOT_FOUND };
   if (invitation.usedAt) return { error: STABLE_ERROR.INVITE_USED };
@@ -182,6 +205,8 @@ export async function registerWithInvitation(input: {
   const email = input.email.trim().toLowerCase();
   if (typeof input.password !== 'string' || input.password.length < 8)
     return { error: STABLE_ERROR.WEAK_PASSWORD };
+
+  if (await checkInviteIpRateLimit()) return { error: STABLE_ERROR.TOO_MANY_ATTEMPTS };
 
   try {
     await prisma.$transaction(async (tx) => {

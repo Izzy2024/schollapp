@@ -5,7 +5,7 @@ import { AuthError } from 'next-auth';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
-import { resolveHomePath } from '@/lib/auth-guards.mjs';
+import { resolveHomePath, extractRoles } from '@/lib/auth-guards.mjs';
 import { STABLE_ERROR, stableError } from '@/lib/errors';
 import { isTooManyAttemptsError } from '@/lib/authErrors';
 
@@ -87,6 +87,17 @@ async function resolveLoginRedirectPath(email: string) {
   return '/admin';
 }
 
+// Post-auth role lookup used ONLY when there is no Next.js request context
+// (contract tests under tsx): signIn() already validated the credentials, so
+// resolving roles from the DB here cannot be used to enumerate emails.
+async function resolveRolesForEmail(email: string): Promise<string[]> {
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase().trim() },
+    include: { roles: { include: { role: true } } },
+  });
+  return user?.roles.map((userRole) => userRole.role.name) ?? [];
+}
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
@@ -94,7 +105,15 @@ export async function authenticate(
   try {
     const data = Object.fromEntries(formData);
     const email = String(data.email ?? '');
-    const redirectPath = await resolveLoginRedirectPath(email);
+
+    // The "seed required" hint is a local-dev convenience. In production this
+    // pre-signIn lookup is skipped: it ran before any credential check and
+    // without rate limiting, letting anyone distinguish "email exists" from
+    // "email missing" (SEG-M4). Production failures below all collapse to
+    // the same generic message in the catch.
+    if (process.env.NODE_ENV !== 'production') {
+      await resolveLoginRedirectPath(email);
+    }
 
     await clearAuthCookies();
     await signIn('credentials', {
@@ -102,7 +121,19 @@ export async function authenticate(
       redirect: false,
     });
 
-    return `REDIRECT:${redirectPath}`;
+    // Redirect resolution runs only AFTER signIn validated the credentials
+    // (and authorize() applied the rate limit).
+    let roles: string[];
+    try {
+      const session = await auth();
+      roles = extractRoles(session?.user);
+    } catch {
+      // No Next.js request context (contract tests under tsx): signIn already
+      // validated the credentials, so resolve roles from the DB instead.
+      roles = await resolveRolesForEmail(email);
+    }
+
+    return `REDIRECT:${resolveHomePath(roles)}`;
   } catch (error) {
     // Handle seed-missing explicitly to avoid a generic CallbackRouteError and to give an actionable message.
     if (error instanceof SeedRequiredError) {

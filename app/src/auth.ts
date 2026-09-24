@@ -1,4 +1,5 @@
 import NextAuth from 'next-auth';
+import type { NextAuthConfig } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
@@ -26,7 +27,10 @@ function resolveAuthSecret(): string {
   return 'secret-for-dev-only-change-in-prod';
 }
 
-export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
+// NextAuth options, exported so contract tests can invoke the jwt()/session()
+// callbacks directly (the __TEST_SESSION__ seam bypasses them, so revocation
+// can only be tested at this level).
+export const nextAuthOptions = {
   ...authConfig,
   providers: [
     CredentialsProvider({
@@ -83,6 +87,7 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         let isPasswordValid = false;
         if (
           process.env.ALLOW_DEMO_LOGIN === '1' &&
+          process.env.NODE_ENV !== 'production' &&
           user.passwordHash === 'demo-hash-123' &&
           credentials.password === 'demo-hash-123'
         ) {
@@ -138,10 +143,34 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
         token.tenantSlug = u.tenantSlug;
         token.roles = u.roles;
         token.mustChangePassword = u.mustChangePassword;
+        token.revoked = false;
+        return token;
+      }
+      // Token refresh (no new login): re-check that the user still exists
+      // and is active, so deactivating an account cuts existing sessions
+      // (best effort, no schema change). Fail open on DB errors.
+      if (typeof token.id === 'string' && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: { isActive: true },
+          });
+          if (!dbUser || !dbUser.isActive) {
+            token.revoked = true;
+          }
+        } catch {
+          // fail open: a store outage must not lock every user out
+        }
       }
       return token;
     },
     async session({ session, token }) {
+      if ((token as { revoked?: boolean }).revoked) {
+        // Revoked session: leave session.user empty so every consumer of
+        // session?.user (including requireTenant()) treats it as signed out.
+        (session as { user?: unknown }).user = undefined;
+        return session;
+      }
       if (session.user) {
         session.user.id = token.id as string;
         const su = session.user as typeof session.user & {
@@ -162,7 +191,9 @@ export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth({
     strategy: 'jwt',
   },
   secret: resolveAuthSecret(),
-});
+} satisfies NextAuthConfig;
+
+export const { handlers, signIn, signOut, auth: nextAuthAuth } = NextAuth(nextAuthOptions);
 
 // Test override seam: some contract tests run under tsx where node:test mock.module is not available.
 // They can set globalThis.__TEST_SESSION__ to bypass NextAuth internals.

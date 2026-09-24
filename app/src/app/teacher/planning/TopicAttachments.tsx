@@ -117,7 +117,7 @@ export function TopicAttachments({ topicId }: { topicId: string }) {
           {attachments.map((a) => (
             <div key={a.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-md p-2 shadow-sm hover:border-brand-primary transition-colors group">
               <a
-                href={a.fileKey}
+                href={`/api/files/${a.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 flex-1 min-w-0"

@@ -50,3 +50,12 @@ test('resolveFallbackPath matches route guard fallbacks', () => {
   assert.equal(resolveFallbackPath('/director', ['teacher']), '/admin');
   assert.equal(resolveFallbackPath('/student', ['student']), null);
 });
+
+test('empty roles: neutral home, no fallback redirect (no loop)', () => {
+  assert.equal(resolveHomePath([]), '/profile');
+  assert.equal(resolveFallbackPath('/admin', []), null);
+  assert.equal(resolveFallbackPath('/teacher', []), null);
+  assert.equal(resolveFallbackPath('/student', []), null);
+  assert.equal(resolveFallbackPath('/parent', []), null);
+  assert.equal(resolveFallbackPath('/director', []), null);
+});

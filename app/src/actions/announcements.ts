@@ -132,8 +132,15 @@ export async function getAnnouncements(tenantSlug?: string): Promise<Announcemen
     const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlug } });
     if (!tenant) throw new Error('Tenant not found');
 
+    // SEG-L12: non-managing roles only see published announcements; admins and
+    // directors keep seeing their own drafts (publishedAt: null).
+    const roles = Array.isArray((session.user as { roles?: unknown }).roles)
+      ? ((session.user as { roles?: unknown[] }).roles ?? []).map((r) => String(r).toLowerCase())
+      : [];
+    const canManage = roles.includes('admin') || roles.includes('director');
+
     const rows = await prisma.announcement.findMany({
-      where: { tenantId: tenant.id },
+      where: canManage ? { tenantId: tenant.id } : { tenantId: tenant.id, publishedAt: { not: null } },
       include: {
         createdBy: { select: { fullName: true } },
         targets: { select: { targetType: true, targetId: true } },
