@@ -5,6 +5,8 @@ import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { ensureDefaultPrimaryCatalog } from '@/lib/defaultPrimaryCatalog';
+import { requirePermission } from '@/lib/authz';
+import { STABLE_ERROR, stableError } from '@/lib/errors';
 
 export async function getSectionSubjects(
   tenantSlug?: string,
@@ -74,18 +76,17 @@ export async function getSectionSubjects(
   }));
 }
 
-export async function createSectionSubject(sectionId: string, subjectId: string, staffId: string | null, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
-
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
+export async function createSectionSubject(sectionId: string, subjectId: string, staffId: string | null, _tenantSlug?: string) {
+  const { tenantId } = await requirePermission('academic:manage');
+  const [section, subject, staff] = await Promise.all([
+    prisma.section.findFirst({ where: { id: sectionId, tenantId }, select: { id: true } }),
+    prisma.subject.findFirst({ where: { id: subjectId, tenantId }, select: { id: true } }),
+    staffId ? prisma.staff.findFirst({ where: { id: staffId, tenantId }, select: { id: true } }) : null,
+  ]);
+  if (!section || !subject || (staffId && !staff)) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   const existing = await prisma.sectionSubject.findFirst({
-    where: { tenantId: tenant.id, sectionId, subjectId },
+    where: { tenantId, sectionId, subjectId },
   });
 
   if (existing) {
@@ -94,7 +95,7 @@ export async function createSectionSubject(sectionId: string, subjectId: string,
 
   await prisma.sectionSubject.create({
     data: {
-      tenantId: tenant.id,
+      tenantId,
       sectionId,
       subjectId,
       staffId,
@@ -104,25 +105,24 @@ export async function createSectionSubject(sectionId: string, subjectId: string,
   return { success: true };
 }
 
-export async function assignTeacher(sectionSubjectId: string, staffId: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function assignTeacher(sectionSubjectId: string, staffId: string, _tenantSlug?: string) {
+  const ctx = await requirePermission('academic:manage');
+  const [sectionSubject, staff] = await Promise.all([
+    prisma.sectionSubject.findFirst({ where: { id: sectionSubjectId, tenantId: ctx.tenantId }, select: { id: true } }),
+    prisma.staff.findFirst({ where: { id: staffId, tenantId: ctx.tenantId }, select: { id: true } }),
+  ]);
+  if (!sectionSubject || !staff) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
-
-  await prisma.sectionSubject.update({
-    where: { id: sectionSubjectId },
+  const updated = await prisma.sectionSubject.updateMany({
+    where: { id: sectionSubjectId, tenantId: ctx.tenantId },
     data: { staffId },
   });
+  if (updated.count !== 1) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   await prisma.activityEvent.create({
     data: {
-      tenantId: tenant.id,
-      actorUserId: session.user.id,
+      tenantId: ctx.tenantId,
+      actorUserId: ctx.userId,
       entityType: 'sectionSubject',
       entityId: sectionSubjectId,
       action: 'teacher_assigned',
@@ -134,20 +134,16 @@ export async function assignTeacher(sectionSubjectId: string, staffId: string, t
   return { success: true };
 }
 
-export async function removeTeacher(sectionSubjectId: string, tenantSlug?: string) {
-  const session = await auth();
-  if (!session?.user) throw new Error('Unauthorized');
-  tenantSlug = session.user.tenantSlug;
+export async function removeTeacher(sectionSubjectId: string, _tenantSlug?: string) {
+  const { tenantId } = await requirePermission('academic:manage');
+  const sectionSubject = await prisma.sectionSubject.findFirst({ where: { id: sectionSubjectId, tenantId }, select: { id: true } });
+  if (!sectionSubject) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: tenantSlug },
-  });
-  if (!tenant) throw new Error('Tenant not found');
-
-  await prisma.sectionSubject.update({
-    where: { id: sectionSubjectId },
+  const updated = await prisma.sectionSubject.updateMany({
+    where: { id: sectionSubjectId, tenantId },
     data: { staffId: null },
   });
+  if (updated.count !== 1) throw stableError(STABLE_ERROR.INVALID_TARGET);
 
   return { success: true };
 }
